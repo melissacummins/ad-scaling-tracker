@@ -12,15 +12,16 @@
         import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
         import { getAnalytics } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics.js';
 
-        // Firebase configuration
+        // Firebase configuration - YOU NEED TO REPLACE THESE VALUES WITH YOUR OWN
+        // Create a separate config.js file or use environment variables in production
         const firebaseConfig = {
-            apiKey: "AIzaSyAOJ9lDM3TCVdAra2G340jG5B3wyc4ABiU",
-            authDomain: "ad-scaling-tracker.firebaseapp.com",
-            projectId: "ad-scaling-tracker",
-            storageBucket: "ad-scaling-tracker.firebasestorage.app",
-            messagingSenderId: "83542485482",
-            appId: "1:83542485482:web:721177b941fcc6f49e6a93",
-            measurementId: "G-HLX0FY7BD1"
+            apiKey: "YOUR_API_KEY_HERE",
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com", 
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_PROJECT_ID.firebasestorage.app",
+            messagingSenderId: "YOUR_SENDER_ID",
+            appId: "YOUR_APP_ID",
+            measurementId: "YOUR_MEASUREMENT_ID"
         };
 
         // Initialize Firebase
@@ -582,6 +583,16 @@
             color: #333;
             font-size: 12px;
         }
+        
+        .login-screen {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .login-screen .header {
+            margin-bottom: 0;
+        }
 
         @media (max-width: 1200px) {
             .controls {
@@ -628,6 +639,27 @@
 </head>
 <body>
     <div class="container">
+        <!-- Login Screen (shown when not signed in) -->
+        <div id="loginScreen" class="login-screen">
+            <div class="header">
+                <h1>📊 Ad Scaling Tracker</h1>
+                <p>Track hooks, campaigns, ROAS, and scale performance across all your ad campaigns</p>
+            </div>
+            <div style="text-align: center; padding: 50px;">
+                <h2 style="margin-bottom: 30px; color: #333;">Sign in to access your data</h2>
+                <p style="margin-bottom: 30px; color: #666; max-width: 500px; margin-left: auto; margin-right: auto;">
+                    Your ad scaling data is securely stored in the cloud and synced across all your devices. 
+                    Sign in with your Google account to get started.
+                </p>
+                <button id="loginButton" class="btn btn-primary" style="font-size: 18px; padding: 15px 30px;">
+                    🔐 Sign in with Google
+                </button>
+                <div id="loginStatus" style="margin-top: 20px; color: #666;"></div>
+            </div>
+        </div>
+
+        <!-- Main App (shown when signed in) -->
+        <div id="mainApp" style="display: none;">
         <div class="header">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                 <div>
@@ -635,11 +667,7 @@
                     <p>Track hooks, campaigns, ROAS, and scale performance across all your ad campaigns</p>
                 </div>
                 <div id="authSection" style="text-align: right; min-width: 200px;">
-                    <div id="signedOutView" style="display: block;">
-                        <button id="signInButton" class="btn btn-primary" style="margin-bottom: 10px;">🔐 Sign in with Google</button>
-                        <p style="font-size: 0.9rem; opacity: 0.8;">Sign in to sync your data across devices</p>
-                    </div>
-                    <div id="signedInView" style="display: none;">
+                    <div id="signedInView">
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                             <img id="userPhoto" style="width: 40px; height: 40px; border-radius: 50%;" />
                             <div>
@@ -912,19 +940,21 @@
         }
 
         function updateAuthUI() {
-            const signedInView = document.getElementById('signedInView');
-            const signedOutView = document.getElementById('signedOutView');
+            const loginScreen = document.getElementById('loginScreen');
+            const mainApp = document.getElementById('mainApp');
             const userName = document.getElementById('userName');
             const userPhoto = document.getElementById('userPhoto');
 
             if (isSignedIn && currentUser) {
-                signedOutView.style.display = 'none';
-                signedInView.style.display = 'block';
+                // Hide login screen, show main app
+                loginScreen.style.display = 'none';
+                mainApp.style.display = 'block';
                 userName.textContent = currentUser.displayName || currentUser.email;
                 userPhoto.src = currentUser.photoURL || 'https://via.placeholder.com/40';
             } else {
-                signedInView.style.display = 'none';
-                signedOutView.style.display = 'block';
+                // Show login screen, hide main app
+                loginScreen.style.display = 'block';
+                mainApp.style.display = 'none';
             }
         }
 
@@ -938,14 +968,23 @@
 
         async function signInWithGoogle() {
             try {
-                updateSyncStatus('🔄 Signing in...');
+                const loginStatus = document.getElementById('loginStatus');
+                if (loginStatus) {
+                    loginStatus.textContent = '🔄 Signing in...';
+                }
+                
                 const result = await window.firebaseSignInWithPopup(window.firebaseAuth, window.firebaseProvider);
                 console.log('Signed in successfully:', result.user);
-                updateSyncStatus('✅ Signed in successfully');
+                
+                if (loginStatus) {
+                    loginStatus.textContent = '✅ Signed in successfully';
+                }
             } catch (error) {
                 console.error('Sign in error:', error);
-                updateSyncStatus('❌ Sign in failed');
-                alert('Failed to sign in: ' + error.message);
+                const loginStatus = document.getElementById('loginStatus');
+                if (loginStatus) {
+                    loginStatus.textContent = '❌ Sign in failed: ' + error.message;
+                }
             }
         }
 
@@ -1069,9 +1108,19 @@
             initializeAuth();
             
             // Add event listeners for auth buttons
-            document.getElementById('signInButton').addEventListener('click', signInWithGoogle);
-            document.getElementById('signOutButton').addEventListener('click', signOutFromGoogle);
-            document.getElementById('syncButton').addEventListener('click', saveDataToFirebase);
+            const loginButton = document.getElementById('loginButton');
+            const signOutButton = document.getElementById('signOutButton');
+            const syncButton = document.getElementById('syncButton');
+            
+            if (loginButton) {
+                loginButton.addEventListener('click', signInWithGoogle);
+            }
+            if (signOutButton) {
+                signOutButton.addEventListener('click', signOutFromGoogle);
+            }
+            if (syncButton) {
+                syncButton.addEventListener('click', saveDataToFirebase);
+            }
         });
 
         function switchTab(tabName) {
@@ -1925,5 +1974,8 @@
             }
         }
     </script>
+        </div>
+        <!-- End of mainApp -->
+    </div>
 </body>
 </html>
