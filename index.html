@@ -932,6 +932,11 @@
                         updateSyncStatus('Signed out');
                     }
                 });
+                
+                // Configure the Google Auth Provider
+                window.firebaseProvider.setCustomParameters({
+                    prompt: 'select_account'
+                });
             } else {
                 // Firebase not loaded yet, try again in 1 second
                 setTimeout(initializeAuth, 1000);
@@ -972,6 +977,12 @@
                     loginStatus.textContent = '🔄 Signing in...';
                 }
                 
+                // Clear any existing auth state
+                if (window.firebaseAuth.currentUser) {
+                    await window.firebaseSignOut(window.firebaseAuth);
+                }
+                
+                // Try the popup sign-in
                 const result = await window.firebaseSignInWithPopup(window.firebaseAuth, window.firebaseProvider);
                 console.log('Signed in successfully:', result.user);
                 
@@ -981,8 +992,24 @@
             } catch (error) {
                 console.error('Sign in error:', error);
                 const loginStatus = document.getElementById('loginStatus');
-                if (loginStatus) {
-                    loginStatus.textContent = '❌ Sign in failed: ' + error.message;
+                
+                if (error.code === 'auth/popup-closed-by-user') {
+                    if (loginStatus) {
+                        loginStatus.innerHTML = '❌ Sign-in popup was closed. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>';
+                    }
+                } else if (error.code === 'auth/popup-blocked') {
+                    if (loginStatus) {
+                        loginStatus.innerHTML = '❌ Popup blocked. Please allow popups and <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">try again</button>';
+                    }
+                } else if (error.code === 'auth/cancelled-popup-request') {
+                    if (loginStatus) {
+                        loginStatus.textContent = '🔄 Please complete the sign-in process...';
+                    }
+                    // Don't show an error for this one, just wait
+                } else {
+                    if (loginStatus) {
+                        loginStatus.innerHTML = `❌ Sign in failed: ${error.message}. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>`;
+                    }
                 }
             }
         }
@@ -1095,31 +1122,36 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Firebase authentication first
+            setTimeout(initializeAuth, 500); // Give Firebase a moment to load
+            
             updateBookOptions();
             renderHooks();
             renderBooks();
             renderCreatives();
             
             // Set today's date as default
-            document.getElementById('testDate').value = new Date().toISOString().split('T')[0];
-            
-            // Initialize Firebase authentication
-            initializeAuth();
-            
-            // Add event listeners for auth buttons
-            const loginButton = document.getElementById('loginButton');
-            const signOutButton = document.getElementById('signOutButton');
-            const syncButton = document.getElementById('syncButton');
-            
-            if (loginButton) {
-                loginButton.addEventListener('click', signInWithGoogle);
+            const testDateInput = document.getElementById('testDate');
+            if (testDateInput) {
+                testDateInput.value = new Date().toISOString().split('T')[0];
             }
-            if (signOutButton) {
-                signOutButton.addEventListener('click', signOutFromGoogle);
-            }
-            if (syncButton) {
-                syncButton.addEventListener('click', saveDataToFirebase);
-            }
+            
+            // Add event listeners for auth buttons with safety checks
+            setTimeout(() => {
+                const loginButton = document.getElementById('loginButton');
+                const signOutButton = document.getElementById('signOutButton');
+                const syncButton = document.getElementById('syncButton');
+                
+                if (loginButton) {
+                    loginButton.addEventListener('click', signInWithGoogle);
+                }
+                if (signOutButton) {
+                    signOutButton.addEventListener('click', signOutFromGoogle);
+                }
+                if (syncButton) {
+                    syncButton.addEventListener('click', saveDataToFirebase);
+                }
+            }, 100);
         });
 
         function switchTab(tabName) {
