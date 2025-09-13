@@ -798,21 +798,15 @@
                     <input type="number" id="purchases" min="0" placeholder="0">
                 </div>
                 <div class="form-group">
-                    <label for="creativesCount">Creatives Tested</label>
-                    <input type="number" id="creativesCount" min="0" placeholder="0">
-                </div>
-                <div class="form-group">
                     <label for="creativeUpload">Upload Creative</label>
                     <div class="file-upload">
                         <input type="file" id="creativeUpload" accept="image/*,video/*" onchange="handleCreativeUpload(event)">
                         <label for="creativeUpload" class="file-upload-label">Choose File</label>
                     </div>
                 </div>
-            </div>
-            <div style="padding: 0 20px 20px; background: #f8f9fa; border-radius: 0 0 10px 10px; margin-top: -30px;">
                 <div class="form-group">
                     <label for="creativeId">Creative ID</label>
-                    <input type="text" id="creativeId" placeholder="Auto-generated or custom ID">
+                    <input type="text" id="creativeId" placeholder="Auto-generated based on book, hook, and date" readonly>
                 </div>
             </div>
 
@@ -1136,6 +1130,15 @@
                 testDateInput.value = new Date().toISOString().split('T')[0];
             }
             
+            // Add event listeners for Creative ID preview
+            const bookSelect = document.getElementById('bookSelect');
+            const hookName = document.getElementById('hookName');
+            const testDate = document.getElementById('testDate');
+            
+            if (bookSelect) bookSelect.addEventListener('change', updateCreativeIdPreview);
+            if (hookName) hookName.addEventListener('input', updateCreativeIdPreview);
+            if (testDate) testDate.addEventListener('change', updateCreativeIdPreview);
+            
             // Add event listeners for auth buttons with safety checks
             setTimeout(() => {
                 const loginButton = document.getElementById('loginButton');
@@ -1252,9 +1255,10 @@
             const totalSpend = parseFloat(document.getElementById('totalSpendInput').value) || 0;
             const totalRevenue = parseFloat(document.getElementById('totalRevenueInput').value) || 0;
             const purchases = parseInt(document.getElementById('purchases').value) || 0;
-            const creativesCount = parseInt(document.getElementById('creativesCount').value) || 0;
             
             let creativeId = document.getElementById('creativeId').value.trim();
+            // Set creativesCount to 1 if there's a creative, 0 if not
+            const creativesCount = creativeId ? 1 : 0;
 
             if (!bookSelect || !hookName) {
                 alert('Please select a book and enter a hook name.');
@@ -1294,6 +1298,7 @@
                 hookData.totalSpend = existing.totalSpend + totalSpend;
                 hookData.totalRevenue = existing.totalRevenue + totalRevenue;
                 hookData.purchases = existing.purchases + purchases;
+                // For existing hooks, add to creative count if there's a new creative
                 hookData.creativesCount = existing.creativesCount + creativesCount;
                 hookData.overallROAS = hookData.totalSpend > 0 ? hookData.totalRevenue / hookData.totalSpend : 0;
                 
@@ -1553,29 +1558,60 @@
             return { text: 'Monitor', class: 'action-maintain' };
         }
 
+        function generateCreativeId(bookName, hookName, testDate) {
+            // Clean the book name and hook name for use in ID
+            const cleanBook = bookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
+            const cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+            const dateStr = testDate.replace(/-/g, '');
+            const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            
+            return `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
+        }
+
+        function updateCreativeIdPreview() {
+            const bookSelect = document.getElementById('bookSelect').value;
+            const hookName = document.getElementById('hookName').value.trim();
+            const testDate = document.getElementById('testDate').value;
+            const creativeIdInput = document.getElementById('creativeId');
+            
+            if (bookSelect && hookName && testDate) {
+                const previewId = generateCreativeId(bookSelect, hookName, testDate);
+                creativeIdInput.placeholder = `Preview: ${previewId}`;
+            } else {
+                creativeIdInput.placeholder = "Auto-generated based on book, hook, and date";
+            }
+        }
+
         function handleCreativeUpload(event) {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    // Get the current Creative ID from the input (in case user typed a custom one)
-                    let creativeId = document.getElementById('creativeId').value.trim();
+                    // Generate Creative ID based on current form values
+                    const bookSelect = document.getElementById('bookSelect').value;
+                    const hookName = document.getElementById('hookName').value.trim();
+                    const testDate = document.getElementById('testDate').value;
                     
-                    // If no custom ID provided, generate one
-                    if (!creativeId) {
-                        creativeId = `creative_${Date.now()}`;
-                        document.getElementById('creativeId').value = creativeId;
+                    if (!bookSelect || !hookName || !testDate) {
+                        alert('Please fill in Book, Hook Name, and Test Date before uploading a creative.');
+                        event.target.value = ''; // Clear the file input
+                        return;
                     }
                     
-                    // Check if this ID already exists
-                    if (creatives[creativeId]) {
-                        // If it exists, ask user if they want to replace it or use a new ID
-                        const shouldReplace = confirm(`A creative with ID "${creativeId}" already exists. Do you want to replace it? Click Cancel to auto-generate a new ID.`);
-                        if (!shouldReplace) {
-                            creativeId = `creative_${Date.now()}`;
-                            document.getElementById('creativeId').value = creativeId;
-                        }
+                    let creativeId = generateCreativeId(bookSelect, hookName, testDate);
+                    
+                    // Check if this ID already exists, if so, generate a new random number
+                    let attempts = 0;
+                    while (creatives[creativeId] && attempts < 10) {
+                        const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+                        const cleanBook = bookSelect.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
+                        const cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+                        const dateStr = testDate.replace(/-/g, '');
+                        creativeId = `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
+                        attempts++;
                     }
+                    
+                    document.getElementById('creativeId').value = creativeId;
                     
                     creatives[creativeId] = {
                         data: e.target.result,
@@ -1896,8 +1932,10 @@
             document.getElementById('totalSpendInput').value = '';
             document.getElementById('totalRevenueInput').value = '';
             document.getElementById('purchases').value = '';
-            document.getElementById('creativesCount').value = '';
             document.getElementById('creativeId').value = '';
+            document.getElementById('creativeId').placeholder = "Auto-generated based on book, hook, and date";
+            // Clear the file input
+            document.getElementById('creativeUpload').value = '';
             cancelAddBook(); // Hide add book form if open
         }
 
