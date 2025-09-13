@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ad Scaling Tracker Dashboard</title>
+    
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+        import { getAnalytics } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAOJ9lDM3TCVdAra2G340jG5B3wyc4ABiU",
+            authDomain: "ad-scaling-tracker.firebaseapp.com",
+            projectId: "ad-scaling-tracker",
+            storageBucket: "ad-scaling-tracker.firebasestorage.app",
+            messagingSenderId: "83542485482",
+            appId: "1:83542485482:web:721177b941fcc6f49e6a93",
+            measurementId: "G-HLX0FY7BD1"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const analytics = getAnalytics(app);
+        const provider = new GoogleAuthProvider();
+
+        // Make Firebase services globally available
+        window.firebaseAuth = auth;
+        window.firebaseDb = db;
+        window.firebaseProvider = provider;
+        window.firebaseSignInWithPopup = signInWithPopup;
+        window.firebaseSignOut = signOut;
+        window.firebaseOnAuthStateChanged = onAuthStateChanged;
+        window.firebaseDoc = doc;
+        window.firebaseSetDoc = setDoc;
+        window.firebaseGetDoc = getDoc;
+    </script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab {
+            padding: 15px 25px;
+            cursor: pointer;
+            background: #f8f9fa;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+            flex: 1;
+            text-align: center;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+        }
+
+        .tab.active {
+            background: white;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .controls-row-2 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 30px;
+            padding: 0 20px 20px;
+            background: #f8f9fa;
+            border-radius: 0 0 10px 10px;
+            margin-top: -30px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .book-selection {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .book-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+
+        .add-book-form {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .add-book-form.active {
+            display: flex;
+            gap: 10px;
+            align-items: flex-end;
+        }
+
+        .add-book-form input {
+            flex: 1;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            margin: 2px;
+            white-space: nowrap;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .btn-xs {
+            padding: 4px 8px;
+            font-size: 11px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 14px;
+            vertical-align: middle;
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        /* Left align specific columns */
+        .data-table th:nth-child(1),
+        .data-table td:nth-child(1), /* Book */
+        .data-table th:nth-child(2),
+        .data-table td:nth-child(2), /* Hook */
+        .data-table th:nth-child(3),
+        .data-table td:nth-child(3)  /* Campaign */
+        {
+            text-align: left;
+        }
+
+        .performance-badge {
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .not-tested { background: #6c757d; color: white; }
+        .testing-incomplete { background: #ffc107; color: #212529; }
+        .testing { background: #17a2b8; color: white; }
+        .validated { background: #28a745; color: white; }
+        .early-scale { background: #007bff; color: white; }
+        .proven-scale { background: #6f42c1; color: white; }
+        .mature-scale { background: #fd7e14; color: white; }
+
+        .scale-efficiency {
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .scales-well { background: #28a745; color: white; }
+        .scales-ok { background: #ffc107; color: #212529; }
+        .doesnt-scale { background: #dc3545; color: white; }
+
+        .action-item {
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .action-scale { background: #28a745; color: white; }
+        .action-maintain { background: #17a2b8; color: white; }
+        .action-retest { background: #ffc107; color: #212529; }
+        .action-kill { background: #dc3545; color: white; }
+
+        .milestone-display {
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .current-milestone {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .milestone-toggle {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-size: 11px;
+            text-decoration: underline;
+            padding: 0;
+        }
+
+        .milestone-toggle:hover {
+            color: #5a67d8;
+        }
+
+        .milestone-history {
+            display: none;
+            margin-top: 8px;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 11px;
+        }
+
+        .milestone-history.active {
+            display: block;
+        }
+
+        .milestone-item {
+            margin: 2px 0;
+            color: #666;
+        }
+
+        .edit-form {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .edit-form.active {
+            display: block;
+        }
+
+        .creative-thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .creative-modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .creative-modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            max-width: 80%;
+            max-height: 80%;
+        }
+
+        .creative-modal img,
+        .creative-modal video {
+            max-width: 100%;
+            max-height: 70vh;
+            border-radius: 10px;
+        }
+
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .file-upload {
+            position: relative;
+            display: inline-block;
+            cursor: pointer;
+        }
+
+        .file-upload input[type="file"] {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .file-upload-label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #6c757d;
+            color: white;
+            border-radius: 8px;
+            text-align: center;
+            transition: all 0.3s;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .file-upload-label:hover {
+            background: #5a6268;
+        }
+
+        .import-export {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+
+        .creative-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .creative-card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .creative-card img,
+        .creative-card video {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+
+        .creative-type-badge {
+            background: #667eea;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .creative-info {
+            margin-bottom: 10px;
+        }
+
+        .creative-info p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .creative-name-edit {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+            margin: 5px 0;
+        }
+
+        .creative-name-edit input {
+            flex: 1;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .hook-link {
+            background: #f8f9fa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 5px 0;
+        }
+
+        .hook-link h4 {
+            color: #667eea;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .hook-link p {
+            margin: 2px 0;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .hook-financial {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            margin-top: 8px;
+        }
+
+        .financial-item {
+            text-align: center;
+            padding: 5px;
+            background: #e9ecef;
+            border-radius: 4px;
+        }
+
+        .financial-item .label {
+            font-size: 10px;
+            color: #666;
+            display: block;
+        }
+
+        .financial-item .value {
+            font-weight: bold;
+            color: #333;
+            font-size: 12px;
+        }
+
+        @media (max-width: 1200px) {
+            .controls {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+
+            .controls-row-2 {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .controls,
+            .controls-row-2 {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .data-table {
+                font-size: 12px;
+            }
+            
+            .data-table th,
+            .data-table td {
+                padding: 8px 4px;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .import-export {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .creative-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <div>
+                    <h1>📊 Ad Scaling Tracker</h1>
+                    <p>Track hooks, campaigns, ROAS, and scale performance across all your ad campaigns</p>
+                </div>
+                <div id="authSection" style="text-align: right; min-width: 200px;">
+                    <div id="signedOutView" style="display: block;">
+                        <button id="signInButton" class="btn btn-primary" style="margin-bottom: 10px;">🔐 Sign in with Google</button>
+                        <p style="font-size: 0.9rem; opacity: 0.8;">Sign in to sync your data across devices</p>
+                    </div>
+                    <div id="signedInView" style="display: none;">
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <img id="userPhoto" style="width: 40px; height: 40px; border-radius: 50%;" />
+                            <div>
+                                <div id="userName" style="font-weight: bold;"></div>
+                                <div id="syncStatus" style="font-size: 0.8rem; opacity: 0.8;">✅ Data synced</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            <button id="syncButton" class="btn btn-secondary btn-sm">🔄 Sync Now</button>
+                            <button id="signOutButton" class="btn btn-secondary btn-sm">🚪 Sign Out</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('hooks')">🎯 Hooks Tracker</button>
+            <button class="tab" onclick="switchTab('books')">📚 Books Management</button>
+            <button class="tab" onclick="switchTab('creatives')">🎨 Creative Library</button>
+        </div>
+
+        <!-- Hooks Tab -->
+        <div id="hooksTab" class="tab-content active">
+            <!-- Import/Export Controls -->
+            <div class="import-export">
+                <button class="btn btn-secondary" onclick="exportData()">📥 Export CSV</button>
+                <div class="file-upload">
+                    <input type="file" id="csvImport" accept=".csv,.xlsx,.xls" onchange="importData(event)">
+                    <label for="csvImport" class="file-upload-label">📤 Import CSV/Excel</label>
+                </div>
+                <button class="btn btn-warning" onclick="clearAllData()">🗑️ Clear All Data</button>
+            </div>
+
+            <!-- Edit Form (Hidden by default) -->
+            <div id="editForm" class="edit-form">
+                <h3>Edit Hook Entry</h3>
+                <input type="hidden" id="editIndex">
+                <div class="controls">
+                    <div class="form-group">
+                        <div class="book-header">
+                            <label for="editBookSelect">Book</label>
+                        </div>
+                        <select id="editBookSelect">
+                            <option value="">Select Book...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editHookName">Hook Name/Description</label>
+                        <textarea id="editHookName" rows="3"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editCampaignName">Campaign/Ad Set</label>
+                        <input type="text" id="editCampaignName">
+                    </div>
+                    <div class="form-group">
+                        <label for="editTestDate">Test Date</label>
+                        <input type="date" id="editTestDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="editTotalSpend">Total Spend ($)</label>
+                        <input type="number" id="editTotalSpend" step="0.01" min="0">
+                    </div>
+                </div>
+                <div class="controls-row-2">
+                    <div class="form-group">
+                        <label for="editTotalRevenue">Total Revenue ($)</label>
+                        <input type="number" id="editTotalRevenue" step="0.01" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="editPurchases">Number of Purchases</label>
+                        <input type="number" id="editPurchases" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="editCreativesCount">Creatives Tested</label>
+                        <input type="number" id="editCreativesCount" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="editCreativeId">Creative ID</label>
+                        <input type="text" id="editCreativeId">
+                    </div>
+                </div>
+                <div style="text-align: center;">
+                    <button class="btn btn-success" onclick="saveEdit()">💾 Save Changes</button>
+                    <button class="btn btn-secondary" onclick="cancelEdit()">❌ Cancel</button>
+                </div>
+            </div>
+
+            <!-- Add/Edit Hook Form -->
+            <div class="controls">
+                <div class="form-group">
+                    <div class="book-header">
+                        <label for="bookSelect">Book</label>
+                        <button class="btn btn-xs btn-primary" onclick="toggleAddBookForm()">+ Add New</button>
+                    </div>
+                    <select id="bookSelect">
+                        <option value="">Select Book...</option>
+                    </select>
+                    <div id="addBookForm" class="add-book-form">
+                        <input type="text" id="newBook" placeholder="Book title">
+                        <button class="btn btn-xs btn-success" onclick="addNewBookFromForm()">✓</button>
+                        <button class="btn btn-xs btn-secondary" onclick="cancelAddBook()">✗</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="hookName">Hook Name/Description</label>
+                    <textarea id="hookName" rows="3" placeholder="Enter hook description..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="campaignName">Campaign/Ad Set</label>
+                    <input type="text" id="campaignName" placeholder="Campaign or Ad Set name">
+                </div>
+                <div class="form-group">
+                    <label for="testDate">Test Date</label>
+                    <input type="date" id="testDate">
+                </div>
+                <div class="form-group">
+                    <label for="totalSpendInput">Total Spend ($)</label>
+                    <input type="number" id="totalSpendInput" step="0.01" min="0" placeholder="0.00">
+                </div>
+            </div>
+            <div class="controls-row-2">
+                <div class="form-group">
+                    <label for="totalRevenueInput">Total Revenue ($)</label>
+                    <input type="number" id="totalRevenueInput" step="0.01" min="0" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label for="purchases">Number of Purchases</label>
+                    <input type="number" id="purchases" min="0" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label for="creativesCount">Creatives Tested</label>
+                    <input type="number" id="creativesCount" min="0" placeholder="0">
+                </div>
+                <div class="form-group">
+                    <label for="creativeUpload">Upload Creative</label>
+                    <div class="file-upload">
+                        <input type="file" id="creativeUpload" accept="image/*,video/*" onchange="handleCreativeUpload(event)">
+                        <label for="creativeUpload" class="file-upload-label">Choose File</label>
+                    </div>
+                </div>
+            </div>
+            <div style="padding: 0 20px 20px; background: #f8f9fa; border-radius: 0 0 10px 10px; margin-top: -30px;">
+                <div class="form-group">
+                    <label for="creativeId">Creative ID</label>
+                    <input type="text" id="creativeId" placeholder="Auto-generated or custom ID">
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-bottom: 30px;">
+                <button class="btn btn-primary" onclick="addOrUpdateHook()">➕ Add/Update Hook</button>
+                <button class="btn btn-secondary" onclick="clearForm()">🔄 Clear Form</button>
+            </div>
+
+            <!-- Hooks Table -->
+            <div style="overflow-x: auto;">
+                <table class="data-table" id="hooksTable">
+                    <thead>
+                        <tr>
+                            <th>Book</th>
+                            <th>Hook</th>
+                            <th>Campaign/Ad Set</th>
+                            <th>Last Test Date</th>
+                            <th>Total Spend</th>
+                            <th>Total Revenue</th>
+                            <th>Purchases</th>
+                            <th>Overall ROAS</th>
+                            <th>Performance Level</th>
+                            <th>ROAS Milestones</th>
+                            <th>Scale Efficiency</th>
+                            <th>Action Item</th>
+                            <th>Creatives</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="hooksTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Books Management Tab -->
+        <div id="booksTab" class="tab-content">
+            <div style="margin-bottom: 30px;">
+                <h2>📚 Books Management</h2>
+                <p>Manage your book titles and view their performance statistics</p>
+            </div>
+
+            <div class="controls" style="grid-template-columns: 1fr 1fr;">
+                <div class="form-group">
+                    <label for="newBookTitle">Add New Book</label>
+                    <input type="text" id="newBookTitle" placeholder="Enter book title">
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-primary" onclick="addNewBook()">➕ Add Book</button>
+                </div>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table class="data-table" id="booksTable">
+                    <thead>
+                        <tr>
+                            <th>Book Title</th>
+                            <th>Total Hooks</th>
+                            <th>Total Spend</th>
+                            <th>Total Revenue</th>
+                            <th>Average ROAS</th>
+                            <th>Best Performing Hook</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="booksTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Creative Library Tab -->
+        <div id="creativesTab" class="tab-content">
+            <div style="margin-bottom: 30px;">
+                <h2>🎨 Creative Library</h2>
+                <p>View and manage all your uploaded creatives with performance data</p>
+            </div>
+
+            <div class="creative-grid" id="creativeGrid">
+            </div>
+        </div>
+    </div>
+
+    <!-- Creative Modal -->
+    <div id="creativeModal" class="creative-modal" onclick="closeCreativeModal()">
+        <div class="creative-modal-content" onclick="event.stopPropagation()">
+            <span class="close-modal" onclick="closeCreativeModal()">&times;</span>
+            <div id="creativeModalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global data storage
+        let hooks = JSON.parse(localStorage.getItem('adScalingHooks') || '[]');
+        let books = JSON.parse(localStorage.getItem('adScalingBooks') || '[]');
+        let creatives = JSON.parse(localStorage.getItem('adScalingCreatives') || '{}');
+
+        // Firebase auth and sync variables
+        let currentUser = null;
+        let isSignedIn = false;
+        let lastSyncTime = null;
+
+        // Initialize Firebase auth listener
+        function initializeAuth() {
+            if (typeof window.firebaseOnAuthStateChanged !== 'undefined') {
+                window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
+                    currentUser = user;
+                    isSignedIn = !!user;
+                    updateAuthUI();
+                    
+                    if (user) {
+                        // User signed in, load their data
+                        loadDataFromFirebase();
+                    } else {
+                        // User signed out, clear any cloud data references
+                        updateSyncStatus('Signed out');
+                    }
+                });
+            } else {
+                // Firebase not loaded yet, try again in 1 second
+                setTimeout(initializeAuth, 1000);
+            }
+        }
+
+        function updateAuthUI() {
+            const signedInView = document.getElementById('signedInView');
+            const signedOutView = document.getElementById('signedOutView');
+            const userName = document.getElementById('userName');
+            const userPhoto = document.getElementById('userPhoto');
+
+            if (isSignedIn && currentUser) {
+                signedOutView.style.display = 'none';
+                signedInView.style.display = 'block';
+                userName.textContent = currentUser.displayName || currentUser.email;
+                userPhoto.src = currentUser.photoURL || 'https://via.placeholder.com/40';
+            } else {
+                signedInView.style.display = 'none';
+                signedOutView.style.display = 'block';
+            }
+        }
+
+        function updateSyncStatus(message) {
+            const syncStatus = document.getElementById('syncStatus');
+            if (syncStatus) {
+                syncStatus.textContent = message;
+                lastSyncTime = new Date();
+            }
+        }
+
+        async function signInWithGoogle() {
+            try {
+                updateSyncStatus('🔄 Signing in...');
+                const result = await window.firebaseSignInWithPopup(window.firebaseAuth, window.firebaseProvider);
+                console.log('Signed in successfully:', result.user);
+                updateSyncStatus('✅ Signed in successfully');
+            } catch (error) {
+                console.error('Sign in error:', error);
+                updateSyncStatus('❌ Sign in failed');
+                alert('Failed to sign in: ' + error.message);
+            }
+        }
+
+        async function signOutFromGoogle() {
+            try {
+                updateSyncStatus('🔄 Signing out...');
+                await window.firebaseSignOut(window.firebaseAuth);
+                console.log('Signed out successfully');
+            } catch (error) {
+                console.error('Sign out error:', error);
+                alert('Failed to sign out: ' + error.message);
+            }
+        }
+
+        async function saveDataToFirebase() {
+            if (!isSignedIn || !currentUser) {
+                console.log('Not signed in, skipping Firebase save');
+                return;
+            }
+
+            try {
+                updateSyncStatus('🔄 Syncing...');
+                
+                const userData = {
+                    hooks: hooks,
+                    books: books,
+                    creatives: creatives,
+                    lastUpdated: new Date().toISOString(),
+                    version: 1
+                };
+
+                const userDocRef = window.firebaseDoc(window.firebaseDb, 'users', currentUser.uid);
+                await window.firebaseSetDoc(userDocRef, userData);
+                
+                updateSyncStatus('✅ Data synced');
+                console.log('Data saved to Firebase successfully');
+            } catch (error) {
+                console.error('Error saving to Firebase:', error);
+                updateSyncStatus('❌ Sync failed');
+            }
+        }
+
+        async function loadDataFromFirebase() {
+            if (!isSignedIn || !currentUser) {
+                console.log('Not signed in, skipping Firebase load');
+                return;
+            }
+
+            try {
+                updateSyncStatus('🔄 Loading data...');
+                
+                const userDocRef = window.firebaseDoc(window.firebaseDb, 'users', currentUser.uid);
+                const docSnap = await window.firebaseGetDoc(userDocRef);
+
+                if (docSnap.exists()) {
+                    const userData = docSnap.data();
+                    
+                    // Check if cloud data is newer than local data
+                    const cloudLastUpdated = new Date(userData.lastUpdated || 0);
+                    const localLastUpdated = new Date(localStorage.getItem('lastUpdated') || 0);
+                    
+                    if (cloudLastUpdated > localLastUpdated || !localStorage.getItem('adScalingHooks')) {
+                        // Use cloud data
+                        hooks = userData.hooks || [];
+                        books = userData.books || [];
+                        creatives = userData.creatives || {};
+                        
+                        // Update local storage
+                        localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
+                        localStorage.setItem('adScalingBooks', JSON.stringify(books));
+                        localStorage.setItem('adScalingCreatives', JSON.stringify(creatives));
+                        localStorage.setItem('lastUpdated', userData.lastUpdated);
+                        
+                        // Refresh UI
+                        updateBookOptions();
+                        renderHooks();
+                        renderBooks();
+                        renderCreatives();
+                        
+                        updateSyncStatus('✅ Data loaded from cloud');
+                    } else {
+                        // Local data is newer, sync it to cloud
+                        await saveDataToFirebase();
+                    }
+                } else {
+                    // No cloud data exists, save current local data
+                    await saveDataToFirebase();
+                    updateSyncStatus('✅ Local data saved to cloud');
+                }
+            } catch (error) {
+                console.error('Error loading from Firebase:', error);
+                updateSyncStatus('❌ Load failed');
+            }
+        }
+
+        // Modify existing save functions to also save to Firebase
+        function saveToLocalAndCloud() {
+            // Save to localStorage
+            localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
+            localStorage.setItem('adScalingBooks', JSON.stringify(books));
+            localStorage.setItem('adScalingCreatives', JSON.stringify(creatives));
+            localStorage.setItem('lastUpdated', new Date().toISOString());
+            
+            // Save to Firebase if signed in
+            if (isSignedIn) {
+                saveDataToFirebase();
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            updateBookOptions();
+            renderHooks();
+            renderBooks();
+            renderCreatives();
+            
+            // Set today's date as default
+            document.getElementById('testDate').value = new Date().toISOString().split('T')[0];
+            
+            // Initialize Firebase authentication
+            initializeAuth();
+            
+            // Add event listeners for auth buttons
+            document.getElementById('signInButton').addEventListener('click', signInWithGoogle);
+            document.getElementById('signOutButton').addEventListener('click', signOutFromGoogle);
+            document.getElementById('syncButton').addEventListener('click', saveDataToFirebase);
+        });
+
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+            
+            // Refresh data when switching to books or creatives tab
+            if (tabName === 'books') {
+                renderBooks();
+            } else if (tabName === 'creatives') {
+                renderCreatives();
+            }
+        }
+
+        function toggleAddBookForm() {
+            const form = document.getElementById('addBookForm');
+            if (form.classList.contains('active')) {
+                form.classList.remove('active');
+            } else {
+                form.classList.add('active');
+                document.getElementById('newBook').focus();
+            }
+        }
+
+        function addNewBookFromForm() {
+            const newBookTitle = document.getElementById('newBook').value.trim();
+            if (!newBookTitle) {
+                alert('Please enter a book title.');
+                return;
+            }
+
+            if (books.includes(newBookTitle)) {
+                alert('This book already exists.');
+                return;
+            }
+
+            books.push(newBookTitle);
+            saveToLocalAndCloud();
+            document.getElementById('newBook').value = '';
+            updateBookOptions();
+            // FIX: Set the book select value AFTER updating options
+            document.getElementById('bookSelect').value = newBookTitle;
+            cancelAddBook();
+        }
+
+        function cancelAddBook() {
+            const form = document.getElementById('addBookForm');
+            form.classList.remove('active');
+            document.getElementById('newBook').value = '';
+        }
+
+        function updateBookOptions() {
+            const selects = ['bookSelect', 'editBookSelect'];
+            
+            selects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (!select) return;
+                
+                const currentValue = select.value;
+                
+                // Clear existing options except the first
+                select.innerHTML = '<option value="">Select Book...</option>';
+                
+                // Add books from storage
+                books.forEach(book => {
+                    const option = document.createElement('option');
+                    option.value = book;
+                    option.textContent = book;
+                    select.appendChild(option);
+                });
+                
+                // Restore selection if it still exists
+                if (currentValue && books.includes(currentValue)) {
+                    select.value = currentValue;
+                }
+            });
+        }
+
+        function addOrUpdateHook() {
+            const bookSelect = document.getElementById('bookSelect').value;
+            const hookName = document.getElementById('hookName').value.trim();
+            const campaignName = document.getElementById('campaignName').value.trim();
+            const testDate = document.getElementById('testDate').value;
+            
+            const totalSpend = parseFloat(document.getElementById('totalSpendInput').value) || 0;
+            const totalRevenue = parseFloat(document.getElementById('totalRevenueInput').value) || 0;
+            const purchases = parseInt(document.getElementById('purchases').value) || 0;
+            const creativesCount = parseInt(document.getElementById('creativesCount').value) || 0;
+            
+            let creativeId = document.getElementById('creativeId').value.trim();
+
+            if (!bookSelect || !hookName) {
+                alert('Please select a book and enter a hook name.');
+                return;
+            }
+
+            if (totalSpend === 0 && totalRevenue === 0) {
+                alert('Please enter at least a spend or revenue amount.');
+                return;
+            }
+
+            // Find existing hook with same name and book
+            const existingIndex = hooks.findIndex(h => 
+                h.book === bookSelect && h.hookName === hookName
+            );
+
+            const hookData = {
+                book: bookSelect,
+                hookName: hookName,
+                campaignName: campaignName,
+                testDate: testDate,
+                totalSpend: totalSpend,
+                totalRevenue: totalRevenue,
+                purchases: purchases,
+                creativesCount: creativesCount,
+                creativeId: creativeId,
+                overallROAS: totalSpend > 0 ? totalRevenue / totalSpend : 0,
+                roasAt100: 0,
+                roasAt300: 0,
+                roasAt1000: 0,
+                roasAt3000: 0
+            };
+
+            if (existingIndex >= 0) {
+                // Update existing hook by adding new spend/revenue
+                const existing = hooks[existingIndex];
+                hookData.totalSpend = existing.totalSpend + totalSpend;
+                hookData.totalRevenue = existing.totalRevenue + totalRevenue;
+                hookData.purchases = existing.purchases + purchases;
+                hookData.creativesCount = existing.creativesCount + creativesCount;
+                hookData.overallROAS = hookData.totalSpend > 0 ? hookData.totalRevenue / hookData.totalSpend : 0;
+                
+                // Update test date to latest
+                if (new Date(testDate) > new Date(existing.testDate)) {
+                    hookData.testDate = testDate;
+                } else {
+                    hookData.testDate = existing.testDate;
+                }
+                
+                // FIX: Handle creative ID updates properly for existing hooks
+                if (creativeId && creativeId !== existing.creativeId) {
+                    // If there's an old creative with a different ID, check if we need to move it
+                    if (existing.creativeId && creatives[existing.creativeId] && !creatives[creativeId]) {
+                        // Move the creative to the new ID
+                        creatives[creativeId] = creatives[existing.creativeId];
+                        delete creatives[existing.creativeId];
+                        localStorage.setItem('adScalingCreatives', JSON.stringify(creatives));
+                    }
+                    hookData.creativeId = creativeId;
+                } else if (!creativeId && existing.creativeId) {
+                    hookData.creativeId = existing.creativeId;
+                }
+                
+                hooks[existingIndex] = hookData;
+            } else {
+                hooks.push(hookData);
+            }
+
+            // Calculate milestone ROAS
+            calculateMilestoneROAS();
+
+            saveToLocalAndCloud();
+            
+            renderHooks();
+            clearForm();
+        }
+
+        function calculateMilestoneROAS() {
+            hooks.forEach(hook => {
+                // Reset milestone ROAS
+                hook.roasAt100 = 0;
+                hook.roasAt300 = 0;
+                hook.roasAt1000 = 0;
+                hook.roasAt3000 = 0;
+
+                // Calculate milestone ROAS based on cumulative spend
+                if (hook.totalSpend >= 100) {
+                    hook.roasAt100 = hook.overallROAS;
+                }
+                if (hook.totalSpend >= 300) {
+                    hook.roasAt300 = hook.overallROAS;
+                }
+                if (hook.totalSpend >= 1000) {
+                    hook.roasAt1000 = hook.overallROAS;
+                }
+                if (hook.totalSpend >= 3000) {
+                    hook.roasAt3000 = hook.overallROAS;
+                }
+            });
+        }
+
+        function getMilestoneDisplay(hook) {
+            const milestones = [
+                { amount: 3000, value: hook.roasAt3000, label: '$3000' },
+                { amount: 1000, value: hook.roasAt1000, label: '$1000' },
+                { amount: 300, value: hook.roasAt300, label: '$300' },
+                { amount: 100, value: hook.roasAt100, label: '$100' }
+            ];
+
+            // Find the highest milestone reached
+            const highestMilestone = milestones.find(m => m.value > 0);
+            
+            if (!highestMilestone) {
+                return {
+                    display: 'No milestone reached',
+                    hasHistory: false,
+                    history: []
+                };
+            }
+
+            // Get all reached milestones for history
+            const reachedMilestones = milestones.filter(m => m.value > 0).reverse();
+            
+            return {
+                display: `ROAS @ ${highestMilestone.label}: ${highestMilestone.value.toFixed(2)}`,
+                hasHistory: reachedMilestones.length > 1,
+                history: reachedMilestones
+            };
+        }
+
+        function toggleMilestoneHistory(index) {
+            const historyDiv = document.getElementById(`milestone-history-${index}`);
+            const toggleBtn = document.getElementById(`milestone-toggle-${index}`);
+            
+            if (historyDiv.classList.contains('active')) {
+                historyDiv.classList.remove('active');
+                toggleBtn.textContent = 'Show History';
+            } else {
+                historyDiv.classList.add('active');
+                toggleBtn.textContent = 'Hide History';
+            }
+        }
+
+        function editHook(index) {
+            const hook = hooks[index];
+            
+            // Hide the main add form and show edit form
+            document.querySelectorAll('.controls, .controls-row-2').forEach(el => {
+                if (!el.closest('#editForm')) {
+                    el.style.display = 'none';
+                }
+            });
+            
+            // Hide the Add/Update button section
+            const addButtonSection = document.querySelector('div[style*="text-align: center; margin-bottom: 30px;"]');
+            if (addButtonSection) {
+                addButtonSection.style.display = 'none';
+            }
+            
+            // Populate edit form
+            document.getElementById('editIndex').value = index;
+            document.getElementById('editBookSelect').value = hook.book;
+            document.getElementById('editHookName').value = hook.hookName;
+            document.getElementById('editCampaignName').value = hook.campaignName;
+            document.getElementById('editTestDate').value = hook.testDate;
+            document.getElementById('editTotalSpend').value = hook.totalSpend;
+            document.getElementById('editTotalRevenue').value = hook.totalRevenue;
+            document.getElementById('editPurchases').value = hook.purchases;
+            document.getElementById('editCreativesCount').value = hook.creativesCount;
+            document.getElementById('editCreativeId').value = hook.creativeId || '';
+            
+            // Show edit form
+            document.getElementById('editForm').classList.add('active');
+            
+            // Scroll to edit form
+            document.getElementById('editForm').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function saveEdit() {
+            const index = parseInt(document.getElementById('editIndex').value);
+            const oldCreativeId = hooks[index].creativeId; // Store old creative ID
+            
+            const hookData = {
+                book: document.getElementById('editBookSelect').value,
+                hookName: document.getElementById('editHookName').value.trim(),
+                campaignName: document.getElementById('editCampaignName').value.trim(),
+                testDate: document.getElementById('editTestDate').value,
+                totalSpend: parseFloat(document.getElementById('editTotalSpend').value) || 0,
+                totalRevenue: parseFloat(document.getElementById('editTotalRevenue').value) || 0,
+                purchases: parseInt(document.getElementById('editPurchases').value) || 0,
+                creativesCount: parseInt(document.getElementById('editCreativesCount').value) || 0,
+                creativeId: document.getElementById('editCreativeId').value.trim(),
+                overallROAS: 0,
+                roasAt100: 0,
+                roasAt300: 0,
+                roasAt1000: 0,
+                roasAt3000: 0
+            };
+
+            hookData.overallROAS = hookData.totalSpend > 0 ? hookData.totalRevenue / hookData.totalSpend : 0;
+
+            if (!hookData.book || !hookData.hookName) {
+                alert('Book and Hook Name are required.');
+                return;
+            }
+
+            // FIX: Update creative ID mapping when changed
+            if (oldCreativeId && oldCreativeId !== hookData.creativeId && creatives[oldCreativeId]) {
+                // If creative ID changed and the old ID exists, update the creative object
+                if (hookData.creativeId && !creatives[hookData.creativeId]) {
+                    // Move the creative to the new ID
+                    creatives[hookData.creativeId] = creatives[oldCreativeId];
+                    delete creatives[oldCreativeId];
+                    localStorage.setItem('adScalingCreatives', JSON.stringify(creatives));
+                }
+            }
+
+            hooks[index] = hookData;
+            
+            // Recalculate milestone ROAS
+            calculateMilestoneROAS();
+            
+            saveToLocalAndCloud();
+            renderHooks();
+            renderCreatives();
+            cancelEdit();
+        }
+
+        function cancelEdit() {
+            document.getElementById('editForm').classList.remove('active');
+            
+            // Show the main add form again
+            document.querySelectorAll('.controls, .controls-row-2').forEach(el => {
+                if (!el.closest('#editForm')) {
+                    el.style.display = '';
+                }
+            });
+            
+            // Show the Add/Update button section again
+            const addButtonSection = document.querySelector('div[style*="text-align: center; margin-bottom: 30px;"]');
+            if (addButtonSection) {
+                addButtonSection.style.display = '';
+            }
+        }
+
+        function getPerformanceLevel(spend, lastTestDate) {
+            if (spend === 0) return { text: 'Not Tested Yet', class: 'not-tested' };
+            
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+            const testDate = new Date(lastTestDate);
+            
+            if (spend < 100) {
+                if (testDate < sixMonthsAgo) {
+                    return { text: 'Testing Not Complete', class: 'testing-incomplete' };
+                }
+                return { text: 'Testing', class: 'testing' };
+            }
+            if (spend < 300) return { text: 'Validated', class: 'validated' };
+            if (spend < 1000) return { text: 'Early Scale', class: 'early-scale' };
+            if (spend < 3000) return { text: 'Proven Scale', class: 'proven-scale' };
+            return { text: 'Mature Scale', class: 'mature-scale' };
+        }
+
+        function getScaleEfficiency(roasAt100, roasAt1000) {
+            if (roasAt100 === 0 || roasAt1000 === 0) return { text: 'N/A', class: 'scales-ok' };
+            
+            const efficiency = roasAt1000 / roasAt100;
+            if (efficiency > 0.8) return { text: 'Scales Well', class: 'scales-well' };
+            if (efficiency >= 0.6) return { text: 'Scales OK', class: 'scales-ok' };
+            return { text: "Doesn't Scale", class: 'doesnt-scale' };
+        }
+
+        function getActionItem(roas, spend, lastTestDate, scaleEfficiency) {
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+            const testDate = new Date(lastTestDate);
+            
+            if (spend < 300 || testDate < sixMonthsAgo) {
+                return { text: 'Retest', class: 'action-retest' };
+            }
+            
+            if (roas < 1.0 && spend >= 300) {
+                return { text: 'Kill', class: 'action-kill' };
+            }
+            
+            const efficiencyScore = isNaN(scaleEfficiency) ? 0 : scaleEfficiency;
+            if (roas >= 1.2 && efficiencyScore > 0.6) {
+                return { text: 'Scale', class: 'action-scale' };
+            }
+            
+            if (roas >= 1.0 && roas < 1.2) {
+                return { text: 'Maintain', class: 'action-maintain' };
+            }
+            
+            return { text: 'Monitor', class: 'action-maintain' };
+        }
+
+        function handleCreativeUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Get the current Creative ID from the input (in case user typed a custom one)
+                    let creativeId = document.getElementById('creativeId').value.trim();
+                    
+                    // If no custom ID provided, generate one
+                    if (!creativeId) {
+                        creativeId = `creative_${Date.now()}`;
+                        document.getElementById('creativeId').value = creativeId;
+                    }
+                    
+                    // Check if this ID already exists
+                    if (creatives[creativeId]) {
+                        // If it exists, ask user if they want to replace it or use a new ID
+                        const shouldReplace = confirm(`A creative with ID "${creativeId}" already exists. Do you want to replace it? Click Cancel to auto-generate a new ID.`);
+                        if (!shouldReplace) {
+                            creativeId = `creative_${Date.now()}`;
+                            document.getElementById('creativeId').value = creativeId;
+                        }
+                    }
+                    
+                    creatives[creativeId] = {
+                        data: e.target.result,
+                        type: file.type,
+                        name: file.name
+                    };
+                    
+                    saveToLocalAndCloud();
+                    renderCreatives();
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        // FIX: This function now works with the input field in Creative Library
+        function saveCreativeId(oldCreativeId) {
+            const inputField = document.getElementById(`creative-id-${oldCreativeId}`);
+            const newId = inputField.value.trim();
+            
+            if (!newId) {
+                alert('Creative ID cannot be empty.');
+                inputField.value = oldCreativeId; // Reset to original
+                return;
+            }
+            
+            if (newId === oldCreativeId) {
+                return; // No change
+            }
+            
+            if (creatives[newId]) {
+                alert('A creative with this ID already exists. Please choose a different ID.');
+                inputField.value = oldCreativeId; // Reset to original
+                return;
+            }
+            
+            // Move creative to new ID
+            creatives[newId] = creatives[oldCreativeId];
+            delete creatives[oldCreativeId];
+            
+            // Update all hooks that reference this creative
+            hooks.forEach(hook => {
+                if (hook.creativeId === oldCreativeId) {
+                    hook.creativeId = newId;
+                }
+            });
+            
+            saveToLocalAndCloud();
+            renderCreatives();
+            renderHooks();
+        }
+
+        function showCreative(creativeId) {
+            const creative = creatives[creativeId];
+            if (!creative) return;
+
+            const modal = document.getElementById('creativeModal');
+            const content = document.getElementById('creativeModalContent');
+            
+            if (creative.type.startsWith('image/')) {
+                content.innerHTML = `<img src="${creative.data}" alt="${creative.name}">`;
+            } else if (creative.type.startsWith('video/')) {
+                content.innerHTML = `<video controls src="${creative.data}"></video>`;
+            }
+            
+            modal.style.display = 'block';
+        }
+
+        function closeCreativeModal() {
+            document.getElementById('creativeModal').style.display = 'none';
+        }
+
+        function renderHooks() {
+            const tbody = document.getElementById('hooksTableBody');
+            tbody.innerHTML = '';
+
+            hooks.forEach((hook, index) => {
+                const performance = getPerformanceLevel(hook.totalSpend, hook.testDate);
+                const scaleEff = getScaleEfficiency(hook.roasAt100, hook.roasAt1000);
+                const scaleEfficiencyScore = hook.roasAt100 > 0 && hook.roasAt1000 > 0 ? hook.roasAt1000 / hook.roasAt100 : 0;
+                const actionItem = getActionItem(hook.overallROAS, hook.totalSpend, hook.testDate, scaleEfficiencyScore);
+                const milestoneData = getMilestoneDisplay(hook);
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${hook.book}</td>
+                    <td>${hook.hookName}</td>
+                    <td>${hook.campaignName}</td>
+                    <td>${hook.testDate}</td>
+                    <td>$${hook.totalSpend.toFixed(2)}</td>
+                    <td>$${hook.totalRevenue.toFixed(2)}</td>
+                    <td>${hook.purchases}</td>
+                    <td>${hook.overallROAS.toFixed(2)}</td>
+                    <td><span class="performance-badge ${performance.class}">${performance.text}</span></td>
+                    <td class="milestone-display">
+                        <div class="current-milestone">${milestoneData.display}</div>
+                        ${milestoneData.hasHistory ? `
+                            <button id="milestone-toggle-${index}" class="milestone-toggle" onclick="toggleMilestoneHistory(${index})">Show History</button>
+                            <div id="milestone-history-${index}" class="milestone-history">
+                                ${milestoneData.history.map(m => `
+                                    <div class="milestone-item">ROAS @ ${m.label}: ${m.value.toFixed(2)}</div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </td>
+                    <td><span class="scale-efficiency ${scaleEff.class}">${scaleEff.text}</span></td>
+                    <td><span class="action-item ${actionItem.class}">${actionItem.text}</span></td>
+                    <td>${hook.creativesCount}</td>
+                    <td>
+                        <button class="btn btn-info btn-sm" onclick="editHook(${index})">✏️ Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteHook(${index})">🗑️ Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderBooks() {
+            const tbody = document.getElementById('booksTableBody');
+            tbody.innerHTML = '';
+
+            books.forEach(book => {
+                const bookHooks = hooks.filter(h => h.book === book);
+                const totalHooks = bookHooks.length;
+                const totalSpend = bookHooks.reduce((sum, hook) => sum + hook.totalSpend, 0);
+                const totalRevenue = bookHooks.reduce((sum, hook) => sum + hook.totalRevenue, 0);
+                const averageROAS = totalSpend > 0 ? totalRevenue / totalSpend : 0;
+                const bestHook = bookHooks.reduce((best, hook) => 
+                    hook.overallROAS > (best?.overallROAS || 0) ? hook : best, null);
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${book}</td>
+                    <td>${totalHooks}</td>
+                    <td>$${totalSpend.toFixed(2)}</td>
+                    <td>$${totalRevenue.toFixed(2)}</td>
+                    <td>${averageROAS.toFixed(2)}</td>
+                    <td>${bestHook ? `${bestHook.hookName.substring(0, 50)}... (ROAS: ${bestHook.overallROAS.toFixed(2)})` : 'None'}</td>
+                    <td>
+                        <button class="btn btn-info btn-sm" onclick="editBookTitle('${book}')">✏️ Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteBook('${book}')">🗑️ Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function renderCreatives() {
+            const grid = document.getElementById('creativeGrid');
+            grid.innerHTML = '';
+
+            Object.keys(creatives).forEach(creativeId => {
+                const creative = creatives[creativeId];
+                const isVideo = creative.type.startsWith('video/');
+                const isImage = creative.type.startsWith('image/');
+
+                // Find all hooks that use this creative
+                const linkedHooks = hooks.filter(hook => hook.creativeId === creativeId);
+
+                const card = document.createElement('div');
+                card.className = 'creative-card';
+                card.innerHTML = `
+                    ${isImage ? `<img src="${creative.data}" alt="${creative.name}" onclick="showCreative('${creativeId}')">` : ''}
+                    ${isVideo ? `<video onclick="showCreative('${creativeId}')" style="cursor: pointer;"><source src="${creative.data}" type="${creative.type}"></video>` : ''}
+                    
+                    <div class="creative-info">
+                        <div style="margin-bottom: 10px;">
+                            <span class="creative-type-badge">${isVideo ? '🎥 Video' : '🖼️ Image'}</span>
+                        </div>
+                        <div class="creative-name-edit">
+                            <strong>ID:</strong>
+                            <input type="text" value="${creativeId}" id="creative-id-${creativeId}" style="flex: 1; margin: 0 5px;">
+                            <button class="btn btn-sm btn-info" onclick="saveCreativeId('${creativeId}')">💾</button>
+                        </div>
+                        <p><strong>File:</strong> ${creative.name}</p>
+                        <p><strong>Used in:</strong> ${linkedHooks.length} hook(s)</p>
+                    </div>
+
+                    ${linkedHooks.length > 0 ? `
+                        <div style="margin-top: 15px;">
+                            <h4 style="color: #667eea; margin-bottom: 10px; font-size: 14px;">📊 Linked Hooks Performance:</h4>
+                            ${linkedHooks.map(hook => `
+                                <div class="hook-link">
+                                    <h4>${hook.book}: ${hook.hookName.substring(0, 40)}${hook.hookName.length > 40 ? '...' : ''}</h4>
+                                    <p><strong>Campaign:</strong> ${hook.campaignName}</p>
+                                    <p><strong>Last Test:</strong> ${hook.testDate}</p>
+                                    <div class="hook-financial">
+                                        <div class="financial-item">
+                                            <span class="label">Total Spend</span>
+                                            <span class="value">$${hook.totalSpend.toFixed(2)}</span>
+                                        </div>
+                                        <div class="financial-item">
+                                            <span class="label">Total Revenue</span>
+                                            <span class="value">$${hook.totalRevenue.toFixed(2)}</span>
+                                        </div>
+                                        <div class="financial-item">
+                                            <span class="label">ROAS</span>
+                                            <span class="value">${hook.overallROAS.toFixed(2)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : '<p style="color: #999; font-style: italic; margin-top: 10px;">Not linked to any hooks yet</p>'}
+
+                    <div style="margin-top: 15px; text-align: center;">
+                        <button class="btn btn-danger btn-sm" onclick="deleteCreative('${creativeId}')">🗑️ Delete</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function addNewBook() {
+            const newBookTitle = document.getElementById('newBookTitle').value.trim();
+            if (!newBookTitle) {
+                alert('Please enter a book title.');
+                return;
+            }
+
+            if (books.includes(newBookTitle)) {
+                alert('This book already exists.');
+                return;
+            }
+
+            books.push(newBookTitle);
+            saveToLocalAndCloud();
+            document.getElementById('newBookTitle').value = '';
+            updateBookOptions();
+            renderBooks();
+        }
+
+        function editBookTitle(oldTitle) {
+            const newTitle = prompt('Enter new book title:', oldTitle);
+            if (!newTitle || newTitle === oldTitle) return;
+
+            if (books.includes(newTitle)) {
+                alert('This book title already exists.');
+                return;
+            }
+
+            // Update book in books array
+            const index = books.indexOf(oldTitle);
+            if (index > -1) {
+                books[index] = newTitle;
+            }
+
+            // Update all hooks that use this book
+            hooks.forEach(hook => {
+                if (hook.book === oldTitle) {
+                    hook.book = newTitle;
+                }
+            });
+
+            localStorage.setItem('adScalingBooks', JSON.stringify(books));
+            localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
+            saveToLocalAndCloud();
+            
+            updateBookOptions();
+            renderBooks();
+            renderHooks();
+            renderCreatives();
+        }
+
+        function deleteBook(bookTitle) {
+            const bookHooks = hooks.filter(h => h.book === bookTitle);
+            if (bookHooks.length > 0) {
+                if (!confirm(`This book has ${bookHooks.length} hooks. Deleting it will also delete all associated hooks. Continue?`)) {
+                    return;
+                }
+                // Remove all hooks for this book
+                hooks = hooks.filter(h => h.book !== bookTitle);
+                saveToLocalAndCloud();
+            }
+
+            // Remove book
+            books = books.filter(b => b !== bookTitle);
+            saveToLocalAndCloud();
+            
+            updateBookOptions();
+            renderBooks();
+            renderHooks();
+            renderCreatives();
+        }
+
+        function deleteCreative(creativeId) {
+            if (confirm('Are you sure you want to delete this creative?')) {
+                delete creatives[creativeId];
+                
+                // Remove creative ID from any hooks that reference it
+                hooks.forEach(hook => {
+                    if (hook.creativeId === creativeId) {
+                        hook.creativeId = '';
+                    }
+                });
+                
+                localStorage.setItem('adScalingCreatives', JSON.stringify(creatives));
+                localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
+                saveToLocalAndCloud();
+                renderCreatives();
+                renderHooks();
+            }
+        }
+
+        function deleteHook(index) {
+            if (confirm('Are you sure you want to delete this hook?')) {
+                hooks.splice(index, 1);
+                saveToLocalAndCloud();
+                renderHooks();
+                renderCreatives();
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('bookSelect').value = '';
+            document.getElementById('hookName').value = '';
+            document.getElementById('campaignName').value = '';
+            document.getElementById('testDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('totalSpendInput').value = '';
+            document.getElementById('totalRevenueInput').value = '';
+            document.getElementById('purchases').value = '';
+            document.getElementById('creativesCount').value = '';
+            document.getElementById('creativeId').value = '';
+            cancelAddBook(); // Hide add book form if open
+        }
+
+        function exportData() {
+            const csvContent = "data:text/csv;charset=utf-8," + 
+                "Book,Hook Name,Campaign/Ad Set,Last Test Date,Total Spend,Total Revenue,Purchases,Overall ROAS,Performance Level,ROAS @$100,ROAS @$300,ROAS @$1000,ROAS @$3000,Scale Efficiency,Action Item,Creatives Count,Creative ID\n" +
+                hooks.map(hook => {
+                    const performance = getPerformanceLevel(hook.totalSpend, hook.testDate);
+                    const scaleEff = getScaleEfficiency(hook.roasAt100, hook.roasAt1000);
+                    const scaleEfficiencyScore = hook.roasAt100 > 0 && hook.roasAt1000 > 0 ? hook.roasAt1000 / hook.roasAt100 : 0;
+                    const actionItem = getActionItem(hook.overallROAS, hook.totalSpend, hook.testDate, scaleEfficiencyScore);
+                    
+                    return `"${hook.book}","${hook.hookName.replace(/"/g, '""')}","${hook.campaignName}","${hook.testDate}",${hook.totalSpend},${hook.totalRevenue},${hook.purchases},${hook.overallROAS.toFixed(2)},"${performance.text}",${hook.roasAt100 > 0 ? hook.roasAt100.toFixed(2) : 'N/A'},${hook.roasAt300 > 0 ? hook.roasAt300.toFixed(2) : 'N/A'},${hook.roasAt1000 > 0 ? hook.roasAt1000.toFixed(2) : 'N/A'},${hook.roasAt3000 > 0 ? hook.roasAt3000.toFixed(2) : 'N/A'},"${scaleEff.text}","${actionItem.text}",${hook.creativesCount},"${hook.creativeId || ''}"`;
+                }).join("\n");
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `ad_scaling_tracker_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const text = e.target.result;
+                    const lines = text.split('\n');
+                    const headers = lines[0].split(',');
+                    
+                    for (let i = 1; i < lines.length; i++) {
+                        if (lines[i].trim() === '') continue;
+                        
+                        const values = lines[i].split(',');
+                        if (values.length >= 8) {
+                            const hookData = {
+                                book: values[0].replace(/"/g, ''),
+                                hookName: values[1].replace(/"/g, ''),
+                                campaignName: values[2].replace(/"/g, ''),
+                                testDate: values[3].replace(/"/g, ''),
+                                totalSpend: parseFloat(values[4]) || 0,
+                                totalRevenue: parseFloat(values[5]) || 0,
+                                purchases: parseInt(values[6]) || 0,
+                                overallROAS: parseFloat(values[7]) || 0,
+                                creativesCount: parseInt(values[15]) || 0,
+                                creativeId: values[16] ? values[16].replace(/"/g, '') : '',
+                                roasAt100: 0,
+                                roasAt300: 0,
+                                roasAt1000: 0,
+                                roasAt3000: 0
+                            };
+                            
+                            if (!books.includes(hookData.book)) {
+                                books.push(hookData.book);
+                            }
+                            
+                            hooks.push(hookData);
+                        }
+                    }
+                    
+                    calculateMilestoneROAS();
+                    localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
+                    localStorage.setItem('adScalingBooks', JSON.stringify(books));
+                    
+                    updateBookOptions();
+                    renderHooks();
+                    renderBooks();
+                    renderCreatives();
+                    
+                    alert('Data imported successfully!');
+                } catch (error) {
+                    alert('Error importing file. Please check the format.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+                hooks = [];
+                books = [];
+                creatives = {};
+                localStorage.removeItem('adScalingHooks');
+                localStorage.removeItem('adScalingBooks');
+                localStorage.removeItem('adScalingCreatives');
+                localStorage.removeItem('lastUpdated');
+                
+                // Clear cloud data too if signed in
+                if (isSignedIn) {
+                    saveToLocalAndCloud();
+                }
+                
+                updateBookOptions();
+                renderHooks();
+                renderBooks();
+                renderCreatives();
+                clearForm();
+                
+                alert('All data cleared successfully!');
+            }
+        }
+    </script>
+</body>
+</html>
