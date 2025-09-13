@@ -669,10 +669,7 @@
                     <div id="signedInView">
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                             <img id="userPhoto" style="width: 40px; height: 40px; border-radius: 50%;" />
-                            <div>
-                                <div id="userName" style="font-weight: bold;"></div>
-                                <div id="syncStatus" style="font-size: 0.8rem; opacity: 0.8;">✅ Data synced</div>
-                            </div>
+                            <div id="userName" style="font-weight: bold;"></div>
                         </div>
                         <div style="display: flex; gap: 5px;">
                             <button id="signOutButton" class="btn btn-secondary btn-sm">🚪 Sign Out</button>
@@ -921,8 +918,8 @@
                         // User signed in, load their data
                         loadDataFromFirebase();
                     } else {
-                        // User signed out, clear any cloud data references
-                        updateSyncStatus('Signed out');
+                        // User signed out
+                        console.log('User signed out');
                     }
                 });
                 
@@ -956,11 +953,7 @@
         }
 
         function updateSyncStatus(message) {
-            const syncStatus = document.getElementById('syncStatus');
-            if (syncStatus) {
-                syncStatus.textContent = message;
-                lastSyncTime = new Date();
-            }
+            // Sync status display removed - syncing happens silently in background
         }
 
         async function signInWithGoogle() {
@@ -1009,7 +1002,6 @@
 
         async function signOutFromGoogle() {
             try {
-                updateSyncStatus('🔄 Signing out...');
                 await window.firebaseSignOut(window.firebaseAuth);
                 console.log('Signed out successfully');
             } catch (error) {
@@ -1025,8 +1017,6 @@
             }
 
             try {
-                updateSyncStatus('🔄 Syncing...');
-                
                 const userData = {
                     hooks: hooks,
                     books: books,
@@ -1038,11 +1028,10 @@
                 const userDocRef = window.firebaseDoc(window.firebaseDb, 'users', currentUser.uid);
                 await window.firebaseSetDoc(userDocRef, userData);
                 
-                updateSyncStatus('✅ Data synced');
                 console.log('Data saved to Firebase successfully');
             } catch (error) {
                 console.error('Error saving to Firebase:', error);
-                updateSyncStatus('❌ Sync failed');
+                // Silently handle errors - user doesn't need to worry about this
             }
         }
 
@@ -1053,8 +1042,6 @@
             }
 
             try {
-                updateSyncStatus('🔄 Loading data...');
-                
                 const userDocRef = window.firebaseDoc(window.firebaseDb, 'users', currentUser.uid);
                 const docSnap = await window.firebaseGetDoc(userDocRef);
 
@@ -1083,7 +1070,7 @@
                         renderBooks();
                         renderCreatives();
                         
-                        updateSyncStatus('✅ Data loaded from cloud');
+                        console.log('Data loaded from cloud');
                     } else {
                         // Local data is newer, sync it to cloud
                         await saveDataToFirebase();
@@ -1091,11 +1078,11 @@
                 } else {
                     // No cloud data exists, save current local data
                     await saveDataToFirebase();
-                    updateSyncStatus('✅ Local data saved to cloud');
+                    console.log('Local data saved to cloud');
                 }
             } catch (error) {
                 console.error('Error loading from Firebase:', error);
-                updateSyncStatus('❌ Load failed');
+                // Silently handle errors - user doesn't need to worry about this
             }
         }
 
