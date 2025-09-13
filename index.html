@@ -675,7 +675,6 @@
                             </div>
                         </div>
                         <div style="display: flex; gap: 5px;">
-                            <button id="syncButton" class="btn btn-secondary btn-sm">🔄 Sync Now</button>
                             <button id="signOutButton" class="btn btn-secondary btn-sm">🚪 Sign Out</button>
                         </div>
                     </div>
@@ -1143,16 +1142,12 @@
             setTimeout(() => {
                 const loginButton = document.getElementById('loginButton');
                 const signOutButton = document.getElementById('signOutButton');
-                const syncButton = document.getElementById('syncButton');
                 
                 if (loginButton) {
                     loginButton.addEventListener('click', signInWithGoogle);
                 }
                 if (signOutButton) {
                     signOutButton.addEventListener('click', signOutFromGoogle);
-                }
-                if (syncButton) {
-                    syncButton.addEventListener('click', saveDataToFirebase);
                 }
             }, 100);
         });
