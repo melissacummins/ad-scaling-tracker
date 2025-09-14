@@ -800,7 +800,7 @@
                         <label for="creativeUpload" class="file-upload-label">Choose File</label>
                     </div>
                     <small style="color: #666; font-size: 11px; margin-top: 5px; display: block;">
-                        Max size: 1MB. Large files will be compressed.
+                        Upload images and videos. Large files may take a moment to process.
                     </small>
                 </div>
                 <div class="form-group">
@@ -898,7 +898,7 @@
                         <label for="libraryCreativeUpload" class="file-upload-label">Choose File</label>
                     </div>
                     <small style="color: #666; font-size: 11px; margin-top: 5px; display: block;">
-                        Max size: 1MB. Images will be compressed automatically. Videos larger than 1MB cannot be stored.
+                        Upload images and videos to your creative library.
                     </small>
                 </div>
                 <div class="form-group">
@@ -1824,38 +1824,24 @@
             }
         }
 
-        // Function to check file size and compress if needed
+        // Function to process creative files
         function processCreativeFile(file, callback) {
-            const MAX_SIZE = 1024 * 1024; // 1MB limit for storage
-            
-            if (file.size <= MAX_SIZE) {
-                // File is small enough, proceed normally
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    callback({
-                        success: true,
-                        data: e.target.result,
-                        type: file.type,
-                        name: file.name
-                    });
-                };
-                reader.onerror = function(e) {
-                    callback({
-                        success: false,
-                        error: 'Failed to read file'
-                    });
-                };
-                reader.readAsDataURL(file);
-            } else if (file.type.startsWith('image/')) {
-                // Image file too large, compress it
-                compressImage(file, callback);
-            } else {
-                // Video or other large file - cannot store
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                callback({
+                    success: true,
+                    data: e.target.result,
+                    type: file.type,
+                    name: file.name
+                });
+            };
+            reader.onerror = function(e) {
                 callback({
                     success: false,
-                    error: `File too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 1MB. Please compress the file before uploading.`
+                    error: 'Failed to read file'
                 });
-            }
+            };
+            reader.readAsDataURL(file);
         }
         
         function compressImage(file, callback) {
