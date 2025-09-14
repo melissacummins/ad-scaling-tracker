@@ -10,7 +10,6 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
         import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
-        import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js';
         import { getAnalytics } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics.js';
 
         // Firebase configuration
@@ -28,14 +27,12 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const storage = getStorage(app);
         const analytics = getAnalytics(app);
         const provider = new GoogleAuthProvider();
 
         // Make Firebase services globally available
         window.firebaseAuth = auth;
         window.firebaseDb = db;
-        window.firebaseStorage = storage;
         window.firebaseProvider = provider;
         window.firebaseSignInWithPopup = signInWithPopup;
         window.firebaseSignOut = signOut;
@@ -43,9 +40,6 @@
         window.firebaseDoc = doc;
         window.firebaseSetDoc = setDoc;
         window.firebaseGetDoc = getDoc;
-        window.firebaseStorageRef = ref;
-        window.firebaseUploadBytes = uploadBytes;
-        window.firebaseGetDownloadURL = getDownloadURL;
     </script>
     
     <style>
@@ -800,15 +794,20 @@
                     <input type="number" id="purchases" min="0" placeholder="0">
                 </div>
                 <div class="form-group">
-                    <label for="creativeUpload">Upload Creative</label>
+                    <label for="linkExistingCreative">Link to Existing Creative</label>
+                    <select id="linkExistingCreative" onchange="handleExistingCreativeLink()">
+                        <option value="">Select existing creative...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="creativeUpload">Upload New Creative</label>
                     <div class="file-upload">
                         <input type="file" id="creativeUpload" accept="image/*,video/*" onchange="handleCreativeUpload(event)">
                         <label for="creativeUpload" class="file-upload-label">Choose File</label>
                     </div>
-                    <small style="color: #666; font-size: 11px; margin-top: 5px; display: block;">
-                        Upload images and videos. Large files may take a moment to process.
-                    </small>
                 </div>
+            </div>
+            <div class="controls-row-2" style="grid-template-columns: 1fr; margin-top: -30px; padding-top: 0;">
                 <div class="form-group">
                     <label for="creativeId">Creative ID (auto-fills or enter existing)</label>
                     <input type="text" id="creativeId" placeholder="Auto-generated based on book, hook, and month/year">
@@ -891,28 +890,6 @@
                 <p>View and manage all your uploaded creatives with performance data</p>
             </div>
 
-            <!-- Upload Creative to Library -->
-            <div class="controls" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 30px;">
-                <div class="form-group">
-                    <label for="libraryCreativeId">Creative ID</label>
-                    <input type="text" id="libraryCreativeId" placeholder="Enter unique creative ID">
-                </div>
-                <div class="form-group">
-                    <label for="libraryCreativeUpload">Upload Creative to Library</label>
-                    <div class="file-upload">
-                        <input type="file" id="libraryCreativeUpload" accept="image/*,video/*" onchange="handleLibraryCreativeUpload(event)">
-                        <label for="libraryCreativeUpload" class="file-upload-label">Choose File</label>
-                    </div>
-                    <small style="color: #666; font-size: 11px; margin-top: 5px; display: block;">
-                        Upload images and videos to your creative library.
-                    </small>
-                </div>
-                <div class="form-group">
-                    <label>&nbsp;</label>
-                    <button class="btn btn-primary" onclick="uploadToLibrary()">➕ Add to Library</button>
-                </div>
-            </div>
-
             <div class="creative-grid" id="creativeGrid">
             </div>
         </div>
@@ -936,10 +913,6 @@
         let currentUser = null;
         let isSignedIn = false;
         let lastSyncTime = null;
-
-        // Global variables for pending creative uploads
-        let pendingCreativeData = null;
-        let pendingCreativeInfo = null;
 
         // Initialize Firebase auth listener
         function initializeAuth() {
@@ -1101,6 +1074,7 @@
                         
                         // Refresh UI
                         updateBookOptions();
+                        updateExistingCreativeOptions();
                         renderHooks();
                         renderBooks();
                         renderCreatives();
@@ -1135,16 +1109,46 @@
             }
         }
 
+        // NEW FUNCTION: Update the existing creative dropdown options
+        function updateExistingCreativeOptions() {
+            const select = document.getElementById('linkExistingCreative');
+            if (!select) return;
+            
+            // Clear existing options except the first
+            select.innerHTML = '<option value="">Select existing creative...</option>';
+            
+            // Add creatives from storage
+            Object.keys(creatives).forEach(creativeId => {
+                const creative = creatives[creativeId];
+                const option = document.createElement('option');
+                option.value = creativeId;
+                option.textContent = `${creativeId} (${creative.name})`;
+                select.appendChild(option);
+            });
+        }
+
+        // NEW FUNCTION: Handle linking to existing creative
+        function handleExistingCreativeLink() {
+            const selectedCreativeId = document.getElementById('linkExistingCreative').value;
+            const creativeIdInput = document.getElementById('creativeId');
+            
+            if (selectedCreativeId) {
+                // Set the Creative ID field to the selected existing creative
+                creativeIdInput.value = selectedCreativeId;
+                
+                // Clear the file upload since we're using an existing creative
+                const fileInput = document.getElementById('creativeUpload');
+                fileInput.value = '';
+            }
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize global variables for library creative upload
-            window.libraryCreativeData = null;
-            window.libraryCreativeInfo = null;
-            
             // Initialize Firebase authentication first
             setTimeout(initializeAuth, 500); // Give Firebase a moment to load
             
             updateBookOptions();
+            updateExistingCreativeOptions();
             renderHooks();
             renderBooks();
             renderCreatives();
@@ -1164,19 +1168,8 @@
             const testDate = document.getElementById('testDate');
             
             if (bookSelect) bookSelect.addEventListener('change', updateCreativeIdPreview);
-            if (hookName) {
-                hookName.addEventListener('input', updateCreativeIdPreview);
-                hookName.addEventListener('keyup', updateCreativeIdPreview);
-                hookName.addEventListener('paste', function() {
-                    // Delay to allow paste to complete
-                    setTimeout(updateCreativeIdPreview, 10);
-                });
-            }
-            if (testDate) {
-                testDate.addEventListener('change', updateCreativeIdPreview);
-                testDate.addEventListener('input', updateCreativeIdPreview);
-                testDate.addEventListener('keyup', updateCreativeIdPreview);
-            }
+            if (hookName) hookName.addEventListener('input', updateCreativeIdPreview);
+            if (testDate) testDate.addEventListener('change', updateCreativeIdPreview);
             
             // Add event listeners for auth buttons with safety checks
             setTimeout(() => {
@@ -1214,6 +1207,9 @@
                 renderBooks();
             } else if (tabName === 'creatives') {
                 renderCreatives();
+            } else if (tabName === 'hooks') {
+                // Update existing creative options when switching to hooks tab
+                updateExistingCreativeOptions();
             }
         }
 
@@ -1281,24 +1277,6 @@
             });
         }
 
-        function parseTestDate(dateString) {
-            // Parse MM/YYYY format into a proper date for comparison
-            if (!dateString || !dateString.includes('/')) {
-                return new Date(0); // Return epoch if invalid
-            }
-            
-            const parts = dateString.split('/');
-            if (parts.length !== 2) {
-                return new Date(0); // Return epoch if invalid
-            }
-            
-            const month = parseInt(parts[0]) - 1; // Month is 0-indexed in JS
-            const year = parseInt(parts[1]);
-            
-            // Create date object - use day 1 of the month for comparison
-            return new Date(year, month, 1);
-        }
-
         function addOrUpdateHook() {
             const bookSelect = document.getElementById('bookSelect').value;
             const hookName = document.getElementById('hookName').value.trim();
@@ -1310,6 +1288,8 @@
             const purchases = parseInt(document.getElementById('purchases').value) || 0;
             
             let creativeId = document.getElementById('creativeId').value.trim();
+            // Set creativesCount to 1 if there's a creative, 0 if not
+            const creativesCount = creativeId ? 1 : 0;
 
             if (!bookSelect || !hookName) {
                 alert('Please select a book and enter a hook name.');
@@ -1320,53 +1300,6 @@
                 alert('Please enter at least a spend or revenue amount.');
                 return;
             }
-
-            // Handle creative upload if there's pending data
-            if (pendingCreativeData && pendingCreativeInfo) {
-                if (!creativeId) {
-                    // Generate creative ID if not provided
-                    creativeId = generateCreativeId(bookSelect, hookName, testDate);
-                    
-                    // Ensure unique ID
-                    let attempts = 0;
-                    while (creatives[creativeId] && attempts < 10) {
-                        const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-                        const cleanBook = bookSelect.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
-                        const hookWords = hookName.split(/\s+/).filter(word => word.length > 2);
-                        let cleanHook = '';
-                        
-                        if (hookWords.length >= 3) {
-                            cleanHook = hookWords.slice(0, 3)
-                                .map(word => word.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10))
-                                .join('')
-                                .substring(0, 30);
-                        } else {
-                            cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30);
-                        }
-                        
-                        const dateStr = testDate.replace(/\D/g, '');
-                        creativeId = `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
-                        attempts++;
-                    }
-                    
-                    document.getElementById('creativeId').value = creativeId;
-                }
-                
-                // Save the creative
-                creatives[creativeId] = {
-                    data: pendingCreativeData,
-                    type: pendingCreativeInfo.type,
-                    name: pendingCreativeInfo.name,
-                    isStorageFile: pendingCreativeInfo.isStorageFile || false
-                };
-                
-                // Clear pending data
-                pendingCreativeData = null;
-                pendingCreativeInfo = null;
-            }
-
-            // Set creativesCount to 1 if there's a creative, 0 if not
-            const creativesCount = creativeId ? 1 : 0;
 
             // Find existing hook with same name and book
             const existingIndex = hooks.findIndex(h => 
@@ -1393,25 +1326,29 @@
             if (existingIndex >= 0) {
                 // Update existing hook by adding new spend/revenue
                 const existing = hooks[existingIndex];
-                
                 hookData.totalSpend = existing.totalSpend + totalSpend;
                 hookData.totalRevenue = existing.totalRevenue + totalRevenue;
                 hookData.purchases = existing.purchases + purchases;
+                // For existing hooks, add to creative count if there's a new creative
                 hookData.creativesCount = existing.creativesCount + creativesCount;
                 hookData.overallROAS = hookData.totalSpend > 0 ? hookData.totalRevenue / hookData.totalSpend : 0;
                 
-                // Always update to the newer test date
-                const existingDate = parseTestDate(existing.testDate);
-                const newDate = parseTestDate(testDate);
-                
-                if (newDate > existingDate) {
+                // Update test date to latest
+                if (new Date(testDate) > new Date(existing.testDate)) {
                     hookData.testDate = testDate;
                 } else {
                     hookData.testDate = existing.testDate;
                 }
                 
-                // Handle creative ID updates properly for existing hooks
+                // FIX: Handle creative ID updates properly for existing hooks
                 if (creativeId && creativeId !== existing.creativeId) {
+                    // If there's an old creative with a different ID, check if we need to move it
+                    if (existing.creativeId && creatives[existing.creativeId] && !creatives[creativeId]) {
+                        // Move the creative to the new ID
+                        creatives[creativeId] = creatives[existing.creativeId];
+                        delete creatives[existing.creativeId];
+                        localStorage.setItem('adScalingCreatives', JSON.stringify(creatives));
+                    }
                     hookData.creativeId = creativeId;
                 } else if (!creativeId && existing.creativeId) {
                     hookData.creativeId = existing.creativeId;
@@ -1425,20 +1362,22 @@
             // Calculate milestone ROAS
             calculateMilestoneROAS();
 
-            // Update UI immediately
-            renderHooks();
-            renderBooks();
-            renderCreatives();
-            clearForm();
-            
-            // Save data in background
+            // Save data
             saveToLocalAndCloud();
             
-            // Scroll to the table so user can see the new entry
-            document.getElementById('hooksTable').scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'nearest' 
-            });
+            // Force immediate UI update
+            setTimeout(() => {
+                renderHooks();
+                renderBooks(); // Also update books tab in case it shows totals
+                updateExistingCreativeOptions(); // Update the creative dropdown
+                clearForm();
+                
+                // Scroll to the table so user can see the new entry
+                document.getElementById('hooksTable').scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'nearest' 
+                });
+            }, 10); // Small delay to ensure DOM is ready
         }
 
         function calculateMilestoneROAS() {
@@ -1570,13 +1509,14 @@
                 return;
             }
 
-            // Update creative ID mapping when changed
+            // FIX: Update creative ID mapping when changed
             if (oldCreativeId && oldCreativeId !== hookData.creativeId && creatives[oldCreativeId]) {
                 // If creative ID changed and the old ID exists, update the creative object
                 if (hookData.creativeId && !creatives[hookData.creativeId]) {
                     // Move the creative to the new ID
                     creatives[hookData.creativeId] = creatives[oldCreativeId];
                     delete creatives[oldCreativeId];
+                    localStorage.setItem('adScalingCreatives', JSON.stringify(creatives));
                 }
             }
 
@@ -1588,6 +1528,7 @@
             saveToLocalAndCloud();
             renderHooks();
             renderCreatives();
+            updateExistingCreativeOptions();
             cancelEdit();
         }
 
@@ -1679,40 +1620,11 @@
         }
 
         function generateCreativeId(bookName, hookName, testDate) {
-            // Clean book name
+            // Clean the book name and hook name for use in ID
             const cleanBook = bookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
-            
-            // Clean hook name - take first 3 meaningful words or up to 30 chars
-            const hookWords = hookName.split(/\s+/).filter(word => word.length > 2); // Only words > 2 chars
-            let cleanHook = '';
-            
-            if (hookWords.length >= 3) {
-                // Use first 3 words, up to 10 chars each
-                cleanHook = hookWords.slice(0, 3)
-                    .map(word => word.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10))
-                    .join('')
-                    .substring(0, 30);
-            } else if (hookWords.length >= 2) {
-                // Use 2 words, up to 15 chars each
-                cleanHook = hookWords.slice(0, 2)
-                    .map(word => word.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15))
-                    .join('')
-                    .substring(0, 30);
-            } else if (hookWords.length >= 1) {
-                // Use the one word we have
-                cleanHook = hookWords[0].replace(/[^a-zA-Z0-9]/g, '').substring(0, 30);
-            } else {
-                // Fallback - clean the entire hook name
-                cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30);
-            }
-            
-            // Ensure we have something for the hook part
-            if (cleanHook.length < 2) {
-                cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30) || 'Hook';
-            }
-            
+            const cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
             // Convert MM/YYYY to MMYYYY
-            const dateStr = testDate.replace(/\D/g, '');
+            const dateStr = testDate.replace(/\D/g, ''); // Remove non-digits
             const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
             
             return `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
@@ -1742,263 +1654,54 @@
         function handleCreativeUpload(event) {
             const file = event.target.files[0];
             if (file) {
-                // Update label to show processing
-                const label = event.target.nextElementSibling;
-                if (label) {
-                    label.textContent = 'Processing...';
-                    label.style.background = '#ffc107';
-                }
-                
-                processCreativeFile(file, function(result) {
-                    if (result.success) {
-                        // Store the creative data temporarily
-                        pendingCreativeData = result.data;
-                        pendingCreativeInfo = {
-                            type: result.type,
-                            name: result.name,
-                            isStorageFile: result.isStorageFile || false
-                        };
-                        
-                        // Update the file input label to show success
-                        if (label) {
-                            const shortName = result.name.length > 20 ? result.name.substring(0, 20) + '...' : result.name;
-                            label.textContent = `Ready: ${shortName}`;
-                            label.style.background = '#28a745';
-                        }
-                        
-                        // Auto-generate creative ID if form fields are filled
-                        updateCreativeIdPreview();
-                    } else {
-                        // Show error
-                        alert(result.error);
-                        
-                        // Reset the file input
-                        event.target.value = '';
-                        if (label) {
-                            label.textContent = 'Choose File';
-                            label.style.background = '#6c757d';
-                        }
-                        
-                        // Clear any stored data
-                        pendingCreativeData = null;
-                        pendingCreativeInfo = null;
-                    }
-                });
-            }
-        }
-
-        // Function to upload files to Firebase Storage and return download URL
-        async function uploadToFirebaseStorage(file, path) {
-            if (!window.firebaseStorage) {
-                throw new Error('Firebase Storage not initialized');
-            }
-            
-            const storageRef = window.firebaseStorageRef(window.firebaseStorage, path);
-            const snapshot = await window.firebaseUploadBytes(storageRef, file);
-            const downloadURL = await window.firebaseGetDownloadURL(snapshot.ref);
-            return downloadURL;
-        }
-
-        // Function to process creative files - now uploads large files to Storage
-        async function processCreativeFile(file, callback) {
-            try {
-                // For files larger than 500KB, use Firebase Storage
-                if (file.size > 500 * 1024) {
-                    if (!isSignedIn || !currentUser) {
-                        callback({
-                            success: false,
-                            error: 'Please sign in to upload large files'
-                        });
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Generate Creative ID based on current form values
+                    const bookSelect = document.getElementById('bookSelect').value;
+                    const hookName = document.getElementById('hookName').value.trim();
+                    const testDate = document.getElementById('testDate').value;
+                    
+                    if (!bookSelect || !hookName || !testDate) {
+                        alert('Please fill in Book, Hook Name, and Test Month/Year before uploading a creative.');
+                        event.target.value = ''; // Clear the file input
                         return;
                     }
                     
-                    // Generate unique path for this file
-                    const timestamp = new Date().getTime();
-                    const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '');
-                    const filePath = `creatives/${currentUser.uid}/${timestamp}_${cleanFileName}`;
+                    let creativeId = document.getElementById('creativeId').value.trim();
                     
-                    // Upload to Firebase Storage
-                    const downloadURL = await uploadToFirebaseStorage(file, filePath);
-                    
-                    callback({
-                        success: true,
-                        data: downloadURL, // Store URL instead of data
-                        type: file.type,
-                        name: file.name,
-                        isStorageFile: true // Flag to indicate this is a Storage file
-                    });
-                } else {
-                    // For smaller files, use data URL as before
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        callback({
-                            success: true,
-                            data: e.target.result,
-                            type: file.type,
-                            name: file.name,
-                            isStorageFile: false
-                        });
-                    };
-                    reader.onerror = function(e) {
-                        callback({
-                            success: false,
-                            error: 'Failed to read file'
-                        });
-                    };
-                    reader.readAsDataURL(file);
-                }
-            } catch (error) {
-                callback({
-                    success: false,
-                    error: `Upload failed: ${error.message}`
-                });
-            }
-        }
-        
-        function compressImage(file, callback) {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
-            const img = new Image();
-            
-            img.onload = function() {
-                // Calculate new dimensions (max 800px on longest side)
-                let { width, height } = img;
-                const maxDimension = 800;
-                
-                if (width > height && width > maxDimension) {
-                    height = (height * maxDimension) / width;
-                    width = maxDimension;
-                } else if (height > maxDimension) {
-                    width = (width * maxDimension) / height;
-                    height = maxDimension;
-                }
-                
-                canvas.width = width;
-                canvas.height = height;
-                
-                // Draw compressed image
-                ctx.drawImage(img, 0, 0, width, height);
-                
-                // Convert to data URL with compression
-                const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-                
-                callback({
-                    success: true,
-                    data: compressedDataUrl,
-                    type: 'image/jpeg',
-                    name: file.name.replace(/\.[^/.]+$/, '.jpg') // Change extension to .jpg
-                });
-            };
-            
-            img.onerror = function() {
-                callback({
-                    success: false,
-                    error: 'Failed to load image for compression'
-                });
-            };
-            
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
-        }
-
-        // New function for Creative Library upload
-        function handleLibraryCreativeUpload(event) {
-            const file = event.target.files[0];
-            if (file) {
-                // Update label to show processing
-                const label = event.target.nextElementSibling;
-                if (label) {
-                    label.textContent = 'Processing...';
-                    label.style.background = '#ffc107';
-                }
-                
-                processCreativeFile(file, function(result) {
-                    if (result.success) {
-                        // Store the processed data
-                        window.libraryCreativeData = result.data;
-                        window.libraryCreativeInfo = {
-                            type: result.type,
-                            name: result.name,
-                            isStorageFile: result.isStorageFile || false
-                        };
+                    // Only generate a new ID if the field is empty
+                    if (!creativeId) {
+                        creativeId = generateCreativeId(bookSelect, hookName, testDate);
                         
-                        // Update the file input label to show success
-                        if (label) {
-                            const shortName = result.name.length > 15 ? result.name.substring(0, 15) + '...' : result.name;
-                            label.textContent = `Ready: ${shortName}`;
-                            label.style.background = '#28a745';
-                        }
-                    } else {
-                        // Show error
-                        alert(result.error);
-                        
-                        // Reset the file input
-                        event.target.value = '';
-                        if (label) {
-                            label.textContent = 'Choose File';
-                            label.style.background = '#6c757d';
+                        // Check if this ID already exists, if so, generate a new random number
+                        let attempts = 0;
+                        while (creatives[creativeId] && attempts < 10) {
+                            const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+                            const cleanBook = bookSelect.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
+                            const cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+                            const dateStr = testDate.replace(/\D/g, ''); // Remove non-digits from MM/YYYY
+                            creativeId = `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
+                            attempts++;
                         }
                         
-                        // Clear any stored data
-                        window.libraryCreativeData = null;
-                        window.libraryCreativeInfo = null;
+                        document.getElementById('creativeId').value = creativeId;
                     }
-                });
+                    
+                    creatives[creativeId] = {
+                        data: e.target.result,
+                        type: file.type,
+                        name: file.name
+                    };
+                    
+                    saveToLocalAndCloud();
+                    renderCreatives();
+                    updateExistingCreativeOptions();
+                };
+                reader.readAsDataURL(file);
             }
         }
 
-        function uploadToLibrary() {
-            const creativeId = document.getElementById('libraryCreativeId').value.trim();
-            
-            if (!creativeId) {
-                alert('Please enter a Creative ID.');
-                return;
-            }
-            
-            if (!window.libraryCreativeData || !window.libraryCreativeInfo) {
-                alert('Please select a file to upload.');
-                return;
-            }
-            
-            if (creatives[creativeId]) {
-                alert('A creative with this ID already exists. Please choose a different ID.');
-                return;
-            }
-            
-            // Save the creative to the library
-            creatives[creativeId] = {
-                data: window.libraryCreativeData,
-                type: window.libraryCreativeInfo.type,
-                name: window.libraryCreativeInfo.name,
-                isStorageFile: window.libraryCreativeInfo.isStorageFile || false
-            };
-            
-            // Update UI immediately
-            renderCreatives();
-            
-            // Clear the form
-            document.getElementById('libraryCreativeId').value = '';
-            document.getElementById('libraryCreativeUpload').value = '';
-            const label = document.querySelector('label[for="libraryCreativeUpload"]');
-            if (label) {
-                label.textContent = 'Choose File';
-                label.style.background = '#6c757d';
-            }
-            
-            // Clear temporary data
-            window.libraryCreativeData = null;
-            window.libraryCreativeInfo = null;
-            
-            // Save in background
-            saveToLocalAndCloud();
-            
-            alert('Creative uploaded to library successfully!');
-        }
-
-        // This function now works with the input field in Creative Library
+        // FIX: This function now works with the input field in Creative Library
         function saveCreativeId(oldCreativeId) {
             const inputField = document.getElementById(`creative-id-${oldCreativeId}`);
             const newId = inputField.value.trim();
@@ -2033,6 +1736,7 @@
             saveToLocalAndCloud();
             renderCreatives();
             renderHooks();
+            updateExistingCreativeOptions();
         }
 
         function showCreative(creativeId) {
@@ -2155,7 +1859,6 @@
                     <div class="creative-info">
                         <div style="margin-bottom: 10px;">
                             <span class="creative-type-badge">${isVideo ? '🎥 Video' : '🖼️ Image'}</span>
-                            ${creative.isStorageFile ? '<span style="background: #17a2b8; color: white; padding: 2px 6px; border-radius: 8px; font-size: 10px; margin-left: 5px;">Cloud</span>' : ''}
                         </div>
                         <div class="creative-name-edit">
                             <strong>ID:</strong>
@@ -2242,6 +1945,8 @@
                 }
             });
 
+            localStorage.setItem('adScalingBooks', JSON.stringify(books));
+            localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
             saveToLocalAndCloud();
             
             updateBookOptions();
@@ -2258,6 +1963,7 @@
                 }
                 // Remove all hooks for this book
                 hooks = hooks.filter(h => h.book !== bookTitle);
+                saveToLocalAndCloud();
             }
 
             // Remove book
@@ -2281,9 +1987,12 @@
                     }
                 });
                 
+                localStorage.setItem('adScalingCreatives', JSON.stringify(creatives));
+                localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
                 saveToLocalAndCloud();
                 renderCreatives();
                 renderHooks();
+                updateExistingCreativeOptions();
             }
         }
 
@@ -2307,24 +2016,11 @@
             document.getElementById('totalSpendInput').value = '';
             document.getElementById('totalRevenueInput').value = '';
             document.getElementById('purchases').value = '';
+            document.getElementById('linkExistingCreative').value = '';
             document.getElementById('creativeId').value = '';
             document.getElementById('creativeId').placeholder = "Auto-generated based on book, hook, and month/year";
-            
-            // Clear the file input and reset label
-            const creativeUpload = document.getElementById('creativeUpload');
-            if (creativeUpload) {
-                creativeUpload.value = '';
-                const label = creativeUpload.nextElementSibling;
-                if (label) {
-                    label.textContent = 'Choose File';
-                    label.style.background = '#6c757d';
-                }
-            }
-            
-            // Clear pending creative data
-            pendingCreativeData = null;
-            pendingCreativeInfo = null;
-            
+            // Clear the file input
+            document.getElementById('creativeUpload').value = '';
             cancelAddBook(); // Hide add book form if open
         }
 
@@ -2391,9 +2087,11 @@
                     }
                     
                     calculateMilestoneROAS();
-                    saveToLocalAndCloud();
+                    localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
+                    localStorage.setItem('adScalingBooks', JSON.stringify(books));
                     
                     updateBookOptions();
+                    updateExistingCreativeOptions();
                     renderHooks();
                     renderBooks();
                     renderCreatives();
@@ -2422,6 +2120,7 @@
                 }
                 
                 updateBookOptions();
+                updateExistingCreativeOptions();
                 renderHooks();
                 renderBooks();
                 renderCreatives();
