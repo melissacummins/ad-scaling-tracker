@@ -799,6 +799,9 @@
                         <input type="file" id="creativeUpload" accept="image/*,video/*" onchange="handleCreativeUpload(event)">
                         <label for="creativeUpload" class="file-upload-label">Choose File</label>
                     </div>
+                    <small style="color: #666; font-size: 11px; margin-top: 5px; display: block;">
+                        Max size: 1MB. Large files will be compressed.
+                    </small>
                 </div>
                 <div class="form-group">
                     <label for="creativeId">Creative ID (auto-fills or enter existing)</label>
@@ -894,6 +897,9 @@
                         <input type="file" id="libraryCreativeUpload" accept="image/*,video/*" onchange="handleLibraryCreativeUpload(event)">
                         <label for="libraryCreativeUpload" class="file-upload-label">Choose File</label>
                     </div>
+                    <small style="color: #666; font-size: 11px; margin-top: 5px; display: block;">
+                        Max size: 1MB. Images will be compressed automatically. Videos larger than 1MB cannot be stored.
+                    </small>
                 </div>
                 <div class="form-group">
                     <label>&nbsp;</label>
@@ -1288,22 +1294,16 @@
         }
 
         function addOrUpdateHook() {
-            console.log('addOrUpdateHook called'); // Debug log
-            
             const bookSelect = document.getElementById('bookSelect').value;
             const hookName = document.getElementById('hookName').value.trim();
             const campaignName = document.getElementById('campaignName').value.trim();
             const testDate = document.getElementById('testDate').value;
-            
-            console.log('Form values:', { bookSelect, hookName, campaignName, testDate }); // Debug log
             
             const totalSpend = parseFloat(document.getElementById('totalSpendInput').value) || 0;
             const totalRevenue = parseFloat(document.getElementById('totalRevenueInput').value) || 0;
             const purchases = parseInt(document.getElementById('purchases').value) || 0;
             
             let creativeId = document.getElementById('creativeId').value.trim();
-
-            console.log('Financial values:', { totalSpend, totalRevenue, purchases, creativeId }); // Debug log
 
             if (!bookSelect || !hookName) {
                 alert('Please select a book and enter a hook name.');
@@ -1315,19 +1315,11 @@
                 return;
             }
 
-            console.log('Pending creative data:', { 
-                hasPendingData: !!pendingCreativeData, 
-                hasPendingInfo: !!pendingCreativeInfo 
-            }); // Debug log
-
             // Handle creative upload if there's pending data
             if (pendingCreativeData && pendingCreativeInfo) {
-                console.log('Processing pending creative...'); // Debug log
-                
                 if (!creativeId) {
                     // Generate creative ID if not provided
                     creativeId = generateCreativeId(bookSelect, hookName, testDate);
-                    console.log('Generated creative ID:', creativeId); // Debug log
                     
                     // Ensure unique ID
                     let attempts = 0;
@@ -1363,8 +1355,6 @@
                     name: pendingCreativeInfo.name
                 };
                 
-                console.log('Creative saved:', creativeId); // Debug log
-                
                 // Clear pending data
                 pendingCreativeData = null;
                 pendingCreativeInfo = null;
@@ -1377,8 +1367,6 @@
             const existingIndex = hooks.findIndex(h => 
                 h.book === bookSelect && h.hookName === hookName
             );
-
-            console.log('Existing hook index:', existingIndex); // Debug log
 
             const hookData = {
                 book: bookSelect,
@@ -1397,12 +1385,9 @@
                 roasAt3000: 0
             };
 
-            console.log('Hook data to save:', hookData); // Debug log
-
             if (existingIndex >= 0) {
                 // Update existing hook by adding new spend/revenue
                 const existing = hooks[existingIndex];
-                console.log('Updating existing hook:', existing); // Debug log
                 
                 hookData.totalSpend = existing.totalSpend + totalSpend;
                 hookData.totalRevenue = existing.totalRevenue + totalRevenue;
@@ -1411,24 +1396,14 @@
                 hookData.creativesCount = existing.creativesCount + creativesCount;
                 hookData.overallROAS = hookData.totalSpend > 0 ? hookData.totalRevenue / hookData.totalSpend : 0;
                 
-                // FIX: Always update to the newer test date
+                // Always update to the newer test date
                 const existingDate = parseTestDate(existing.testDate);
                 const newDate = parseTestDate(testDate);
                 
-                console.log('Date comparison:', {
-                    existing: existing.testDate,
-                    existingParsed: existingDate,
-                    new: testDate,
-                    newParsed: newDate,
-                    isNewer: newDate > existingDate
-                }); // Debug log
-                
                 if (newDate > existingDate) {
                     hookData.testDate = testDate;
-                    console.log('Updated to newer date:', testDate); // Debug log
                 } else {
                     hookData.testDate = existing.testDate;
-                    console.log('Kept existing date:', existing.testDate); // Debug log
                 }
                 
                 // Handle creative ID updates properly for existing hooks
@@ -1440,22 +1415,17 @@
                 
                 hooks[existingIndex] = hookData;
             } else {
-                console.log('Adding new hook'); // Debug log
                 hooks.push(hookData);
             }
-
-            console.log('Hooks array after update:', hooks.length, 'hooks'); // Debug log
 
             // Calculate milestone ROAS
             calculateMilestoneROAS();
 
-            console.log('Saving data...'); // Debug log
             // Save data
             saveToLocalAndCloud();
             
             // Force immediate UI update
             setTimeout(() => {
-                console.log('Updating UI...'); // Debug log
                 renderHooks();
                 renderBooks(); // Also update books tab in case it shows totals
                 renderCreatives(); // Update creatives to show new linkages
@@ -1467,8 +1437,6 @@
                     block: 'nearest' 
                 });
             }, 10); // Small delay to ensure DOM is ready
-            
-            console.log('addOrUpdateHook completed'); // Debug log
         }
 
         function calculateMilestoneROAS() {
@@ -1709,16 +1677,12 @@
         }
 
         function generateCreativeId(bookName, hookName, testDate) {
-            console.log('generateCreativeId called with:', { bookName, hookName, testDate }); // Debug
-            
             // Clean and use more of the hook name - take first 3 words or up to 30 characters
             const cleanBook = bookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
             
             // Better hook name processing - take first few words or characters
             const hookWords = hookName.split(/\s+/).filter(word => word.length > 0);
             let cleanHook = '';
-            
-            console.log('Hook words:', hookWords); // Debug
             
             if (hookWords.length >= 3) {
                 // Use first 3 words, max 10 chars each for readability
@@ -1727,7 +1691,6 @@
                     .filter(word => word.length > 0) // Remove empty words
                     .join('')
                     .substring(0, 30);
-                console.log('Used 3+ words:', cleanHook); // Debug
             } else if (hookWords.length >= 2) {
                 // Use 2 words, more chars each
                 cleanHook = hookWords
@@ -1735,18 +1698,15 @@
                     .filter(word => word.length > 0)
                     .join('')
                     .substring(0, 30);
-                console.log('Used 2 words:', cleanHook); // Debug
             } else if (hookWords.length >= 1) {
                 // Use available words
                 cleanHook = hookWords
                     .map(word => word.replace(/[^a-zA-Z0-9]/g, ''))
                     .join('')
                     .substring(0, 30);
-                console.log('Used 1 word:', cleanHook); // Debug
             } else {
                 // Fallback to cleaning the entire hook name
                 cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30);
-                console.log('Fallback to entire hook:', cleanHook); // Debug
             }
             
             // Ensure we have at least something for the hook part
@@ -1755,17 +1715,13 @@
                 if (cleanHook.length < 2) {
                     cleanHook = 'Hook'; // Ultimate fallback
                 }
-                console.log('Final fallback hook:', cleanHook); // Debug
             }
             
             // Convert MM/YYYY to MMYYYY
             const dateStr = testDate.replace(/\D/g, ''); // Remove non-digits
             const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
             
-            const result = `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
-            console.log('Generated Creative ID:', result); // Debug
-            
-            return result;
+            return `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
         }
 
         function updateCreativeIdPreview() {
@@ -1774,20 +1730,16 @@
             const testDate = document.getElementById('testDate').value;
             const creativeIdInput = document.getElementById('creativeId');
             
-            console.log('updateCreativeIdPreview called:', { bookSelect, hookName, testDate }); // Debug
-            
             // Only auto-fill if the field is empty (so user can manually enter existing IDs)
             if (bookSelect && hookName && testDate && !creativeIdInput.value.trim()) {
                 const previewId = generateCreativeId(bookSelect, hookName, testDate);
                 creativeIdInput.value = previewId;
-                console.log('Auto-filled Creative ID:', previewId); // Debug
             }
             
             // Always update placeholder to show what would be generated
             if (bookSelect && hookName && testDate) {
                 const previewId = generateCreativeId(bookSelect, hookName, testDate);
                 creativeIdInput.placeholder = `Auto-generated: ${previewId}`;
-                console.log('Updated placeholder:', previewId); // Debug
             } else {
                 creativeIdInput.placeholder = "Auto-generated based on book, hook, and month/year";
             }
@@ -1796,106 +1748,219 @@
         function handleCreativeUpload(event) {
             const file = event.target.files[0];
             if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    // Store the creative data temporarily
-                    pendingCreativeData = e.target.result;
-                    pendingCreativeInfo = {
-                        type: file.type,
-                        name: file.name
-                    };
-                    
-                    // Update the file input label to show a file is selected
-                    const label = event.target.nextElementSibling;
-                    if (label) {
-                        label.textContent = `File Selected: ${file.name.substring(0, 20)}${file.name.length > 20 ? '...' : ''}`;
-                        label.style.background = '#28a745';
-                    }
-                    
-                    // Auto-generate creative ID if form fields are filled
-                    const bookSelect = document.getElementById('bookSelect').value;
-                    const hookName = document.getElementById('hookName').value.trim();
-                    const testDate = document.getElementById('testDate').value;
-                    const creativeIdInput = document.getElementById('creativeId');
-                    
-                    if (bookSelect && hookName && testDate && !creativeIdInput.value.trim()) {
-                        let creativeId = generateCreativeId(bookSelect, hookName, testDate);
+                // Update label to show processing
+                const label = event.target.nextElementSibling;
+                if (label) {
+                    label.textContent = 'Processing...';
+                    label.style.background = '#ffc107';
+                }
+                
+                processCreativeFile(file, function(result) {
+                    if (result.success) {
+                        // Store the creative data temporarily
+                        pendingCreativeData = result.data;
+                        pendingCreativeInfo = {
+                            type: result.type,
+                            name: result.name
+                        };
                         
-                        // Check if this ID already exists, if so, generate a new random number
-                        let attempts = 0;
-                        while (creatives[creativeId] && attempts < 10) {
-                            const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-                            const cleanBook = bookSelect.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
-                            const cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
-                            const dateStr = testDate.replace(/\D/g, ''); // Remove non-digits from MM/YYYY
-                            creativeId = `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
-                            attempts++;
+                        // Update the file input label to show success
+                        if (label) {
+                            label.textContent = `Ready: ${result.name.substring(0, 20)}${result.name.length > 20 ? '...' : ''}`;
+                            label.style.background = '#28a745';
                         }
                         
-                        creativeIdInput.value = creativeId;
+                        // Auto-generate creative ID if form fields are filled
+                        const bookSelect = document.getElementById('bookSelect').value;
+                        const hookName = document.getElementById('hookName').value.trim();
+                        const testDate = document.getElementById('testDate').value;
+                        const creativeIdInput = document.getElementById('creativeId');
+                        
+                        if (bookSelect && hookName && testDate && !creativeIdInput.value.trim()) {
+                            let creativeId = generateCreativeId(bookSelect, hookName, testDate);
+                            
+                            // Check if this ID already exists, if so, generate a new random number
+                            let attempts = 0;
+                            while (creatives[creativeId] && attempts < 10) {
+                                const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+                                const cleanBook = bookSelect.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
+                                
+                                // Better hook processing for ID generation
+                                const hookWords = hookName.split(/\s+/).filter(word => word.length > 0);
+                                let cleanHook = '';
+                                
+                                if (hookWords.length >= 3) {
+                                    cleanHook = hookWords.slice(0, 3)
+                                        .map(word => word.replace(/[^a-zA-Z0-9]/g, '').substring(0, 8))
+                                        .join('')
+                                        .substring(0, 30);
+                                } else {
+                                    cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30);
+                                }
+                                
+                                const dateStr = testDate.replace(/\D/g, ''); // Remove non-digits from MM/YYYY
+                                creativeId = `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
+                                attempts++;
+                            }
+                            
+                            creativeIdInput.value = creativeId;
+                        }
+                    } else {
+                        // Show error
+                        alert(result.error);
+                        
+                        // Reset the file input
+                        event.target.value = '';
+                        if (label) {
+                            label.textContent = 'Choose File';
+                            label.style.background = '#6c757d';
+                        }
+                        
+                        // Clear any stored data
+                        pendingCreativeData = null;
+                        pendingCreativeInfo = null;
                     }
+                });
+            }
+        }
+
+        // Function to check file size and compress if needed
+        function processCreativeFile(file, callback) {
+            const MAX_SIZE = 1024 * 1024; // 1MB limit for storage
+            
+            if (file.size <= MAX_SIZE) {
+                // File is small enough, proceed normally
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    callback({
+                        success: true,
+                        data: e.target.result,
+                        type: file.type,
+                        name: file.name
+                    });
+                };
+                reader.onerror = function(e) {
+                    callback({
+                        success: false,
+                        error: 'Failed to read file'
+                    });
                 };
                 reader.readAsDataURL(file);
+            } else if (file.type.startsWith('image/')) {
+                // Image file too large, compress it
+                compressImage(file, callback);
+            } else {
+                // Video or other large file - cannot store
+                callback({
+                    success: false,
+                    error: `File too large (${(file.size / 1024 / 1024).toFixed(2)}MB). Maximum size is 1MB. Please compress the file before uploading.`
+                });
             }
+        }
+        
+        function compressImage(file, callback) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const img = new Image();
+            
+            img.onload = function() {
+                // Calculate new dimensions (max 800px on longest side)
+                let { width, height } = img;
+                const maxDimension = 800;
+                
+                if (width > height && width > maxDimension) {
+                    height = (height * maxDimension) / width;
+                    width = maxDimension;
+                } else if (height > maxDimension) {
+                    width = (width * maxDimension) / height;
+                    height = maxDimension;
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                
+                // Draw compressed image
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Convert to data URL with compression
+                const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+                
+                callback({
+                    success: true,
+                    data: compressedDataUrl,
+                    type: 'image/jpeg',
+                    name: file.name.replace(/\.[^/.]+$/, '.jpg') // Change extension to .jpg
+                });
+            };
+            
+            img.onerror = function() {
+                callback({
+                    success: false,
+                    error: 'Failed to load image for compression'
+                });
+            };
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
         }
 
         // New function for Creative Library upload
         function handleLibraryCreativeUpload(event) {
             const file = event.target.files[0];
             if (file) {
-                console.log('Library file selected:', file.name); // Debug log
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    console.log('Library file loaded successfully'); // Debug log
-                    // Store the data temporarily for library upload - using window to ensure global access
-                    window.libraryCreativeData = e.target.result;
-                    window.libraryCreativeInfo = {
-                        type: file.type,
-                        name: file.name
-                    };
-                    
-                    console.log('Library creative data stored:', {
-                        hasData: !!window.libraryCreativeData,
-                        type: window.libraryCreativeInfo?.type,
-                        name: window.libraryCreativeInfo?.name
-                    }); // Debug log
-                    
-                    // Update the file input label to show a file is selected
-                    const label = event.target.nextElementSibling;
-                    if (label) {
-                        label.textContent = `Selected: ${file.name.substring(0, 15)}${file.name.length > 15 ? '...' : ''}`;
-                        label.style.background = '#28a745';
+                // Update label to show processing
+                const label = event.target.nextElementSibling;
+                if (label) {
+                    label.textContent = 'Processing...';
+                    label.style.background = '#ffc107';
+                }
+                
+                processCreativeFile(file, function(result) {
+                    if (result.success) {
+                        // Store the processed data
+                        window.libraryCreativeData = result.data;
+                        window.libraryCreativeInfo = {
+                            type: result.type,
+                            name: result.name
+                        };
+                        
+                        // Update the file input label to show success
+                        if (label) {
+                            label.textContent = `Ready: ${result.name.substring(0, 15)}${result.name.length > 15 ? '...' : ''}`;
+                            label.style.background = '#28a745';
+                        }
+                    } else {
+                        // Show error
+                        alert(result.error);
+                        
+                        // Reset the file input
+                        event.target.value = '';
+                        if (label) {
+                            label.textContent = 'Choose File';
+                            label.style.background = '#6c757d';
+                        }
+                        
+                        // Clear any stored data
+                        window.libraryCreativeData = null;
+                        window.libraryCreativeInfo = null;
                     }
-                };
-                reader.onerror = function(e) {
-                    console.error('Error reading library file:', e);
-                };
-                reader.readAsDataURL(file);
+                });
             }
         }
 
         function uploadToLibrary() {
-            console.log('uploadToLibrary called'); // Debug
-            
             const creativeId = document.getElementById('libraryCreativeId').value.trim();
-            console.log('Creative ID:', creativeId); // Debug
             
             if (!creativeId) {
                 alert('Please enter a Creative ID.');
                 return;
             }
             
-            // Check if file was selected by looking at the global variables
-            console.log('Checking for library creative data:', {
-                hasData: !!window.libraryCreativeData,
-                hasInfo: !!window.libraryCreativeInfo,
-                dataLength: window.libraryCreativeData ? window.libraryCreativeData.length : 0,
-                infoType: window.libraryCreativeInfo ? window.libraryCreativeInfo.type : 'none'
-            }); // Debug
-            
             if (!window.libraryCreativeData || !window.libraryCreativeInfo) {
-                alert('Please select a file to upload. Make sure to click "Choose File" and select an image or video.');
-                console.log('No file data found'); // Debug
+                alert('Please select a file to upload.');
                 return;
             }
             
@@ -1904,16 +1969,12 @@
                 return;
             }
             
-            console.log('Saving creative to library...'); // Debug
-            
             // Save the creative to the library
             creatives[creativeId] = {
                 data: window.libraryCreativeData,
                 type: window.libraryCreativeInfo.type,
                 name: window.libraryCreativeInfo.name
             };
-            
-            console.log('Creative saved, current creatives count:', Object.keys(creatives).length); // Debug
             
             // Clear the form
             document.getElementById('libraryCreativeId').value = '';
@@ -1928,16 +1989,11 @@
             window.libraryCreativeData = null;
             window.libraryCreativeInfo = null;
             
-            console.log('Saving to local storage and cloud...'); // Debug
-            
             // Save and refresh
             saveToLocalAndCloud();
-            
-            console.log('Rendering creatives...'); // Debug
             renderCreatives();
             
             alert('Creative uploaded to library successfully!');
-            console.log('Upload complete'); // Debug
         }
 
         // This function now works with the input field in Creative Library
