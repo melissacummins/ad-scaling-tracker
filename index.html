@@ -801,8 +801,8 @@
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="creativeId">Creative ID</label>
-                    <input type="text" id="creativeId" placeholder="Auto-generated based on book, hook, and month/year" readonly>
+                    <label for="creativeId">Creative ID (auto-fills or enter existing)</label>
+                    <input type="text" id="creativeId" placeholder="Auto-generated based on book, hook, and month/year">
                 </div>
             </div>
 
@@ -1588,9 +1588,16 @@
             const testDate = document.getElementById('testDate').value;
             const creativeIdInput = document.getElementById('creativeId');
             
+            // Only auto-fill if the field is empty (so user can manually enter existing IDs)
+            if (bookSelect && hookName && testDate && !creativeIdInput.value.trim()) {
+                const previewId = generateCreativeId(bookSelect, hookName, testDate);
+                creativeIdInput.value = previewId;
+            }
+            
+            // Always update placeholder to show what would be generated
             if (bookSelect && hookName && testDate) {
                 const previewId = generateCreativeId(bookSelect, hookName, testDate);
-                creativeIdInput.placeholder = `Preview: ${previewId}`;
+                creativeIdInput.placeholder = `Auto-generated: ${previewId}`;
             } else {
                 creativeIdInput.placeholder = "Auto-generated based on book, hook, and month/year";
             }
@@ -1612,20 +1619,25 @@
                         return;
                     }
                     
-                    let creativeId = generateCreativeId(bookSelect, hookName, testDate);
+                    let creativeId = document.getElementById('creativeId').value.trim();
                     
-                    // Check if this ID already exists, if so, generate a new random number
-                    let attempts = 0;
-                    while (creatives[creativeId] && attempts < 10) {
-                        const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-                        const cleanBook = bookSelect.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
-                        const cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
-                        const dateStr = testDate.replace(/\D/g, ''); // Remove non-digits from MM/YYYY
-                        creativeId = `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
-                        attempts++;
+                    // Only generate a new ID if the field is empty
+                    if (!creativeId) {
+                        creativeId = generateCreativeId(bookSelect, hookName, testDate);
+                        
+                        // Check if this ID already exists, if so, generate a new random number
+                        let attempts = 0;
+                        while (creatives[creativeId] && attempts < 10) {
+                            const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+                            const cleanBook = bookSelect.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
+                            const cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+                            const dateStr = testDate.replace(/\D/g, ''); // Remove non-digits from MM/YYYY
+                            creativeId = `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
+                            attempts++;
+                        }
+                        
+                        document.getElementById('creativeId').value = creativeId;
                     }
-                    
-                    document.getElementById('creativeId').value = creativeId;
                     
                     creatives[creativeId] = {
                         data: e.target.result,
