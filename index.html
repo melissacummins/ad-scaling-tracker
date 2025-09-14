@@ -1152,8 +1152,19 @@
             const testDate = document.getElementById('testDate');
             
             if (bookSelect) bookSelect.addEventListener('change', updateCreativeIdPreview);
-            if (hookName) hookName.addEventListener('input', updateCreativeIdPreview);
-            if (testDate) testDate.addEventListener('change', updateCreativeIdPreview);
+            if (hookName) {
+                hookName.addEventListener('input', updateCreativeIdPreview);
+                hookName.addEventListener('keyup', updateCreativeIdPreview);
+                hookName.addEventListener('paste', function() {
+                    // Delay to allow paste to complete
+                    setTimeout(updateCreativeIdPreview, 10);
+                });
+            }
+            if (testDate) {
+                testDate.addEventListener('change', updateCreativeIdPreview);
+                testDate.addEventListener('input', updateCreativeIdPreview);
+                testDate.addEventListener('keyup', updateCreativeIdPreview);
+            }
             
             // Add event listeners for auth buttons with safety checks
             setTimeout(() => {
@@ -1256,6 +1267,24 @@
                     select.value = currentValue;
                 }
             });
+        }
+
+        function parseTestDate(dateString) {
+            // Parse MM/YYYY format into a proper date for comparison
+            if (!dateString || !dateString.includes('/')) {
+                return new Date(0); // Return epoch if invalid
+            }
+            
+            const parts = dateString.split('/');
+            if (parts.length !== 2) {
+                return new Date(0); // Return epoch if invalid
+            }
+            
+            const month = parseInt(parts[0]) - 1; // Month is 0-indexed in JS
+            const year = parseInt(parts[1]);
+            
+            // Create date object - use day 1 of the month for comparison
+            return new Date(year, month, 1);
         }
 
         function addOrUpdateHook() {
@@ -1382,11 +1411,24 @@
                 hookData.creativesCount = existing.creativesCount + creativesCount;
                 hookData.overallROAS = hookData.totalSpend > 0 ? hookData.totalRevenue / hookData.totalSpend : 0;
                 
-                // Update test date to latest
-                if (new Date(testDate) > new Date(existing.testDate)) {
+                // FIX: Always update to the newer test date
+                const existingDate = parseTestDate(existing.testDate);
+                const newDate = parseTestDate(testDate);
+                
+                console.log('Date comparison:', {
+                    existing: existing.testDate,
+                    existingParsed: existingDate,
+                    new: testDate,
+                    newParsed: newDate,
+                    isNewer: newDate > existingDate
+                }); // Debug log
+                
+                if (newDate > existingDate) {
                     hookData.testDate = testDate;
+                    console.log('Updated to newer date:', testDate); // Debug log
                 } else {
                     hookData.testDate = existing.testDate;
+                    console.log('Kept existing date:', existing.testDate); // Debug log
                 }
                 
                 // Handle creative ID updates properly for existing hooks
@@ -1667,6 +1709,8 @@
         }
 
         function generateCreativeId(bookName, hookName, testDate) {
+            console.log('generateCreativeId called with:', { bookName, hookName, testDate }); // Debug
+            
             // Clean and use more of the hook name - take first 3 words or up to 30 characters
             const cleanBook = bookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
             
@@ -1674,33 +1718,54 @@
             const hookWords = hookName.split(/\s+/).filter(word => word.length > 0);
             let cleanHook = '';
             
+            console.log('Hook words:', hookWords); // Debug
+            
             if (hookWords.length >= 3) {
-                // Use first 3 words, max 8 chars each
+                // Use first 3 words, max 10 chars each for readability
                 cleanHook = hookWords.slice(0, 3)
-                    .map(word => word.replace(/[^a-zA-Z0-9]/g, '').substring(0, 8))
+                    .map(word => word.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10))
+                    .filter(word => word.length > 0) // Remove empty words
                     .join('')
                     .substring(0, 30);
+                console.log('Used 3+ words:', cleanHook); // Debug
+            } else if (hookWords.length >= 2) {
+                // Use 2 words, more chars each
+                cleanHook = hookWords
+                    .map(word => word.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15))
+                    .filter(word => word.length > 0)
+                    .join('')
+                    .substring(0, 30);
+                console.log('Used 2 words:', cleanHook); // Debug
             } else if (hookWords.length >= 1) {
                 // Use available words
                 cleanHook = hookWords
                     .map(word => word.replace(/[^a-zA-Z0-9]/g, ''))
                     .join('')
                     .substring(0, 30);
+                console.log('Used 1 word:', cleanHook); // Debug
             } else {
                 // Fallback to cleaning the entire hook name
                 cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30);
+                console.log('Fallback to entire hook:', cleanHook); // Debug
             }
             
             // Ensure we have at least something for the hook part
-            if (cleanHook.length < 3) {
-                cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30) || 'Hook';
+            if (cleanHook.length < 2) {
+                cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30);
+                if (cleanHook.length < 2) {
+                    cleanHook = 'Hook'; // Ultimate fallback
+                }
+                console.log('Final fallback hook:', cleanHook); // Debug
             }
             
             // Convert MM/YYYY to MMYYYY
             const dateStr = testDate.replace(/\D/g, ''); // Remove non-digits
             const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
             
-            return `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
+            const result = `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
+            console.log('Generated Creative ID:', result); // Debug
+            
+            return result;
         }
 
         function updateCreativeIdPreview() {
@@ -1709,16 +1774,20 @@
             const testDate = document.getElementById('testDate').value;
             const creativeIdInput = document.getElementById('creativeId');
             
+            console.log('updateCreativeIdPreview called:', { bookSelect, hookName, testDate }); // Debug
+            
             // Only auto-fill if the field is empty (so user can manually enter existing IDs)
             if (bookSelect && hookName && testDate && !creativeIdInput.value.trim()) {
                 const previewId = generateCreativeId(bookSelect, hookName, testDate);
                 creativeIdInput.value = previewId;
+                console.log('Auto-filled Creative ID:', previewId); // Debug
             }
             
             // Always update placeholder to show what would be generated
             if (bookSelect && hookName && testDate) {
                 const previewId = generateCreativeId(bookSelect, hookName, testDate);
                 creativeIdInput.placeholder = `Auto-generated: ${previewId}`;
+                console.log('Updated placeholder:', previewId); // Debug
             } else {
                 creativeIdInput.placeholder = "Auto-generated based on book, hook, and month/year";
             }
@@ -1806,7 +1875,10 @@
         }
 
         function uploadToLibrary() {
+            console.log('uploadToLibrary called'); // Debug
+            
             const creativeId = document.getElementById('libraryCreativeId').value.trim();
+            console.log('Creative ID:', creativeId); // Debug
             
             if (!creativeId) {
                 alert('Please enter a Creative ID.');
@@ -1814,8 +1886,16 @@
             }
             
             // Check if file was selected by looking at the global variables
+            console.log('Checking for library creative data:', {
+                hasData: !!window.libraryCreativeData,
+                hasInfo: !!window.libraryCreativeInfo,
+                dataLength: window.libraryCreativeData ? window.libraryCreativeData.length : 0,
+                infoType: window.libraryCreativeInfo ? window.libraryCreativeInfo.type : 'none'
+            }); // Debug
+            
             if (!window.libraryCreativeData || !window.libraryCreativeInfo) {
-                alert('Please select a file to upload.');
+                alert('Please select a file to upload. Make sure to click "Choose File" and select an image or video.');
+                console.log('No file data found'); // Debug
                 return;
             }
             
@@ -1824,12 +1904,16 @@
                 return;
             }
             
+            console.log('Saving creative to library...'); // Debug
+            
             // Save the creative to the library
             creatives[creativeId] = {
                 data: window.libraryCreativeData,
                 type: window.libraryCreativeInfo.type,
                 name: window.libraryCreativeInfo.name
             };
+            
+            console.log('Creative saved, current creatives count:', Object.keys(creatives).length); // Debug
             
             // Clear the form
             document.getElementById('libraryCreativeId').value = '';
@@ -1844,11 +1928,16 @@
             window.libraryCreativeData = null;
             window.libraryCreativeInfo = null;
             
+            console.log('Saving to local storage and cloud...'); // Debug
+            
             // Save and refresh
             saveToLocalAndCloud();
+            
+            console.log('Rendering creatives...'); // Debug
             renderCreatives();
             
             alert('Creative uploaded to library successfully!');
+            console.log('Upload complete'); // Debug
         }
 
         // This function now works with the input field in Creative Library
