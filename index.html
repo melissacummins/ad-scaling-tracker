@@ -719,8 +719,8 @@
                         <input type="text" id="editCampaignName">
                     </div>
                     <div class="form-group">
-                        <label for="editTestDate">Test Date</label>
-                        <input type="date" id="editTestDate">
+                        <label for="editTestDate">Test Month/Year</label>
+                        <input type="text" id="editTestDate" placeholder="MM/YYYY (e.g., 03/2024)">
                     </div>
                     <div class="form-group">
                         <label for="editTotalSpend">Total Spend ($)</label>
@@ -776,8 +776,8 @@
                     <input type="text" id="campaignName" placeholder="Campaign or Ad Set name">
                 </div>
                 <div class="form-group">
-                    <label for="testDate">Test Date</label>
-                    <input type="date" id="testDate">
+                    <label for="testDate">Test Month/Year</label>
+                    <input type="text" id="testDate" placeholder="MM/YYYY (e.g., 03/2024)">
                 </div>
                 <div class="form-group">
                     <label for="totalSpendInput">Total Spend ($)</label>
@@ -802,7 +802,7 @@
                 </div>
                 <div class="form-group">
                     <label for="creativeId">Creative ID</label>
-                    <input type="text" id="creativeId" placeholder="Auto-generated based on book, hook, and date" readonly>
+                    <input type="text" id="creativeId" placeholder="Auto-generated based on book, hook, and month/year" readonly>
                 </div>
             </div>
 
@@ -819,7 +819,7 @@
                             <th>Book</th>
                             <th>Hook</th>
                             <th>Campaign/Ad Set</th>
-                            <th>Last Test Date</th>
+                            <th>Test Month/Year</th>
                             <th>Total Spend</th>
                             <th>Total Revenue</th>
                             <th>Purchases</th>
@@ -1110,10 +1110,13 @@
             renderBooks();
             renderCreatives();
             
-            // Set today's date as default
+            // Set today's month/year as default
             const testDateInput = document.getElementById('testDate');
             if (testDateInput) {
-                testDateInput.value = new Date().toISOString().split('T')[0];
+                const currentDate = new Date();
+                const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+                const currentYear = currentDate.getFullYear();
+                testDateInput.value = `${currentMonth}/${currentYear}`;
             }
             
             // Add event listeners for Creative ID preview
@@ -1544,7 +1547,8 @@
             // Clean the book name and hook name for use in ID
             const cleanBook = bookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
             const cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
-            const dateStr = testDate.replace(/-/g, '');
+            // Convert MM/YYYY to MMYYYY
+            const dateStr = testDate.replace(/\D/g, ''); // Remove non-digits
             const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
             
             return `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
@@ -1560,7 +1564,7 @@
                 const previewId = generateCreativeId(bookSelect, hookName, testDate);
                 creativeIdInput.placeholder = `Preview: ${previewId}`;
             } else {
-                creativeIdInput.placeholder = "Auto-generated based on book, hook, and date";
+                creativeIdInput.placeholder = "Auto-generated based on book, hook, and month/year";
             }
         }
 
@@ -1575,7 +1579,7 @@
                     const testDate = document.getElementById('testDate').value;
                     
                     if (!bookSelect || !hookName || !testDate) {
-                        alert('Please fill in Book, Hook Name, and Test Date before uploading a creative.');
+                        alert('Please fill in Book, Hook Name, and Test Month/Year before uploading a creative.');
                         event.target.value = ''; // Clear the file input
                         return;
                     }
@@ -1588,7 +1592,7 @@
                         const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
                         const cleanBook = bookSelect.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
                         const cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
-                        const dateStr = testDate.replace(/-/g, '');
+                        const dateStr = testDate.replace(/\D/g, ''); // Remove non-digits from MM/YYYY
                         creativeId = `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
                         attempts++;
                     }
@@ -1778,7 +1782,7 @@
                                 <div class="hook-link">
                                     <h4>${hook.book}: ${hook.hookName.substring(0, 40)}${hook.hookName.length > 40 ? '...' : ''}</h4>
                                     <p><strong>Campaign:</strong> ${hook.campaignName}</p>
-                                    <p><strong>Last Test:</strong> ${hook.testDate}</p>
+                                    <p><strong>Test Month:</strong> ${hook.testDate}</p>
                                     <div class="hook-financial">
                                         <div class="financial-item">
                                             <span class="label">Total Spend</span>
@@ -1910,12 +1914,15 @@
             document.getElementById('bookSelect').value = '';
             document.getElementById('hookName').value = '';
             document.getElementById('campaignName').value = '';
-            document.getElementById('testDate').value = new Date().toISOString().split('T')[0];
+            const currentDate = new Date();
+            const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const currentYear = currentDate.getFullYear();
+            document.getElementById('testDate').value = `${currentMonth}/${currentYear}`;
             document.getElementById('totalSpendInput').value = '';
             document.getElementById('totalRevenueInput').value = '';
             document.getElementById('purchases').value = '';
             document.getElementById('creativeId').value = '';
-            document.getElementById('creativeId').placeholder = "Auto-generated based on book, hook, and date";
+            document.getElementById('creativeId').placeholder = "Auto-generated based on book, hook, and month/year";
             // Clear the file input
             document.getElementById('creativeUpload').value = '';
             cancelAddBook(); // Hide add book form if open
@@ -1923,7 +1930,7 @@
 
         function exportData() {
             const csvContent = "data:text/csv;charset=utf-8," + 
-                "Book,Hook Name,Campaign/Ad Set,Last Test Date,Total Spend,Total Revenue,Purchases,Overall ROAS,Performance Level,ROAS @$100,ROAS @$300,ROAS @$1000,ROAS @$3000,Scale Efficiency,Action Item,Creatives Count,Creative ID\n" +
+                "Book,Hook Name,Campaign/Ad Set,Test Month/Year,Total Spend,Total Revenue,Purchases,Overall ROAS,Performance Level,ROAS @$100,ROAS @$300,ROAS @$1000,ROAS @$3000,Scale Efficiency,Action Item,Creatives Count,Creative ID\n" +
                 hooks.map(hook => {
                     const performance = getPerformanceLevel(hook.totalSpend, hook.testDate);
                     const scaleEff = getScaleEfficiency(hook.roasAt100, hook.roasAt1000);
