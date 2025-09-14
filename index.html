@@ -1316,10 +1316,21 @@
             // Calculate milestone ROAS
             calculateMilestoneROAS();
 
+            // Save data
             saveToLocalAndCloud();
             
-            renderHooks();
-            clearForm();
+            // Force immediate UI update
+            setTimeout(() => {
+                renderHooks();
+                renderBooks(); // Also update books tab in case it shows totals
+                clearForm();
+                
+                // Scroll to the table so user can see the new entry
+                document.getElementById('hooksTable').scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'nearest' 
+                });
+            }, 10); // Small delay to ensure DOM is ready
         }
 
         function calculateMilestoneROAS() {
@@ -1493,16 +1504,25 @@
         function getPerformanceLevel(spend, lastTestDate) {
             if (spend === 0) return { text: 'Not Tested Yet', class: 'not-tested' };
             
+            // Parse MM/YYYY format and compare with 6 months ago
             const sixMonthsAgo = new Date();
             sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-            const testDate = new Date(lastTestDate);
             
-            if (spend < 100) {
-                if (testDate < sixMonthsAgo) {
-                    return { text: 'Testing Not Complete', class: 'testing-incomplete' };
+            // Convert MM/YYYY to a comparable date (first day of that month)
+            const dateParts = lastTestDate.split('/');
+            if (dateParts.length === 2) {
+                const month = parseInt(dateParts[0]) - 1; // Month is 0-indexed
+                const year = parseInt(dateParts[1]);
+                const testDate = new Date(year, month, 1); // First day of the month
+                
+                if (spend < 100) {
+                    if (testDate < sixMonthsAgo) {
+                        return { text: 'Testing Not Complete', class: 'testing-incomplete' };
+                    }
+                    return { text: 'Testing', class: 'testing' };
                 }
-                return { text: 'Testing', class: 'testing' };
             }
+            
             if (spend < 300) return { text: 'Validated', class: 'validated' };
             if (spend < 1000) return { text: 'Early Scale', class: 'early-scale' };
             if (spend < 3000) return { text: 'Proven Scale', class: 'proven-scale' };
@@ -1519,9 +1539,17 @@
         }
 
         function getActionItem(roas, spend, lastTestDate, scaleEfficiency) {
+            // Parse MM/YYYY format and compare with 6 months ago
             const sixMonthsAgo = new Date();
             sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-            const testDate = new Date(lastTestDate);
+            
+            let testDate = sixMonthsAgo; // Default to old date if parsing fails
+            const dateParts = lastTestDate.split('/');
+            if (dateParts.length === 2) {
+                const month = parseInt(dateParts[0]) - 1; // Month is 0-indexed
+                const year = parseInt(dateParts[1]);
+                testDate = new Date(year, month, 1); // First day of the month
+            }
             
             if (spend < 300 || testDate < sixMonthsAgo) {
                 return { text: 'Retest', class: 'action-retest' };
@@ -1671,6 +1699,10 @@
 
         function renderHooks() {
             const tbody = document.getElementById('hooksTableBody');
+            if (!tbody) {
+                console.error('Could not find hooksTableBody element');
+                return;
+            }
             tbody.innerHTML = '';
 
             hooks.forEach((hook, index) => {
