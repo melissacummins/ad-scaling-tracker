@@ -10,6 +10,7 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
         import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
         import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+        import { getStorage, ref, uploadBytes, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js';
         import { getAnalytics } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics.js';
 
         // Firebase configuration
@@ -27,12 +28,14 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const storage = getStorage(app);
         const analytics = getAnalytics(app);
         const provider = new GoogleAuthProvider();
 
         // Make Firebase services globally available
         window.firebaseAuth = auth;
         window.firebaseDb = db;
+        window.firebaseStorage = storage;
         window.firebaseProvider = provider;
         window.firebaseSignInWithPopup = signInWithPopup;
         window.firebaseSignOut = signOut;
@@ -40,6 +43,9 @@
         window.firebaseDoc = doc;
         window.firebaseSetDoc = setDoc;
         window.firebaseGetDoc = getDoc;
+        window.firebaseStorageRef = ref;
+        window.firebaseUploadBytes = uploadBytes;
+        window.firebaseGetDownloadURL = getDownloadURL;
     </script>
     
     <style>
@@ -1326,14 +1332,12 @@
                     while (creatives[creativeId] && attempts < 10) {
                         const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
                         const cleanBook = bookSelect.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
-                        
-                        // Better hook processing for ID generation
-                        const hookWords = hookName.split(/\s+/).filter(word => word.length > 0);
+                        const hookWords = hookName.split(/\s+/).filter(word => word.length > 2);
                         let cleanHook = '';
                         
                         if (hookWords.length >= 3) {
                             cleanHook = hookWords.slice(0, 3)
-                                .map(word => word.replace(/[^a-zA-Z0-9]/g, '').substring(0, 8))
+                                .map(word => word.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10))
                                 .join('')
                                 .substring(0, 30);
                         } else {
@@ -1352,7 +1356,8 @@
                 creatives[creativeId] = {
                     data: pendingCreativeData,
                     type: pendingCreativeInfo.type,
-                    name: pendingCreativeInfo.name
+                    name: pendingCreativeInfo.name,
+                    isStorageFile: pendingCreativeInfo.isStorageFile || false
                 };
                 
                 // Clear pending data
@@ -1392,7 +1397,6 @@
                 hookData.totalSpend = existing.totalSpend + totalSpend;
                 hookData.totalRevenue = existing.totalRevenue + totalRevenue;
                 hookData.purchases = existing.purchases + purchases;
-                // For existing hooks, add to creative count if there's a new creative
                 hookData.creativesCount = existing.creativesCount + creativesCount;
                 hookData.overallROAS = hookData.totalSpend > 0 ? hookData.totalRevenue / hookData.totalSpend : 0;
                 
@@ -1421,22 +1425,20 @@
             // Calculate milestone ROAS
             calculateMilestoneROAS();
 
-            // Save data
+            // Update UI immediately
+            renderHooks();
+            renderBooks();
+            renderCreatives();
+            clearForm();
+            
+            // Save data in background
             saveToLocalAndCloud();
             
-            // Force immediate UI update
-            setTimeout(() => {
-                renderHooks();
-                renderBooks(); // Also update books tab in case it shows totals
-                renderCreatives(); // Update creatives to show new linkages
-                clearForm();
-                
-                // Scroll to the table so user can see the new entry
-                document.getElementById('hooksTable').scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'nearest' 
-                });
-            }, 10); // Small delay to ensure DOM is ready
+            // Scroll to the table so user can see the new entry
+            document.getElementById('hooksTable').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'nearest' 
+            });
         }
 
         function calculateMilestoneROAS() {
@@ -1677,48 +1679,40 @@
         }
 
         function generateCreativeId(bookName, hookName, testDate) {
-            // Clean and use more of the hook name - take first 3 words or up to 30 characters
+            // Clean book name
             const cleanBook = bookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
             
-            // Better hook name processing - take first few words or characters
-            const hookWords = hookName.split(/\s+/).filter(word => word.length > 0);
+            // Clean hook name - take first 3 meaningful words or up to 30 chars
+            const hookWords = hookName.split(/\s+/).filter(word => word.length > 2); // Only words > 2 chars
             let cleanHook = '';
             
             if (hookWords.length >= 3) {
-                // Use first 3 words, max 10 chars each for readability
+                // Use first 3 words, up to 10 chars each
                 cleanHook = hookWords.slice(0, 3)
                     .map(word => word.replace(/[^a-zA-Z0-9]/g, '').substring(0, 10))
-                    .filter(word => word.length > 0) // Remove empty words
                     .join('')
                     .substring(0, 30);
             } else if (hookWords.length >= 2) {
-                // Use 2 words, more chars each
-                cleanHook = hookWords
+                // Use 2 words, up to 15 chars each
+                cleanHook = hookWords.slice(0, 2)
                     .map(word => word.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15))
-                    .filter(word => word.length > 0)
                     .join('')
                     .substring(0, 30);
             } else if (hookWords.length >= 1) {
-                // Use available words
-                cleanHook = hookWords
-                    .map(word => word.replace(/[^a-zA-Z0-9]/g, ''))
-                    .join('')
-                    .substring(0, 30);
+                // Use the one word we have
+                cleanHook = hookWords[0].replace(/[^a-zA-Z0-9]/g, '').substring(0, 30);
             } else {
-                // Fallback to cleaning the entire hook name
+                // Fallback - clean the entire hook name
                 cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30);
             }
             
-            // Ensure we have at least something for the hook part
+            // Ensure we have something for the hook part
             if (cleanHook.length < 2) {
-                cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30);
-                if (cleanHook.length < 2) {
-                    cleanHook = 'Hook'; // Ultimate fallback
-                }
+                cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30) || 'Hook';
             }
             
             // Convert MM/YYYY to MMYYYY
-            const dateStr = testDate.replace(/\D/g, ''); // Remove non-digits
+            const dateStr = testDate.replace(/\D/g, '');
             const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
             
             return `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
@@ -1761,50 +1755,19 @@
                         pendingCreativeData = result.data;
                         pendingCreativeInfo = {
                             type: result.type,
-                            name: result.name
+                            name: result.name,
+                            isStorageFile: result.isStorageFile || false
                         };
                         
                         // Update the file input label to show success
                         if (label) {
-                            label.textContent = `Ready: ${result.name.substring(0, 20)}${result.name.length > 20 ? '...' : ''}`;
+                            const shortName = result.name.length > 20 ? result.name.substring(0, 20) + '...' : result.name;
+                            label.textContent = `Ready: ${shortName}`;
                             label.style.background = '#28a745';
                         }
                         
                         // Auto-generate creative ID if form fields are filled
-                        const bookSelect = document.getElementById('bookSelect').value;
-                        const hookName = document.getElementById('hookName').value.trim();
-                        const testDate = document.getElementById('testDate').value;
-                        const creativeIdInput = document.getElementById('creativeId');
-                        
-                        if (bookSelect && hookName && testDate && !creativeIdInput.value.trim()) {
-                            let creativeId = generateCreativeId(bookSelect, hookName, testDate);
-                            
-                            // Check if this ID already exists, if so, generate a new random number
-                            let attempts = 0;
-                            while (creatives[creativeId] && attempts < 10) {
-                                const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-                                const cleanBook = bookSelect.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
-                                
-                                // Better hook processing for ID generation
-                                const hookWords = hookName.split(/\s+/).filter(word => word.length > 0);
-                                let cleanHook = '';
-                                
-                                if (hookWords.length >= 3) {
-                                    cleanHook = hookWords.slice(0, 3)
-                                        .map(word => word.replace(/[^a-zA-Z0-9]/g, '').substring(0, 8))
-                                        .join('')
-                                        .substring(0, 30);
-                                } else {
-                                    cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30);
-                                }
-                                
-                                const dateStr = testDate.replace(/\D/g, ''); // Remove non-digits from MM/YYYY
-                                creativeId = `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
-                                attempts++;
-                            }
-                            
-                            creativeIdInput.value = creativeId;
-                        }
+                        updateCreativeIdPreview();
                     } else {
                         // Show error
                         alert(result.error);
@@ -1824,24 +1787,72 @@
             }
         }
 
-        // Function to process creative files
-        function processCreativeFile(file, callback) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                callback({
-                    success: true,
-                    data: e.target.result,
-                    type: file.type,
-                    name: file.name
-                });
-            };
-            reader.onerror = function(e) {
+        // Function to upload files to Firebase Storage and return download URL
+        async function uploadToFirebaseStorage(file, path) {
+            if (!window.firebaseStorage) {
+                throw new Error('Firebase Storage not initialized');
+            }
+            
+            const storageRef = window.firebaseStorageRef(window.firebaseStorage, path);
+            const snapshot = await window.firebaseUploadBytes(storageRef, file);
+            const downloadURL = await window.firebaseGetDownloadURL(snapshot.ref);
+            return downloadURL;
+        }
+
+        // Function to process creative files - now uploads large files to Storage
+        async function processCreativeFile(file, callback) {
+            try {
+                // For files larger than 500KB, use Firebase Storage
+                if (file.size > 500 * 1024) {
+                    if (!isSignedIn || !currentUser) {
+                        callback({
+                            success: false,
+                            error: 'Please sign in to upload large files'
+                        });
+                        return;
+                    }
+                    
+                    // Generate unique path for this file
+                    const timestamp = new Date().getTime();
+                    const cleanFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '');
+                    const filePath = `creatives/${currentUser.uid}/${timestamp}_${cleanFileName}`;
+                    
+                    // Upload to Firebase Storage
+                    const downloadURL = await uploadToFirebaseStorage(file, filePath);
+                    
+                    callback({
+                        success: true,
+                        data: downloadURL, // Store URL instead of data
+                        type: file.type,
+                        name: file.name,
+                        isStorageFile: true // Flag to indicate this is a Storage file
+                    });
+                } else {
+                    // For smaller files, use data URL as before
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        callback({
+                            success: true,
+                            data: e.target.result,
+                            type: file.type,
+                            name: file.name,
+                            isStorageFile: false
+                        });
+                    };
+                    reader.onerror = function(e) {
+                        callback({
+                            success: false,
+                            error: 'Failed to read file'
+                        });
+                    };
+                    reader.readAsDataURL(file);
+                }
+            } catch (error) {
                 callback({
                     success: false,
-                    error: 'Failed to read file'
+                    error: `Upload failed: ${error.message}`
                 });
-            };
-            reader.readAsDataURL(file);
+            }
         }
         
         function compressImage(file, callback) {
@@ -1910,12 +1921,14 @@
                         window.libraryCreativeData = result.data;
                         window.libraryCreativeInfo = {
                             type: result.type,
-                            name: result.name
+                            name: result.name,
+                            isStorageFile: result.isStorageFile || false
                         };
                         
                         // Update the file input label to show success
                         if (label) {
-                            label.textContent = `Ready: ${result.name.substring(0, 15)}${result.name.length > 15 ? '...' : ''}`;
+                            const shortName = result.name.length > 15 ? result.name.substring(0, 15) + '...' : result.name;
+                            label.textContent = `Ready: ${shortName}`;
                             label.style.background = '#28a745';
                         }
                     } else {
@@ -1959,8 +1972,12 @@
             creatives[creativeId] = {
                 data: window.libraryCreativeData,
                 type: window.libraryCreativeInfo.type,
-                name: window.libraryCreativeInfo.name
+                name: window.libraryCreativeInfo.name,
+                isStorageFile: window.libraryCreativeInfo.isStorageFile || false
             };
+            
+            // Update UI immediately
+            renderCreatives();
             
             // Clear the form
             document.getElementById('libraryCreativeId').value = '';
@@ -1975,9 +1992,8 @@
             window.libraryCreativeData = null;
             window.libraryCreativeInfo = null;
             
-            // Save and refresh
+            // Save in background
             saveToLocalAndCloud();
-            renderCreatives();
             
             alert('Creative uploaded to library successfully!');
         }
@@ -2139,6 +2155,7 @@
                     <div class="creative-info">
                         <div style="margin-bottom: 10px;">
                             <span class="creative-type-badge">${isVideo ? '🎥 Video' : '🖼️ Image'}</span>
+                            ${creative.isStorageFile ? '<span style="background: #17a2b8; color: white; padding: 2px 6px; border-radius: 8px; font-size: 10px; margin-left: 5px;">Cloud</span>' : ''}
                         </div>
                         <div class="creative-name-edit">
                             <strong>ID:</strong>
