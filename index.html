@@ -809,8 +809,8 @@
             </div>
             <div class="controls-row-2" style="grid-template-columns: 1fr; margin-top: -30px; padding-top: 0;">
                 <div class="form-group">
-                    <label for="creativeId">Creative ID (auto-fills or enter existing)</label>
-                    <input type="text" id="creativeId" placeholder="Auto-generated based on book, hook, and month/year">
+                    <label for="creativeId">Creative ID (auto-generated)</label>
+                    <input type="text" id="creativeId" placeholder="Auto-generated based on book, hook, and month/year" readonly>
                 </div>
             </div>
 
@@ -1135,10 +1135,16 @@
             if (selectedCreativeId) {
                 // Set the Creative ID field to the selected existing creative
                 creativeIdInput.value = selectedCreativeId;
+                // Make it editable temporarily when linking to existing creative
+                creativeIdInput.removeAttribute('readonly');
                 
                 // Clear the file upload since we're using an existing creative
                 const fileInput = document.getElementById('creativeUpload');
                 fileInput.value = '';
+            } else {
+                // Make it readonly again and trigger auto-generation
+                creativeIdInput.setAttribute('readonly', 'readonly');
+                updateCreativeIdPreview();
             }
         }
 
@@ -1623,8 +1629,24 @@
             // Clean the book name and hook name for use in ID
             const cleanBook = bookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
             const cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
-            // Convert MM/YYYY to MMYYYY
-            const dateStr = testDate.replace(/\D/g, ''); // Remove non-digits
+            
+            // Convert MM/YYYY to MMYYYY format
+            let dateStr = '';
+            if (testDate && testDate.includes('/')) {
+                const dateParts = testDate.split('/');
+                if (dateParts.length === 2) {
+                    const month = dateParts[0].padStart(2, '0');
+                    const year = dateParts[1];
+                    dateStr = month + year;
+                }
+            } else {
+                // Fallback: use current date if format is wrong
+                const currentDate = new Date();
+                const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+                const currentYear = currentDate.getFullYear();
+                dateStr = currentMonth + currentYear;
+            }
+            
             const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
             
             return `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
@@ -1676,11 +1698,7 @@
                         // Check if this ID already exists, if so, generate a new random number
                         let attempts = 0;
                         while (creatives[creativeId] && attempts < 10) {
-                            const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-                            const cleanBook = bookSelect.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
-                            const cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
-                            const dateStr = testDate.replace(/\D/g, ''); // Remove non-digits from MM/YYYY
-                            creativeId = `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
+                            creativeId = generateCreativeId(bookSelect, hookName, testDate);
                             attempts++;
                         }
                         
@@ -2018,6 +2036,7 @@
             document.getElementById('purchases').value = '';
             document.getElementById('linkExistingCreative').value = '';
             document.getElementById('creativeId').value = '';
+            document.getElementById('creativeId').setAttribute('readonly', 'readonly'); // Make sure it's readonly
             document.getElementById('creativeId').placeholder = "Auto-generated based on book, hook, and month/year";
             // Clear the file input
             document.getElementById('creativeUpload').value = '';
