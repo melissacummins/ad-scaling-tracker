@@ -1285,9 +1285,12 @@
 
         function addOrUpdateHook() {
             const bookSelect = document.getElementById('bookSelect').value;
-            const hookName = document.getElementById('hookName').value.trim();
+            const hookNameElement = document.getElementById('hookName');
+            const hookName = hookNameElement ? hookNameElement.value.trim() : '';
             const campaignName = document.getElementById('campaignName').value.trim();
             const testDate = document.getElementById('testDate').value;
+            
+            console.log('addOrUpdateHook form values:', { bookSelect, hookName, campaignName, testDate });
             
             const totalSpend = parseFloat(document.getElementById('totalSpendInput').value) || 0;
             const totalRevenue = parseFloat(document.getElementById('totalRevenueInput').value) || 0;
@@ -1371,19 +1374,19 @@
             // Save data
             saveToLocalAndCloud();
             
-            // Force immediate UI update
-            setTimeout(() => {
-                renderHooks();
-                renderBooks(); // Also update books tab in case it shows totals
-                updateExistingCreativeOptions(); // Update the creative dropdown
-                clearForm();
-                
-                // Scroll to the table so user can see the new entry
-                document.getElementById('hooksTable').scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'nearest' 
-                });
-            }, 10); // Small delay to ensure DOM is ready
+            // Force immediate UI update - removed setTimeout delay
+            updateBookOptions();
+            updateExistingCreativeOptions();
+            renderHooks();
+            renderBooks();
+            renderCreatives();
+            clearForm();
+            
+            // Scroll to the table so user can see the new entry
+            document.getElementById('hooksTable').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'nearest' 
+            });
         }
 
         function calculateMilestoneROAS() {
@@ -1626,9 +1629,13 @@
         }
 
         function generateCreativeId(bookName, hookName, testDate) {
+            console.log('generateCreativeId called with:', { bookName, hookName, testDate });
+            
             // Clean the book name and hook name for use in ID
             const cleanBook = bookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
             const cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+            
+            console.log('Cleaned values:', { cleanBook, cleanHook });
             
             // Convert MM/YYYY to MMYYYY format
             let dateStr = '';
@@ -1649,17 +1656,21 @@
             
             const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
             
-            return `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
+            const result = `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
+            console.log('Generated Creative ID:', result);
+            
+            return result;
         }
 
         function updateCreativeIdPreview() {
             const bookSelect = document.getElementById('bookSelect').value;
-            const hookName = document.getElementById('hookName').value.trim();
+            const hookNameElement = document.getElementById('hookName');
+            const hookName = hookNameElement ? hookNameElement.value.trim() : '';
             const testDate = document.getElementById('testDate').value;
             const creativeIdInput = document.getElementById('creativeId');
             
-            // Only auto-fill if the field is empty (so user can manually enter existing IDs)
-            if (bookSelect && hookName && testDate && !creativeIdInput.value.trim()) {
+            // Only auto-fill if the field is empty and readonly (so user can manually enter existing IDs when linking)
+            if (bookSelect && hookName && testDate && !creativeIdInput.value.trim() && creativeIdInput.hasAttribute('readonly')) {
                 const previewId = generateCreativeId(bookSelect, hookName, testDate);
                 creativeIdInput.value = previewId;
             }
@@ -1680,8 +1691,11 @@
                 reader.onload = function(e) {
                     // Generate Creative ID based on current form values
                     const bookSelect = document.getElementById('bookSelect').value;
-                    const hookName = document.getElementById('hookName').value.trim();
+                    const hookNameElement = document.getElementById('hookName');
+                    const hookName = hookNameElement ? hookNameElement.value.trim() : '';
                     const testDate = document.getElementById('testDate').value;
+                    
+                    console.log('Upload form values:', { bookSelect, hookName, testDate });
                     
                     if (!bookSelect || !hookName || !testDate) {
                         alert('Please fill in Book, Hook Name, and Test Month/Year before uploading a creative.');
