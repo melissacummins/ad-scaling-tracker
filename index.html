@@ -1125,6 +1125,10 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize global variables for library creative upload
+            window.libraryCreativeData = null;
+            window.libraryCreativeInfo = null;
+            
             // Initialize Firebase authentication first
             setTimeout(initializeAuth, 500); // Give Firebase a moment to load
             
@@ -1255,16 +1259,22 @@
         }
 
         function addOrUpdateHook() {
+            console.log('addOrUpdateHook called'); // Debug log
+            
             const bookSelect = document.getElementById('bookSelect').value;
             const hookName = document.getElementById('hookName').value.trim();
             const campaignName = document.getElementById('campaignName').value.trim();
             const testDate = document.getElementById('testDate').value;
+            
+            console.log('Form values:', { bookSelect, hookName, campaignName, testDate }); // Debug log
             
             const totalSpend = parseFloat(document.getElementById('totalSpendInput').value) || 0;
             const totalRevenue = parseFloat(document.getElementById('totalRevenueInput').value) || 0;
             const purchases = parseInt(document.getElementById('purchases').value) || 0;
             
             let creativeId = document.getElementById('creativeId').value.trim();
+
+            console.log('Financial values:', { totalSpend, totalRevenue, purchases, creativeId }); // Debug log
 
             if (!bookSelect || !hookName) {
                 alert('Please select a book and enter a hook name.');
@@ -1276,18 +1286,39 @@
                 return;
             }
 
+            console.log('Pending creative data:', { 
+                hasPendingData: !!pendingCreativeData, 
+                hasPendingInfo: !!pendingCreativeInfo 
+            }); // Debug log
+
             // Handle creative upload if there's pending data
             if (pendingCreativeData && pendingCreativeInfo) {
+                console.log('Processing pending creative...'); // Debug log
+                
                 if (!creativeId) {
                     // Generate creative ID if not provided
                     creativeId = generateCreativeId(bookSelect, hookName, testDate);
+                    console.log('Generated creative ID:', creativeId); // Debug log
                     
                     // Ensure unique ID
                     let attempts = 0;
                     while (creatives[creativeId] && attempts < 10) {
                         const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
                         const cleanBook = bookSelect.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
-                        const cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+                        
+                        // Better hook processing for ID generation
+                        const hookWords = hookName.split(/\s+/).filter(word => word.length > 0);
+                        let cleanHook = '';
+                        
+                        if (hookWords.length >= 3) {
+                            cleanHook = hookWords.slice(0, 3)
+                                .map(word => word.replace(/[^a-zA-Z0-9]/g, '').substring(0, 8))
+                                .join('')
+                                .substring(0, 30);
+                        } else {
+                            cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30);
+                        }
+                        
                         const dateStr = testDate.replace(/\D/g, '');
                         creativeId = `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
                         attempts++;
@@ -1303,6 +1334,8 @@
                     name: pendingCreativeInfo.name
                 };
                 
+                console.log('Creative saved:', creativeId); // Debug log
+                
                 // Clear pending data
                 pendingCreativeData = null;
                 pendingCreativeInfo = null;
@@ -1315,6 +1348,8 @@
             const existingIndex = hooks.findIndex(h => 
                 h.book === bookSelect && h.hookName === hookName
             );
+
+            console.log('Existing hook index:', existingIndex); // Debug log
 
             const hookData = {
                 book: bookSelect,
@@ -1333,9 +1368,13 @@
                 roasAt3000: 0
             };
 
+            console.log('Hook data to save:', hookData); // Debug log
+
             if (existingIndex >= 0) {
                 // Update existing hook by adding new spend/revenue
                 const existing = hooks[existingIndex];
+                console.log('Updating existing hook:', existing); // Debug log
+                
                 hookData.totalSpend = existing.totalSpend + totalSpend;
                 hookData.totalRevenue = existing.totalRevenue + totalRevenue;
                 hookData.purchases = existing.purchases + purchases;
@@ -1359,17 +1398,22 @@
                 
                 hooks[existingIndex] = hookData;
             } else {
+                console.log('Adding new hook'); // Debug log
                 hooks.push(hookData);
             }
+
+            console.log('Hooks array after update:', hooks.length, 'hooks'); // Debug log
 
             // Calculate milestone ROAS
             calculateMilestoneROAS();
 
+            console.log('Saving data...'); // Debug log
             // Save data
             saveToLocalAndCloud();
             
             // Force immediate UI update
             setTimeout(() => {
+                console.log('Updating UI...'); // Debug log
                 renderHooks();
                 renderBooks(); // Also update books tab in case it shows totals
                 renderCreatives(); // Update creatives to show new linkages
@@ -1381,6 +1425,8 @@
                     block: 'nearest' 
                 });
             }, 10); // Small delay to ensure DOM is ready
+            
+            console.log('addOrUpdateHook completed'); // Debug log
         }
 
         function calculateMilestoneROAS() {
@@ -1621,9 +1667,35 @@
         }
 
         function generateCreativeId(bookName, hookName, testDate) {
-            // Clean the book name and hook name for use in ID
+            // Clean and use more of the hook name - take first 3 words or up to 30 characters
             const cleanBook = bookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
-            const cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+            
+            // Better hook name processing - take first few words or characters
+            const hookWords = hookName.split(/\s+/).filter(word => word.length > 0);
+            let cleanHook = '';
+            
+            if (hookWords.length >= 3) {
+                // Use first 3 words, max 8 chars each
+                cleanHook = hookWords.slice(0, 3)
+                    .map(word => word.replace(/[^a-zA-Z0-9]/g, '').substring(0, 8))
+                    .join('')
+                    .substring(0, 30);
+            } else if (hookWords.length >= 1) {
+                // Use available words
+                cleanHook = hookWords
+                    .map(word => word.replace(/[^a-zA-Z0-9]/g, ''))
+                    .join('')
+                    .substring(0, 30);
+            } else {
+                // Fallback to cleaning the entire hook name
+                cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30);
+            }
+            
+            // Ensure we have at least something for the hook part
+            if (cleanHook.length < 3) {
+                cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 30) || 'Hook';
+            }
+            
             // Convert MM/YYYY to MMYYYY
             const dateStr = testDate.replace(/\D/g, ''); // Remove non-digits
             const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
@@ -1702,14 +1774,22 @@
         function handleLibraryCreativeUpload(event) {
             const file = event.target.files[0];
             if (file) {
+                console.log('Library file selected:', file.name); // Debug log
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    // Store the data temporarily for library upload
+                    console.log('Library file loaded successfully'); // Debug log
+                    // Store the data temporarily for library upload - using window to ensure global access
                     window.libraryCreativeData = e.target.result;
                     window.libraryCreativeInfo = {
                         type: file.type,
                         name: file.name
                     };
+                    
+                    console.log('Library creative data stored:', {
+                        hasData: !!window.libraryCreativeData,
+                        type: window.libraryCreativeInfo?.type,
+                        name: window.libraryCreativeInfo?.name
+                    }); // Debug log
                     
                     // Update the file input label to show a file is selected
                     const label = event.target.nextElementSibling;
@@ -1717,6 +1797,9 @@
                         label.textContent = `Selected: ${file.name.substring(0, 15)}${file.name.length > 15 ? '...' : ''}`;
                         label.style.background = '#28a745';
                     }
+                };
+                reader.onerror = function(e) {
+                    console.error('Error reading library file:', e);
                 };
                 reader.readAsDataURL(file);
             }
@@ -1730,6 +1813,7 @@
                 return;
             }
             
+            // Check if file was selected by looking at the global variables
             if (!window.libraryCreativeData || !window.libraryCreativeInfo) {
                 alert('Please select a file to upload.');
                 return;
