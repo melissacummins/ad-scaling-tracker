@@ -882,6 +882,25 @@
                 <p>View and manage all your uploaded creatives with performance data</p>
             </div>
 
+            <!-- Upload Creative to Library -->
+            <div class="controls" style="grid-template-columns: 1fr 1fr 1fr; margin-bottom: 30px;">
+                <div class="form-group">
+                    <label for="libraryCreativeId">Creative ID</label>
+                    <input type="text" id="libraryCreativeId" placeholder="Enter unique creative ID">
+                </div>
+                <div class="form-group">
+                    <label for="libraryCreativeUpload">Upload Creative to Library</label>
+                    <div class="file-upload">
+                        <input type="file" id="libraryCreativeUpload" accept="image/*,video/*" onchange="handleLibraryCreativeUpload(event)">
+                        <label for="libraryCreativeUpload" class="file-upload-label">Choose File</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-primary" onclick="uploadToLibrary()">➕ Add to Library</button>
+                </div>
+            </div>
+
             <div class="creative-grid" id="creativeGrid">
             </div>
         </div>
@@ -905,6 +924,10 @@
         let currentUser = null;
         let isSignedIn = false;
         let lastSyncTime = null;
+
+        // Global variables for pending creative uploads
+        let pendingCreativeData = null;
+        let pendingCreativeInfo = null;
 
         // Initialize Firebase auth listener
         function initializeAuth() {
@@ -1242,8 +1265,6 @@
             const purchases = parseInt(document.getElementById('purchases').value) || 0;
             
             let creativeId = document.getElementById('creativeId').value.trim();
-            // Set creativesCount to 1 if there's a creative, 0 if not
-            const creativesCount = creativeId ? 1 : 0;
 
             if (!bookSelect || !hookName) {
                 alert('Please select a book and enter a hook name.');
@@ -1254,6 +1275,41 @@
                 alert('Please enter at least a spend or revenue amount.');
                 return;
             }
+
+            // Handle creative upload if there's pending data
+            if (pendingCreativeData && pendingCreativeInfo) {
+                if (!creativeId) {
+                    // Generate creative ID if not provided
+                    creativeId = generateCreativeId(bookSelect, hookName, testDate);
+                    
+                    // Ensure unique ID
+                    let attempts = 0;
+                    while (creatives[creativeId] && attempts < 10) {
+                        const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+                        const cleanBook = bookSelect.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
+                        const cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+                        const dateStr = testDate.replace(/\D/g, '');
+                        creativeId = `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
+                        attempts++;
+                    }
+                    
+                    document.getElementById('creativeId').value = creativeId;
+                }
+                
+                // Save the creative
+                creatives[creativeId] = {
+                    data: pendingCreativeData,
+                    type: pendingCreativeInfo.type,
+                    name: pendingCreativeInfo.name
+                };
+                
+                // Clear pending data
+                pendingCreativeData = null;
+                pendingCreativeInfo = null;
+            }
+
+            // Set creativesCount to 1 if there's a creative, 0 if not
+            const creativesCount = creativeId ? 1 : 0;
 
             // Find existing hook with same name and book
             const existingIndex = hooks.findIndex(h => 
@@ -1294,15 +1350,8 @@
                     hookData.testDate = existing.testDate;
                 }
                 
-                // FIX: Handle creative ID updates properly for existing hooks
+                // Handle creative ID updates properly for existing hooks
                 if (creativeId && creativeId !== existing.creativeId) {
-                    // If there's an old creative with a different ID, check if we need to move it
-                    if (existing.creativeId && creatives[existing.creativeId] && !creatives[creativeId]) {
-                        // Move the creative to the new ID
-                        creatives[creativeId] = creatives[existing.creativeId];
-                        delete creatives[existing.creativeId];
-                        localStorage.setItem('adScalingCreatives', JSON.stringify(creatives));
-                    }
                     hookData.creativeId = creativeId;
                 } else if (!creativeId && existing.creativeId) {
                     hookData.creativeId = existing.creativeId;
@@ -1323,6 +1372,7 @@
             setTimeout(() => {
                 renderHooks();
                 renderBooks(); // Also update books tab in case it shows totals
+                renderCreatives(); // Update creatives to show new linkages
                 clearForm();
                 
                 // Scroll to the table so user can see the new entry
@@ -1462,14 +1512,13 @@
                 return;
             }
 
-            // FIX: Update creative ID mapping when changed
+            // Update creative ID mapping when changed
             if (oldCreativeId && oldCreativeId !== hookData.creativeId && creatives[oldCreativeId]) {
                 // If creative ID changed and the old ID exists, update the creative object
                 if (hookData.creativeId && !creatives[hookData.creativeId]) {
                     // Move the creative to the new ID
                     creatives[hookData.creativeId] = creatives[oldCreativeId];
                     delete creatives[oldCreativeId];
-                    localStorage.setItem('adScalingCreatives', JSON.stringify(creatives));
                 }
             }
 
@@ -1608,22 +1657,28 @@
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    // Generate Creative ID based on current form values
+                    // Store the creative data temporarily
+                    pendingCreativeData = e.target.result;
+                    pendingCreativeInfo = {
+                        type: file.type,
+                        name: file.name
+                    };
+                    
+                    // Update the file input label to show a file is selected
+                    const label = event.target.nextElementSibling;
+                    if (label) {
+                        label.textContent = `File Selected: ${file.name.substring(0, 20)}${file.name.length > 20 ? '...' : ''}`;
+                        label.style.background = '#28a745';
+                    }
+                    
+                    // Auto-generate creative ID if form fields are filled
                     const bookSelect = document.getElementById('bookSelect').value;
                     const hookName = document.getElementById('hookName').value.trim();
                     const testDate = document.getElementById('testDate').value;
+                    const creativeIdInput = document.getElementById('creativeId');
                     
-                    if (!bookSelect || !hookName || !testDate) {
-                        alert('Please fill in Book, Hook Name, and Test Month/Year before uploading a creative.');
-                        event.target.value = ''; // Clear the file input
-                        return;
-                    }
-                    
-                    let creativeId = document.getElementById('creativeId').value.trim();
-                    
-                    // Only generate a new ID if the field is empty
-                    if (!creativeId) {
-                        creativeId = generateCreativeId(bookSelect, hookName, testDate);
+                    if (bookSelect && hookName && testDate && !creativeIdInput.value.trim()) {
+                        let creativeId = generateCreativeId(bookSelect, hookName, testDate);
                         
                         // Check if this ID already exists, if so, generate a new random number
                         let attempts = 0;
@@ -1636,23 +1691,83 @@
                             attempts++;
                         }
                         
-                        document.getElementById('creativeId').value = creativeId;
+                        creativeIdInput.value = creativeId;
                     }
-                    
-                    creatives[creativeId] = {
-                        data: e.target.result,
-                        type: file.type,
-                        name: file.name
-                    };
-                    
-                    saveToLocalAndCloud();
-                    renderCreatives();
                 };
                 reader.readAsDataURL(file);
             }
         }
 
-        // FIX: This function now works with the input field in Creative Library
+        // New function for Creative Library upload
+        function handleLibraryCreativeUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Store the data temporarily for library upload
+                    window.libraryCreativeData = e.target.result;
+                    window.libraryCreativeInfo = {
+                        type: file.type,
+                        name: file.name
+                    };
+                    
+                    // Update the file input label to show a file is selected
+                    const label = event.target.nextElementSibling;
+                    if (label) {
+                        label.textContent = `Selected: ${file.name.substring(0, 15)}${file.name.length > 15 ? '...' : ''}`;
+                        label.style.background = '#28a745';
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function uploadToLibrary() {
+            const creativeId = document.getElementById('libraryCreativeId').value.trim();
+            
+            if (!creativeId) {
+                alert('Please enter a Creative ID.');
+                return;
+            }
+            
+            if (!window.libraryCreativeData || !window.libraryCreativeInfo) {
+                alert('Please select a file to upload.');
+                return;
+            }
+            
+            if (creatives[creativeId]) {
+                alert('A creative with this ID already exists. Please choose a different ID.');
+                return;
+            }
+            
+            // Save the creative to the library
+            creatives[creativeId] = {
+                data: window.libraryCreativeData,
+                type: window.libraryCreativeInfo.type,
+                name: window.libraryCreativeInfo.name
+            };
+            
+            // Clear the form
+            document.getElementById('libraryCreativeId').value = '';
+            document.getElementById('libraryCreativeUpload').value = '';
+            const label = document.querySelector('label[for="libraryCreativeUpload"]');
+            if (label) {
+                label.textContent = 'Choose File';
+                label.style.background = '#6c757d';
+            }
+            
+            // Clear temporary data
+            window.libraryCreativeData = null;
+            window.libraryCreativeInfo = null;
+            
+            // Save and refresh
+            saveToLocalAndCloud();
+            renderCreatives();
+            
+            alert('Creative uploaded to library successfully!');
+        }
+
+        // This function now works with the input field in Creative Library
         function saveCreativeId(oldCreativeId) {
             const inputField = document.getElementById(`creative-id-${oldCreativeId}`);
             const newId = inputField.value.trim();
@@ -1895,8 +2010,6 @@
                 }
             });
 
-            localStorage.setItem('adScalingBooks', JSON.stringify(books));
-            localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
             saveToLocalAndCloud();
             
             updateBookOptions();
@@ -1913,7 +2026,6 @@
                 }
                 // Remove all hooks for this book
                 hooks = hooks.filter(h => h.book !== bookTitle);
-                saveToLocalAndCloud();
             }
 
             // Remove book
@@ -1937,8 +2049,6 @@
                     }
                 });
                 
-                localStorage.setItem('adScalingCreatives', JSON.stringify(creatives));
-                localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
                 saveToLocalAndCloud();
                 renderCreatives();
                 renderHooks();
@@ -1967,8 +2077,22 @@
             document.getElementById('purchases').value = '';
             document.getElementById('creativeId').value = '';
             document.getElementById('creativeId').placeholder = "Auto-generated based on book, hook, and month/year";
-            // Clear the file input
-            document.getElementById('creativeUpload').value = '';
+            
+            // Clear the file input and reset label
+            const creativeUpload = document.getElementById('creativeUpload');
+            if (creativeUpload) {
+                creativeUpload.value = '';
+                const label = creativeUpload.nextElementSibling;
+                if (label) {
+                    label.textContent = 'Choose File';
+                    label.style.background = '#6c757d';
+                }
+            }
+            
+            // Clear pending creative data
+            pendingCreativeData = null;
+            pendingCreativeInfo = null;
+            
             cancelAddBook(); // Hide add book form if open
         }
 
@@ -2035,8 +2159,7 @@
                     }
                     
                     calculateMilestoneROAS();
-                    localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
-                    localStorage.setItem('adScalingBooks', JSON.stringify(books));
+                    saveToLocalAndCloud();
                     
                     updateBookOptions();
                     renderHooks();
