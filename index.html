@@ -396,51 +396,11 @@
             display: block;
         }
 
-        .creative-thumbnail {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-
-        .creative-modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-        }
-
-        .creative-modal-content {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            max-width: 80%;
-            max-height: 80%;
-        }
-
-        .creative-modal img,
-        .creative-modal video {
-            max-width: 100%;
-            max-height: 70vh;
-            border-radius: 10px;
-        }
-
-        .close-modal {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
+        .import-export {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            align-items: center;
         }
 
         .file-upload {
@@ -471,116 +431,6 @@
 
         .file-upload-label:hover {
             background: #5a6268;
-        }
-
-        .import-export {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            align-items: center;
-        }
-
-        .creative-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-        }
-
-        .creative-card {
-            background: white;
-            border-radius: 10px;
-            padding: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-        }
-
-        .creative-card img,
-        .creative-card video {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            cursor: pointer;
-        }
-
-        .creative-type-badge {
-            background: #667eea;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        .creative-info {
-            margin-bottom: 10px;
-        }
-
-        .creative-info p {
-            margin: 5px 0;
-            font-size: 14px;
-        }
-
-        .creative-name-edit {
-            display: flex;
-            gap: 5px;
-            align-items: center;
-            margin: 5px 0;
-        }
-
-        .creative-name-edit input {
-            flex: 1;
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 12px;
-        }
-
-        .hook-link {
-            background: #f8f9fa;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            padding: 10px;
-            margin: 5px 0;
-        }
-
-        .hook-link h4 {
-            color: #667eea;
-            margin-bottom: 5px;
-            font-size: 14px;
-        }
-
-        .hook-link p {
-            margin: 2px 0;
-            font-size: 12px;
-            color: #666;
-        }
-
-        .hook-financial {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 10px;
-            margin-top: 8px;
-        }
-
-        .financial-item {
-            text-align: center;
-            padding: 5px;
-            background: #e9ecef;
-            border-radius: 4px;
-        }
-
-        .financial-item .label {
-            font-size: 10px;
-            color: #666;
-            display: block;
-        }
-
-        .financial-item .value {
-            font-weight: bold;
-            color: #333;
-            font-size: 12px;
         }
         
         .login-screen {
@@ -628,10 +478,6 @@
             .import-export {
                 flex-direction: column;
                 align-items: stretch;
-            }
-
-            .creative-grid {
-                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -682,7 +528,6 @@
         <div class="tabs">
             <button class="tab active" onclick="switchTab('hooks')">🎯 Hooks Tracker</button>
             <button class="tab" onclick="switchTab('books')">📚 Books Management</button>
-            <button class="tab" onclick="switchTab('creatives')">🎨 Creative Library</button>
         </div>
 
         <!-- Hooks Tab -->
@@ -794,23 +639,12 @@
                     <input type="number" id="purchases" min="0" placeholder="0">
                 </div>
                 <div class="form-group">
-                    <label for="linkExistingCreative">Link to Existing Creative</label>
-                    <select id="linkExistingCreative" onchange="handleExistingCreativeLink()">
-                        <option value="">Select existing creative...</option>
-                    </select>
+                    <label for="creativesCount">Creatives Tested</label>
+                    <input type="number" id="creativesCount" min="0" placeholder="0">
                 </div>
-                <div class="form-group">
-                    <label for="creativeUpload">Upload New Creative</label>
-                    <div class="file-upload">
-                        <input type="file" id="creativeUpload" accept="image/*,video/*" onchange="handleCreativeUpload(event)">
-                        <label for="creativeUpload" class="file-upload-label">Choose File</label>
-                    </div>
-                </div>
-            </div>
-            <div class="controls-row-2" style="grid-template-columns: 1fr; margin-top: -30px; padding-top: 0;">
                 <div class="form-group">
                     <label for="creativeId">Creative ID (auto-generated)</label>
-                    <input type="text" id="creativeId" placeholder="Auto-generated based on book, hook, and month/year" readonly>
+                    <input type="text" id="creativeId" placeholder="Auto-generated based on book and date" readonly>
                 </div>
             </div>
 
@@ -836,7 +670,7 @@
                             <th>ROAS Milestones</th>
                             <th>Scale Efficiency</th>
                             <th>Action Item</th>
-                            <th>Creatives</th>
+                            <th>Creative ID</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -882,32 +716,12 @@
                 </table>
             </div>
         </div>
-
-        <!-- Creative Library Tab -->
-        <div id="creativesTab" class="tab-content">
-            <div style="margin-bottom: 30px;">
-                <h2>🎨 Creative Library</h2>
-                <p>View and manage all your uploaded creatives with performance data</p>
-            </div>
-
-            <div class="creative-grid" id="creativeGrid">
-            </div>
-        </div>
-    </div>
-
-    <!-- Creative Modal -->
-    <div id="creativeModal" class="creative-modal" onclick="closeCreativeModal()">
-        <div class="creative-modal-content" onclick="event.stopPropagation()">
-            <span class="close-modal" onclick="closeCreativeModal()">&times;</span>
-            <div id="creativeModalContent"></div>
-        </div>
     </div>
 
     <script>
         // Global data storage
         let hooks = JSON.parse(localStorage.getItem('adScalingHooks') || '[]');
         let books = JSON.parse(localStorage.getItem('adScalingBooks') || '[]');
-        let creatives = JSON.parse(localStorage.getItem('adScalingCreatives') || '{}');
 
         // Firebase auth and sync variables
         let currentUser = null;
@@ -958,10 +772,6 @@
                 loginScreen.style.display = 'block';
                 mainApp.style.display = 'none';
             }
-        }
-
-        function updateSyncStatus(message) {
-            // Sync status display removed - syncing happens silently in background
         }
 
         async function signInWithGoogle() {
@@ -1028,7 +838,6 @@
                 const userData = {
                     hooks: hooks,
                     books: books,
-                    creatives: creatives,
                     lastUpdated: new Date().toISOString(),
                     version: 1
                 };
@@ -1064,20 +873,22 @@
                         // Use cloud data
                         hooks = userData.hooks || [];
                         books = userData.books || [];
-                        creatives = userData.creatives || {};
                         
                         // Update local storage
                         localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
                         localStorage.setItem('adScalingBooks', JSON.stringify(books));
-                        localStorage.setItem('adScalingCreatives', JSON.stringify(creatives));
                         localStorage.setItem('lastUpdated', userData.lastUpdated);
+                        
+                        // Run migration after loading data
+                        const migratedCount = migrateExistingCreativeIds();
+                        if (migratedCount > 0) {
+                            console.log(`🔧 Auto-migration after cloud load: Fixed ${migratedCount} Creative IDs`);
+                        }
                         
                         // Refresh UI
                         updateBookOptions();
-                        updateExistingCreativeOptions();
                         renderHooks();
                         renderBooks();
-                        renderCreatives();
                         
                         console.log('Data loaded from cloud');
                     } else {
@@ -1095,12 +906,59 @@
             }
         }
 
+        // AUTO-MIGRATION: Rewrite all Creative IDs that don't match the new format
+        function migrateExistingCreativeIds() {
+            let updatedCount = 0;
+            let existingCreativeIds = new Set();
+            
+            // Define the new format pattern: BookTitle-MMYYYY-### (exactly 3 parts separated by dashes)
+            const newFormatPattern = /^[a-zA-Z0-9]{1,15}-\d{6}-\d{3}$/;
+            
+            // First pass: collect any existing IDs that already match the new format
+            hooks.forEach(hook => {
+                if (hook.creativeId && newFormatPattern.test(hook.creativeId.trim())) {
+                    existingCreativeIds.add(hook.creativeId.trim());
+                }
+            });
+            
+            // Second pass: rewrite ALL Creative IDs that don't match the new format
+            hooks.forEach(hook => {
+                const currentId = hook.creativeId ? hook.creativeId.trim() : '';
+                
+                // If empty, malformed, or doesn't match new pattern - rewrite it
+                if (!currentId || !newFormatPattern.test(currentId)) {
+                    let newId;
+                    let attempts = 0;
+                    
+                    // Generate a unique ID
+                    do {
+                        newId = generateCreativeId(hook.book, hook.testDate);
+                        attempts++;
+                    } while (existingCreativeIds.has(newId) && attempts < 20);
+                    
+                    const oldId = hook.creativeId || 'EMPTY';
+                    hook.creativeId = newId;
+                    existingCreativeIds.add(newId);
+                    updatedCount++;
+                    console.log(`🔄 Rewrote Creative ID: "${oldId}" -> "${newId}" for hook: ${hook.hookName}`);
+                }
+            });
+            
+            if (updatedCount > 0) {
+                saveToLocalAndCloud();
+                console.log(`✅ Migration complete: Rewrote ${updatedCount} Creative IDs to new format`);
+                return updatedCount;
+            } else {
+                console.log('✅ No Creative ID migration needed - all hooks already have valid new format IDs');
+                return 0;
+            }
+        }
+
         // Modify existing save functions to also save to Firebase
         function saveToLocalAndCloud() {
             // Save to localStorage
             localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
             localStorage.setItem('adScalingBooks', JSON.stringify(books));
-            localStorage.setItem('adScalingCreatives', JSON.stringify(creatives));
             localStorage.setItem('lastUpdated', new Date().toISOString());
             
             // Save to Firebase if signed in
@@ -1109,42 +967,56 @@
             }
         }
 
-        // NEW FUNCTION: Update the existing creative dropdown options
-        function updateExistingCreativeOptions() {
-            const select = document.getElementById('linkExistingCreative');
-            if (!select) return;
+        function generateCreativeId(bookName, testDate) {
+            console.log('generateCreativeId called with:', { bookName, testDate });
             
-            // Clear existing options except the first
-            select.innerHTML = '<option value="">Select existing creative...</option>';
+            // Clean the book name for use in ID
+            const cleanBook = bookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
             
-            // Add creatives from storage
-            Object.keys(creatives).forEach(creativeId => {
-                const creative = creatives[creativeId];
-                const option = document.createElement('option');
-                option.value = creativeId;
-                option.textContent = `${creativeId} (${creative.name})`;
-                select.appendChild(option);
-            });
+            console.log('Cleaned book name:', cleanBook);
+            
+            // Convert MM/YYYY to MMYYYY format
+            let dateStr = '';
+            if (testDate && testDate.includes('/')) {
+                const dateParts = testDate.split('/');
+                if (dateParts.length === 2) {
+                    const month = dateParts[0].padStart(2, '0');
+                    const year = dateParts[1];
+                    dateStr = month + year;
+                }
+            } else {
+                // Fallback: use current date if format is wrong
+                const currentDate = new Date();
+                const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+                const currentYear = currentDate.getFullYear();
+                dateStr = currentMonth + currentYear;
+            }
+            
+            const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            
+            const result = `${cleanBook}-${dateStr}-${randomNum}`;
+            console.log('Generated Creative ID:', result);
+            
+            return result;
         }
 
-        // NEW FUNCTION: Handle linking to existing creative
-        function handleExistingCreativeLink() {
-            const selectedCreativeId = document.getElementById('linkExistingCreative').value;
+        function updateCreativeIdPreview() {
+            const bookSelect = document.getElementById('bookSelect').value;
+            const testDate = document.getElementById('testDate').value;
             const creativeIdInput = document.getElementById('creativeId');
             
-            if (selectedCreativeId) {
-                // Set the Creative ID field to the selected existing creative
-                creativeIdInput.value = selectedCreativeId;
-                // Make it editable temporarily when linking to existing creative
-                creativeIdInput.removeAttribute('readonly');
-                
-                // Clear the file upload since we're using an existing creative
-                const fileInput = document.getElementById('creativeUpload');
-                fileInput.value = '';
+            // Only auto-fill if the field is empty and readonly
+            if (bookSelect && testDate && !creativeIdInput.value.trim() && creativeIdInput.hasAttribute('readonly')) {
+                const previewId = generateCreativeId(bookSelect, testDate);
+                creativeIdInput.value = previewId;
+            }
+            
+            // Always update placeholder to show what would be generated
+            if (bookSelect && testDate) {
+                const previewId = generateCreativeId(bookSelect, testDate);
+                creativeIdInput.placeholder = `Auto-generated: ${previewId}`;
             } else {
-                // Make it readonly again and trigger auto-generation
-                creativeIdInput.setAttribute('readonly', 'readonly');
-                updateCreativeIdPreview();
+                creativeIdInput.placeholder = "Auto-generated based on book and date";
             }
         }
 
@@ -1154,10 +1026,15 @@
             setTimeout(initializeAuth, 500); // Give Firebase a moment to load
             
             updateBookOptions();
-            updateExistingCreativeOptions();
+            
+            // Run migration for existing data
+            const migratedCount = migrateExistingCreativeIds();
+            if (migratedCount > 0) {
+                console.log(`🔧 Auto-migration completed: Fixed ${migratedCount} Creative IDs`);
+            }
+            
             renderHooks();
             renderBooks();
-            renderCreatives();
             
             // Set today's month/year as default
             const testDateInput = document.getElementById('testDate');
@@ -1168,13 +1045,11 @@
                 testDateInput.value = `${currentMonth}/${currentYear}`;
             }
             
-            // Add event listeners for Creative ID preview
+            // Add event listeners for Creative ID preview (removed hookName)
             const bookSelect = document.getElementById('bookSelect');
-            const hookName = document.getElementById('hookName');
             const testDate = document.getElementById('testDate');
             
             if (bookSelect) bookSelect.addEventListener('change', updateCreativeIdPreview);
-            if (hookName) hookName.addEventListener('input', updateCreativeIdPreview);
             if (testDate) testDate.addEventListener('change', updateCreativeIdPreview);
             
             // Add event listeners for auth buttons with safety checks
@@ -1208,14 +1083,9 @@
             // Add active class to clicked tab
             event.target.classList.add('active');
             
-            // Refresh data when switching to books or creatives tab
+            // Refresh data when switching to books tab
             if (tabName === 'books') {
                 renderBooks();
-            } else if (tabName === 'creatives') {
-                renderCreatives();
-            } else if (tabName === 'hooks') {
-                // Update existing creative options when switching to hooks tab
-                updateExistingCreativeOptions();
             }
         }
 
@@ -1245,7 +1115,7 @@
             saveToLocalAndCloud();
             document.getElementById('newBook').value = '';
             updateBookOptions();
-            // FIX: Set the book select value AFTER updating options
+            // Set the book select value AFTER updating options
             document.getElementById('bookSelect').value = newBookTitle;
             cancelAddBook();
         }
@@ -1295,10 +1165,9 @@
             const totalSpend = parseFloat(document.getElementById('totalSpendInput').value) || 0;
             const totalRevenue = parseFloat(document.getElementById('totalRevenueInput').value) || 0;
             const purchases = parseInt(document.getElementById('purchases').value) || 0;
+            const creativesCount = parseInt(document.getElementById('creativesCount').value) || 0;
             
             let creativeId = document.getElementById('creativeId').value.trim();
-            // Set creativesCount to 1 if there's a creative, 0 if not
-            const creativesCount = creativeId ? 1 : 0;
 
             if (!bookSelect || !hookName) {
                 alert('Please select a book and enter a hook name.');
@@ -1338,7 +1207,6 @@
                 hookData.totalSpend = existing.totalSpend + totalSpend;
                 hookData.totalRevenue = existing.totalRevenue + totalRevenue;
                 hookData.purchases = existing.purchases + purchases;
-                // For existing hooks, add to creative count if there's a new creative
                 hookData.creativesCount = existing.creativesCount + creativesCount;
                 hookData.overallROAS = hookData.totalSpend > 0 ? hookData.totalRevenue / hookData.totalSpend : 0;
                 
@@ -1349,17 +1217,8 @@
                     hookData.testDate = existing.testDate;
                 }
                 
-                // FIX: Handle creative ID updates properly for existing hooks
-                if (creativeId && creativeId !== existing.creativeId) {
-                    // If there's an old creative with a different ID, check if we need to move it
-                    if (existing.creativeId && creatives[existing.creativeId] && !creatives[creativeId]) {
-                        // Move the creative to the new ID
-                        creatives[creativeId] = creatives[existing.creativeId];
-                        delete creatives[existing.creativeId];
-                        localStorage.setItem('adScalingCreatives', JSON.stringify(creatives));
-                    }
-                    hookData.creativeId = creativeId;
-                } else if (!creativeId && existing.creativeId) {
+                // Keep the existing creative ID if no new one provided
+                if (!creativeId && existing.creativeId) {
                     hookData.creativeId = existing.creativeId;
                 }
                 
@@ -1374,12 +1233,10 @@
             // Save data
             saveToLocalAndCloud();
             
-            // Force immediate UI update - removed setTimeout delay
+            // Force immediate UI update
             updateBookOptions();
-            updateExistingCreativeOptions();
             renderHooks();
             renderBooks();
-            renderCreatives();
             clearForm();
             
             // Scroll to the table so user can see the new entry
@@ -1492,7 +1349,6 @@
 
         function saveEdit() {
             const index = parseInt(document.getElementById('editIndex').value);
-            const oldCreativeId = hooks[index].creativeId; // Store old creative ID
             
             const hookData = {
                 book: document.getElementById('editBookSelect').value,
@@ -1518,17 +1374,6 @@
                 return;
             }
 
-            // FIX: Update creative ID mapping when changed
-            if (oldCreativeId && oldCreativeId !== hookData.creativeId && creatives[oldCreativeId]) {
-                // If creative ID changed and the old ID exists, update the creative object
-                if (hookData.creativeId && !creatives[hookData.creativeId]) {
-                    // Move the creative to the new ID
-                    creatives[hookData.creativeId] = creatives[oldCreativeId];
-                    delete creatives[oldCreativeId];
-                    localStorage.setItem('adScalingCreatives', JSON.stringify(creatives));
-                }
-            }
-
             hooks[index] = hookData;
             
             // Recalculate milestone ROAS
@@ -1536,8 +1381,6 @@
             
             saveToLocalAndCloud();
             renderHooks();
-            renderCreatives();
-            updateExistingCreativeOptions();
             cancelEdit();
         }
 
@@ -1628,169 +1471,6 @@
             return { text: 'Monitor', class: 'action-maintain' };
         }
 
-        function generateCreativeId(bookName, hookName, testDate) {
-            console.log('generateCreativeId called with:', { bookName, hookName, testDate });
-            
-            // Clean the book name and hook name for use in ID
-            const cleanBook = bookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
-            const cleanHook = hookName.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
-            
-            console.log('Cleaned values:', { cleanBook, cleanHook });
-            
-            // Convert MM/YYYY to MMYYYY format
-            let dateStr = '';
-            if (testDate && testDate.includes('/')) {
-                const dateParts = testDate.split('/');
-                if (dateParts.length === 2) {
-                    const month = dateParts[0].padStart(2, '0');
-                    const year = dateParts[1];
-                    dateStr = month + year;
-                }
-            } else {
-                // Fallback: use current date if format is wrong
-                const currentDate = new Date();
-                const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
-                const currentYear = currentDate.getFullYear();
-                dateStr = currentMonth + currentYear;
-            }
-            
-            const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-            
-            const result = `${cleanBook}-${cleanHook}-${dateStr}-${randomNum}`;
-            console.log('Generated Creative ID:', result);
-            
-            return result;
-        }
-
-        function updateCreativeIdPreview() {
-            const bookSelect = document.getElementById('bookSelect').value;
-            const hookNameElement = document.getElementById('hookName');
-            const hookName = hookNameElement ? hookNameElement.value.trim() : '';
-            const testDate = document.getElementById('testDate').value;
-            const creativeIdInput = document.getElementById('creativeId');
-            
-            // Only auto-fill if the field is empty and readonly (so user can manually enter existing IDs when linking)
-            if (bookSelect && hookName && testDate && !creativeIdInput.value.trim() && creativeIdInput.hasAttribute('readonly')) {
-                const previewId = generateCreativeId(bookSelect, hookName, testDate);
-                creativeIdInput.value = previewId;
-            }
-            
-            // Always update placeholder to show what would be generated
-            if (bookSelect && hookName && testDate) {
-                const previewId = generateCreativeId(bookSelect, hookName, testDate);
-                creativeIdInput.placeholder = `Auto-generated: ${previewId}`;
-            } else {
-                creativeIdInput.placeholder = "Auto-generated based on book, hook, and month/year";
-            }
-        }
-
-        function handleCreativeUpload(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    // Generate Creative ID based on current form values
-                    const bookSelect = document.getElementById('bookSelect').value;
-                    const hookNameElement = document.getElementById('hookName');
-                    const hookName = hookNameElement ? hookNameElement.value.trim() : '';
-                    const testDate = document.getElementById('testDate').value;
-                    
-                    console.log('Upload form values:', { bookSelect, hookName, testDate });
-                    
-                    if (!bookSelect || !hookName || !testDate) {
-                        alert('Please fill in Book, Hook Name, and Test Month/Year before uploading a creative.');
-                        event.target.value = ''; // Clear the file input
-                        return;
-                    }
-                    
-                    let creativeId = document.getElementById('creativeId').value.trim();
-                    
-                    // Only generate a new ID if the field is empty
-                    if (!creativeId) {
-                        creativeId = generateCreativeId(bookSelect, hookName, testDate);
-                        
-                        // Check if this ID already exists, if so, generate a new random number
-                        let attempts = 0;
-                        while (creatives[creativeId] && attempts < 10) {
-                            creativeId = generateCreativeId(bookSelect, hookName, testDate);
-                            attempts++;
-                        }
-                        
-                        document.getElementById('creativeId').value = creativeId;
-                    }
-                    
-                    creatives[creativeId] = {
-                        data: e.target.result,
-                        type: file.type,
-                        name: file.name
-                    };
-                    
-                    saveToLocalAndCloud();
-                    renderCreatives();
-                    updateExistingCreativeOptions();
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        // FIX: This function now works with the input field in Creative Library
-        function saveCreativeId(oldCreativeId) {
-            const inputField = document.getElementById(`creative-id-${oldCreativeId}`);
-            const newId = inputField.value.trim();
-            
-            if (!newId) {
-                alert('Creative ID cannot be empty.');
-                inputField.value = oldCreativeId; // Reset to original
-                return;
-            }
-            
-            if (newId === oldCreativeId) {
-                return; // No change
-            }
-            
-            if (creatives[newId]) {
-                alert('A creative with this ID already exists. Please choose a different ID.');
-                inputField.value = oldCreativeId; // Reset to original
-                return;
-            }
-            
-            // Move creative to new ID
-            creatives[newId] = creatives[oldCreativeId];
-            delete creatives[oldCreativeId];
-            
-            // Update all hooks that reference this creative
-            hooks.forEach(hook => {
-                if (hook.creativeId === oldCreativeId) {
-                    hook.creativeId = newId;
-                }
-            });
-            
-            saveToLocalAndCloud();
-            renderCreatives();
-            renderHooks();
-            updateExistingCreativeOptions();
-        }
-
-        function showCreative(creativeId) {
-            const creative = creatives[creativeId];
-            if (!creative) return;
-
-            const modal = document.getElementById('creativeModal');
-            const content = document.getElementById('creativeModalContent');
-            
-            if (creative.type.startsWith('image/')) {
-                content.innerHTML = `<img src="${creative.data}" alt="${creative.name}">`;
-            } else if (creative.type.startsWith('video/')) {
-                content.innerHTML = `<video controls src="${creative.data}"></video>`;
-            }
-            
-            modal.style.display = 'block';
-        }
-
-        function closeCreativeModal() {
-            document.getElementById('creativeModal').style.display = 'none';
-        }
-
         function renderHooks() {
             const tbody = document.getElementById('hooksTableBody');
             if (!tbody) {
@@ -1830,7 +1510,7 @@
                     </td>
                     <td><span class="scale-efficiency ${scaleEff.class}">${scaleEff.text}</span></td>
                     <td><span class="action-item ${actionItem.class}">${actionItem.text}</span></td>
-                    <td>${hook.creativesCount}</td>
+                    <td style="font-family: monospace; font-size: 12px;">${hook.creativeId || 'None'}</td>
                     <td>
                         <button class="btn btn-info btn-sm" onclick="editHook(${index})">✏️ Edit</button>
                         <button class="btn btn-danger btn-sm" onclick="deleteHook(${index})">🗑️ Delete</button>
@@ -1867,72 +1547,6 @@
                     </td>
                 `;
                 tbody.appendChild(row);
-            });
-        }
-
-        function renderCreatives() {
-            const grid = document.getElementById('creativeGrid');
-            grid.innerHTML = '';
-
-            Object.keys(creatives).forEach(creativeId => {
-                const creative = creatives[creativeId];
-                const isVideo = creative.type.startsWith('video/');
-                const isImage = creative.type.startsWith('image/');
-
-                // Find all hooks that use this creative
-                const linkedHooks = hooks.filter(hook => hook.creativeId === creativeId);
-
-                const card = document.createElement('div');
-                card.className = 'creative-card';
-                card.innerHTML = `
-                    ${isImage ? `<img src="${creative.data}" alt="${creative.name}" onclick="showCreative('${creativeId}')">` : ''}
-                    ${isVideo ? `<video onclick="showCreative('${creativeId}')" style="cursor: pointer;"><source src="${creative.data}" type="${creative.type}"></video>` : ''}
-                    
-                    <div class="creative-info">
-                        <div style="margin-bottom: 10px;">
-                            <span class="creative-type-badge">${isVideo ? '🎥 Video' : '🖼️ Image'}</span>
-                        </div>
-                        <div class="creative-name-edit">
-                            <strong>ID:</strong>
-                            <input type="text" value="${creativeId}" id="creative-id-${creativeId}" style="flex: 1; margin: 0 5px;">
-                            <button class="btn btn-sm btn-info" onclick="saveCreativeId('${creativeId}')">💾</button>
-                        </div>
-                        <p><strong>File:</strong> ${creative.name}</p>
-                        <p><strong>Used in:</strong> ${linkedHooks.length} hook(s)</p>
-                    </div>
-
-                    ${linkedHooks.length > 0 ? `
-                        <div style="margin-top: 15px;">
-                            <h4 style="color: #667eea; margin-bottom: 10px; font-size: 14px;">📊 Linked Hooks Performance:</h4>
-                            ${linkedHooks.map(hook => `
-                                <div class="hook-link">
-                                    <h4>${hook.book}: ${hook.hookName.substring(0, 40)}${hook.hookName.length > 40 ? '...' : ''}</h4>
-                                    <p><strong>Campaign:</strong> ${hook.campaignName}</p>
-                                    <p><strong>Test Month:</strong> ${hook.testDate}</p>
-                                    <div class="hook-financial">
-                                        <div class="financial-item">
-                                            <span class="label">Total Spend</span>
-                                            <span class="value">$${hook.totalSpend.toFixed(2)}</span>
-                                        </div>
-                                        <div class="financial-item">
-                                            <span class="label">Total Revenue</span>
-                                            <span class="value">$${hook.totalRevenue.toFixed(2)}</span>
-                                        </div>
-                                        <div class="financial-item">
-                                            <span class="label">ROAS</span>
-                                            <span class="value">${hook.overallROAS.toFixed(2)}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : '<p style="color: #999; font-style: italic; margin-top: 10px;">Not linked to any hooks yet</p>'}
-
-                    <div style="margin-top: 15px; text-align: center;">
-                        <button class="btn btn-danger btn-sm" onclick="deleteCreative('${creativeId}')">🗑️ Delete</button>
-                    </div>
-                `;
-                grid.appendChild(card);
             });
         }
 
@@ -1977,194 +1591,12 @@
                 }
             });
 
-            localStorage.setItem('adScalingBooks', JSON.stringify(books));
-            localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
             saveToLocalAndCloud();
-            
             updateBookOptions();
             renderBooks();
             renderHooks();
-            renderCreatives();
         }
 
         function deleteBook(bookTitle) {
             const bookHooks = hooks.filter(h => h.book === bookTitle);
-            if (bookHooks.length > 0) {
-                if (!confirm(`This book has ${bookHooks.length} hooks. Deleting it will also delete all associated hooks. Continue?`)) {
-                    return;
-                }
-                // Remove all hooks for this book
-                hooks = hooks.filter(h => h.book !== bookTitle);
-                saveToLocalAndCloud();
-            }
-
-            // Remove book
-            books = books.filter(b => b !== bookTitle);
-            saveToLocalAndCloud();
-            
-            updateBookOptions();
-            renderBooks();
-            renderHooks();
-            renderCreatives();
-        }
-
-        function deleteCreative(creativeId) {
-            if (confirm('Are you sure you want to delete this creative?')) {
-                delete creatives[creativeId];
-                
-                // Remove creative ID from any hooks that reference it
-                hooks.forEach(hook => {
-                    if (hook.creativeId === creativeId) {
-                        hook.creativeId = '';
-                    }
-                });
-                
-                localStorage.setItem('adScalingCreatives', JSON.stringify(creatives));
-                localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
-                saveToLocalAndCloud();
-                renderCreatives();
-                renderHooks();
-                updateExistingCreativeOptions();
-            }
-        }
-
-        function deleteHook(index) {
-            if (confirm('Are you sure you want to delete this hook?')) {
-                hooks.splice(index, 1);
-                saveToLocalAndCloud();
-                renderHooks();
-                renderCreatives();
-            }
-        }
-
-        function clearForm() {
-            document.getElementById('bookSelect').value = '';
-            document.getElementById('hookName').value = '';
-            document.getElementById('campaignName').value = '';
-            const currentDate = new Date();
-            const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
-            const currentYear = currentDate.getFullYear();
-            document.getElementById('testDate').value = `${currentMonth}/${currentYear}`;
-            document.getElementById('totalSpendInput').value = '';
-            document.getElementById('totalRevenueInput').value = '';
-            document.getElementById('purchases').value = '';
-            document.getElementById('linkExistingCreative').value = '';
-            document.getElementById('creativeId').value = '';
-            document.getElementById('creativeId').setAttribute('readonly', 'readonly'); // Make sure it's readonly
-            document.getElementById('creativeId').placeholder = "Auto-generated based on book, hook, and month/year";
-            // Clear the file input
-            document.getElementById('creativeUpload').value = '';
-            cancelAddBook(); // Hide add book form if open
-        }
-
-        function exportData() {
-            const csvContent = "data:text/csv;charset=utf-8," + 
-                "Book,Hook Name,Campaign/Ad Set,Test Month/Year,Total Spend,Total Revenue,Purchases,Overall ROAS,Performance Level,ROAS @$100,ROAS @$300,ROAS @$1000,ROAS @$3000,Scale Efficiency,Action Item,Creatives Count,Creative ID\n" +
-                hooks.map(hook => {
-                    const performance = getPerformanceLevel(hook.totalSpend, hook.testDate);
-                    const scaleEff = getScaleEfficiency(hook.roasAt100, hook.roasAt1000);
-                    const scaleEfficiencyScore = hook.roasAt100 > 0 && hook.roasAt1000 > 0 ? hook.roasAt1000 / hook.roasAt100 : 0;
-                    const actionItem = getActionItem(hook.overallROAS, hook.totalSpend, hook.testDate, scaleEfficiencyScore);
-                    
-                    return `"${hook.book}","${hook.hookName.replace(/"/g, '""')}","${hook.campaignName}","${hook.testDate}",${hook.totalSpend},${hook.totalRevenue},${hook.purchases},${hook.overallROAS.toFixed(2)},"${performance.text}",${hook.roasAt100 > 0 ? hook.roasAt100.toFixed(2) : 'N/A'},${hook.roasAt300 > 0 ? hook.roasAt300.toFixed(2) : 'N/A'},${hook.roasAt1000 > 0 ? hook.roasAt1000.toFixed(2) : 'N/A'},${hook.roasAt3000 > 0 ? hook.roasAt3000.toFixed(2) : 'N/A'},"${scaleEff.text}","${actionItem.text}",${hook.creativesCount},"${hook.creativeId || ''}"`;
-                }).join("\n");
-
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `ad_scaling_tracker_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const text = e.target.result;
-                    const lines = text.split('\n');
-                    const headers = lines[0].split(',');
-                    
-                    for (let i = 1; i < lines.length; i++) {
-                        if (lines[i].trim() === '') continue;
-                        
-                        const values = lines[i].split(',');
-                        if (values.length >= 8) {
-                            const hookData = {
-                                book: values[0].replace(/"/g, ''),
-                                hookName: values[1].replace(/"/g, ''),
-                                campaignName: values[2].replace(/"/g, ''),
-                                testDate: values[3].replace(/"/g, ''),
-                                totalSpend: parseFloat(values[4]) || 0,
-                                totalRevenue: parseFloat(values[5]) || 0,
-                                purchases: parseInt(values[6]) || 0,
-                                overallROAS: parseFloat(values[7]) || 0,
-                                creativesCount: parseInt(values[15]) || 0,
-                                creativeId: values[16] ? values[16].replace(/"/g, '') : '',
-                                roasAt100: 0,
-                                roasAt300: 0,
-                                roasAt1000: 0,
-                                roasAt3000: 0
-                            };
-                            
-                            if (!books.includes(hookData.book)) {
-                                books.push(hookData.book);
-                            }
-                            
-                            hooks.push(hookData);
-                        }
-                    }
-                    
-                    calculateMilestoneROAS();
-                    localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
-                    localStorage.setItem('adScalingBooks', JSON.stringify(books));
-                    
-                    updateBookOptions();
-                    updateExistingCreativeOptions();
-                    renderHooks();
-                    renderBooks();
-                    renderCreatives();
-                    
-                    alert('Data imported successfully!');
-                } catch (error) {
-                    alert('Error importing file. Please check the format.');
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        function clearAllData() {
-            if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
-                hooks = [];
-                books = [];
-                creatives = {};
-                localStorage.removeItem('adScalingHooks');
-                localStorage.removeItem('adScalingBooks');
-                localStorage.removeItem('adScalingCreatives');
-                localStorage.removeItem('lastUpdated');
-                
-                // Clear cloud data too if signed in
-                if (isSignedIn) {
-                    saveToLocalAndCloud();
-                }
-                
-                updateBookOptions();
-                updateExistingCreativeOptions();
-                renderHooks();
-                renderBooks();
-                renderCreatives();
-                clearForm();
-                
-                alert('All data cleared successfully!');
-            }
-        }
-    </script>
-        </div>
-        <!-- End of mainApp -->
-    </div>
-</body>
-</html>
+            if (bookH
