@@ -254,8 +254,9 @@
             color: #333;
             position: sticky;
             top: 0;
-            z-index: 100;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            z-index: 1000;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+            border-bottom: 2px solid #667eea;
         }
 
         .data-table tr:hover {
@@ -464,6 +465,19 @@
             margin-bottom: 0;
         }
 
+        /* Fix for sticky table headers - ensure they stay on top */
+        .table-wrapper {
+            overflow-x: auto;
+            max-height: 80vh;
+            position: relative;
+        }
+
+        /* Ensure the "Add to Existing" section has lower z-index than table headers */
+        #existingHookSelection {
+            position: relative;
+            z-index: 100;
+        }
+
         @media (max-width: 1200px) {
             .controls {
                 grid-template-columns: repeat(2, 1fr);
@@ -522,7 +536,7 @@
                     Sign in with your Google account to get started.
                 </p>
                 <button id="loginButton" class="btn btn-primary" style="font-size: 18px; padding: 15px 30px;">
-                    🔑 Sign in with Google
+                    🔐 Sign in with Google
                 </button>
                 <div id="loginStatus" style="margin-top: 20px; color: #666;"></div>
             </div>
@@ -565,7 +579,7 @@
                     <input type="file" id="csvImport" accept=".csv,.xlsx,.xls" onchange="importData(event)">
                     <label for="csvImport" class="file-upload-label">📤 Import CSV/Excel</label>
                 </div>
-                <button class="btn btn-warning" onclick="clearAllData()">⌫ Clear All Data</button>
+                <button class="btn btn-warning" onclick="clearAllData()">❌ Clear All Data</button>
             </div>
 
             <!-- Edit Form (Hidden by default) -->
@@ -731,7 +745,7 @@
             </div>
 
             <!-- Hooks Table -->
-            <div style="overflow-x: auto; max-height: 80vh; position: relative;">
+            <div class="table-wrapper">
                 <table class="data-table" id="hooksTable">
                     <thead>
                         <tr>
@@ -774,7 +788,7 @@
                 </div>
             </div>
 
-            <div style="overflow-x: auto; max-height: 80vh; position: relative;">
+            <div class="table-wrapper">
                 <table class="data-table" id="booksTable">
                     <thead>
                         <tr>
@@ -820,7 +834,7 @@
                 </div>
             </div>
 
-            <div style="overflow-x: auto; max-height: 80vh; position: relative;">
+            <div class="table-wrapper">
                 <table class="data-table" id="creativesTable">
                     <thead>
                         <tr>
@@ -1962,7 +1976,7 @@
                     </td>
                     <td>
                         <button class="btn btn-info btn-sm" onclick="editHookGroup('${key}')">✏️ Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">⌫ Delete</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">❌ Delete</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -1990,7 +2004,7 @@
                         <td style="font-family: monospace; font-size: 11px;">${creative.creativeId}</td>
                         <td>
                             <button class="btn btn-info btn-xs" onclick="editHook(${hooks.indexOf(creative)})">✏️</button>
-                            <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">⌫</button>
+                            <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">❌</button>
                         </td>
                     `;
                     tbody.appendChild(detailRow);
@@ -2021,7 +2035,7 @@
                     <td>${bestHook ? `${bestHook.hookName.substring(0, 50)}... (ROAS: ${bestHook.overallROAS.toFixed(2)})` : 'None'}</td>
                     <td>
                         <button class="btn btn-info btn-sm" onclick="editBookTitle('${book}')">✏️ Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteBook('${book}')">⌫ Delete</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteBook('${book}')">❌ Delete</button>
                     </td>
                 `;
                 tbody.appendChild(row);
