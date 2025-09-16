@@ -19,16 +19,17 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 20px;
+            padding: 0;
         }
 
         .container {
-            max-width: 1400px;
-            margin: 0 auto;
+            width: 100%;
+            margin: 0;
             background: white;
-            border-radius: 15px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            border-radius: 0;
+            box-shadow: none;
             overflow: hidden;
+            min-height: 100vh;
         }
 
         .header {
@@ -88,7 +89,7 @@
 
         .controls {
             display: grid;
-            grid-template-columns: repeat(5, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 15px;
             margin-bottom: 30px;
             padding: 20px;
@@ -259,9 +260,7 @@
         .data-table th:nth-child(1),
         .data-table td:nth-child(1), /* Book */
         .data-table th:nth-child(2),
-        .data-table td:nth-child(2), /* Hook */
-        .data-table th:nth-child(3),
-        .data-table td:nth-child(3)  /* Campaign */
+        .data-table td:nth-child(2)  /* Hook */
         {
             text-align: left;
         }
@@ -461,7 +460,7 @@
 
         @media (max-width: 1200px) {
             .controls {
-                grid-template-columns: repeat(3, 1fr);
+                grid-template-columns: repeat(2, 1fr);
                 gap: 10px;
             }
 
@@ -495,6 +494,10 @@
                 flex-direction: column;
                 align-items: stretch;
             }
+
+            .tab-content {
+                padding: 15px;
+            }
         }
     </style>
 </head>
@@ -513,7 +516,7 @@
                     Sign in with your Google account to get started.
                 </p>
                 <button id="loginButton" class="btn btn-primary" style="font-size: 18px; padding: 15px 30px;">
-                    🔐 Sign in with Google
+                    🔑 Sign in with Google
                 </button>
                 <div id="loginStatus" style="margin-top: 20px; color: #666;"></div>
             </div>
@@ -577,10 +580,6 @@
                         <textarea id="editHookName" rows="3"></textarea>
                     </div>
                     <div class="form-group">
-                        <label for="editCampaignName">Campaign/Ad Set</label>
-                        <input type="text" id="editCampaignName">
-                    </div>
-                    <div class="form-group">
                         <label for="editTestDate">Test Month/Year</label>
                         <input type="text" id="editTestDate" placeholder="MM/YYYY (e.g., 03/2024)">
                     </div>
@@ -635,10 +634,6 @@
                     <textarea id="hookName" rows="3" placeholder="Enter hook description..."></textarea>
                 </div>
                 <div class="form-group">
-                    <label for="campaignName">Campaign/Ad Set</label>
-                    <input type="text" id="campaignName" placeholder="Campaign or Ad Set name">
-                </div>
-                <div class="form-group">
                     <label for="testDate">Test Month/Year</label>
                     <input type="text" id="testDate" placeholder="MM/YYYY (e.g., 03/2024)">
                 </div>
@@ -678,7 +673,6 @@
                         <tr>
                             <th>Book</th>
                             <th>Hook</th>
-                            <th>Campaign/Ad Set</th>
                             <th>Test Month/Year</th>
                             <th>Total Spend</th>
                             <th>Total Revenue</th>
@@ -1258,10 +1252,9 @@
             const bookSelect = document.getElementById('bookSelect').value;
             const hookNameElement = document.getElementById('hookName');
             const hookName = hookNameElement ? hookNameElement.value.trim() : '';
-            const campaignName = document.getElementById('campaignName').value.trim();
             const testDate = document.getElementById('testDate').value;
             
-            console.log('addOrUpdateHook form values:', { bookSelect, hookName, campaignName, testDate });
+            console.log('addOrUpdateHook form values:', { bookSelect, hookName, testDate });
             
             const totalSpend = parseFloat(document.getElementById('totalSpendInput').value) || 0;
             const totalRevenue = parseFloat(document.getElementById('totalRevenueInput').value) || 0;
@@ -1288,7 +1281,6 @@
             const hookData = {
                 book: bookSelect,
                 hookName: hookName,
-                campaignName: campaignName,
                 testDate: testDate,
                 totalSpend: totalSpend,
                 totalRevenue: totalRevenue,
@@ -1433,7 +1425,6 @@
             document.getElementById('editIndex').value = index;
             document.getElementById('editBookSelect').value = hook.book;
             document.getElementById('editHookName').value = hook.hookName;
-            document.getElementById('editCampaignName').value = hook.campaignName;
             document.getElementById('editTestDate').value = hook.testDate;
             document.getElementById('editTotalSpend').value = hook.totalSpend;
             document.getElementById('editTotalRevenue').value = hook.totalRevenue;
@@ -1454,7 +1445,6 @@
             const hookData = {
                 book: document.getElementById('editBookSelect').value,
                 hookName: document.getElementById('editHookName').value.trim(),
-                campaignName: document.getElementById('editCampaignName').value.trim(),
                 testDate: document.getElementById('editTestDate').value,
                 totalSpend: parseFloat(document.getElementById('editTotalSpend').value) || 0,
                 totalRevenue: parseFloat(document.getElementById('editTotalRevenue').value) || 0,
@@ -1588,7 +1578,6 @@
                     hookGroups[key] = {
                         book: hook.book,
                         hookName: hook.hookName,
-                        campaignName: hook.campaignName,
                         testDate: hook.testDate,
                         creatives: []
                     };
@@ -1598,7 +1587,6 @@
                 // Update to latest test date
                 if (new Date(hook.testDate) > new Date(hookGroups[key].testDate)) {
                     hookGroups[key].testDate = hook.testDate;
-                    hookGroups[key].campaignName = hook.campaignName;
                 }
             });
 
@@ -1641,7 +1629,6 @@
                         ${group.book}
                     </td>
                     <td>${group.hookName}</td>
-                    <td>${group.campaignName}</td>
                     <td>${group.testDate}</td>
                     <td>$${totalSpend.toFixed(2)}</td>
                     <td>$${totalRevenue.toFixed(2)}</td>
@@ -1684,7 +1671,6 @@
                             ${isBest ? '👑 ' : '├─ '}${creative.creativeId}
                         </td>
                         <td>${creative.hookName}</td>
-                        <td>${creative.campaignName}</td>
                         <td>${creative.testDate}</td>
                         <td>$${creative.totalSpend.toFixed(2)}</td>
                         <td>$${creative.totalRevenue.toFixed(2)}</td>
@@ -1812,7 +1798,6 @@
         function clearForm() {
             document.getElementById('bookSelect').value = '';
             document.getElementById('hookName').value = '';
-            document.getElementById('campaignName').value = '';
             const currentDate = new Date();
             const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
             const currentYear = currentDate.getFullYear();
@@ -1829,14 +1814,14 @@
 
         function exportData() {
             const csvContent = "data:text/csv;charset=utf-8," + 
-                "Book,Hook Name,Campaign/Ad Set,Test Month/Year,Total Spend,Total Revenue,Purchases,Overall ROAS,Performance Level,ROAS @$100,ROAS @$300,ROAS @$1000,ROAS @$3000,Scale Efficiency,Action Item,Creatives Count,Creative ID\n" +
+                "Book,Hook Name,Test Month/Year,Total Spend,Total Revenue,Purchases,Overall ROAS,Performance Level,ROAS @$100,ROAS @$300,ROAS @$1000,ROAS @$3000,Scale Efficiency,Action Item,Creatives Count,Creative ID\n" +
                 hooks.map(hook => {
                     const performance = getPerformanceLevel(hook.totalSpend, hook.testDate);
                     const scaleEff = getScaleEfficiency(hook.roasAt100, hook.roasAt1000);
                     const scaleEfficiencyScore = hook.roasAt100 > 0 && hook.roasAt1000 > 0 ? hook.roasAt1000 / hook.roasAt100 : 0;
                     const actionItem = getActionItem(hook.overallROAS, hook.totalSpend, hook.testDate, scaleEfficiencyScore);
                     
-                    return `"${hook.book}","${hook.hookName.replace(/"/g, '""')}","${hook.campaignName}","${hook.testDate}",${hook.totalSpend},${hook.totalRevenue},${hook.purchases},${hook.overallROAS.toFixed(2)},"${performance.text}",${hook.roasAt100 > 0 ? hook.roasAt100.toFixed(2) : 'N/A'},${hook.roasAt300 > 0 ? hook.roasAt300.toFixed(2) : 'N/A'},${hook.roasAt1000 > 0 ? hook.roasAt1000.toFixed(2) : 'N/A'},${hook.roasAt3000 > 0 ? hook.roasAt3000.toFixed(2) : 'N/A'},"${scaleEff.text}","${actionItem.text}",${hook.creativesCount},"${hook.creativeId || ''}"`;
+                    return `"${hook.book}","${hook.hookName.replace(/"/g, '""')}","${hook.testDate}",${hook.totalSpend},${hook.totalRevenue},${hook.purchases},${hook.overallROAS.toFixed(2)},"${performance.text}",${hook.roasAt100 > 0 ? hook.roasAt100.toFixed(2) : 'N/A'},${hook.roasAt300 > 0 ? hook.roasAt300.toFixed(2) : 'N/A'},${hook.roasAt1000 > 0 ? hook.roasAt1000.toFixed(2) : 'N/A'},${hook.roasAt3000 > 0 ? hook.roasAt3000.toFixed(2) : 'N/A'},"${scaleEff.text}","${actionItem.text}",${hook.creativesCount},"${hook.creativeId || ''}"`;
                 }).join("\n");
 
             const encodedUri = encodeURI(csvContent);
@@ -1867,14 +1852,13 @@
                             const hookData = {
                                 book: values[0].replace(/"/g, ''),
                                 hookName: values[1].replace(/"/g, ''),
-                                campaignName: values[2].replace(/"/g, ''),
-                                testDate: values[3].replace(/"/g, ''),
-                                totalSpend: parseFloat(values[4]) || 0,
-                                totalRevenue: parseFloat(values[5]) || 0,
-                                purchases: parseInt(values[6]) || 0,
-                                overallROAS: parseFloat(values[7]) || 0,
-                                creativesCount: parseInt(values[15]) || 0,
-                                creativeId: values[16] ? values[16].replace(/"/g, '') : '',
+                                testDate: values[2].replace(/"/g, ''),
+                                totalSpend: parseFloat(values[3]) || 0,
+                                totalRevenue: parseFloat(values[4]) || 0,
+                                purchases: parseInt(values[5]) || 0,
+                                overallROAS: parseFloat(values[6]) || 0,
+                                creativesCount: parseInt(values[14]) || 0,
+                                creativeId: values[15] ? values[15].replace(/"/g, '') : '',
                                 roasAt100: 0,
                                 roasAt300: 0,
                                 roasAt1000: 0,
