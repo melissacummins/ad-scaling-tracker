@@ -350,6 +350,56 @@
             color: #666;
         }
 
+        .hook-group {
+            background: #f8f9fa;
+        }
+
+        .hook-group.expanded .creative-details {
+            display: table-row;
+        }
+
+        .creative-details {
+            display: none;
+            background: #f0f8ff;
+            font-size: 13px;
+        }
+
+        .creative-details td {
+            padding: 8px 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .expand-toggle {
+            background: none;
+            border: none;
+            color: #667eea;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 2px 5px;
+            border-radius: 3px;
+            transition: background-color 0.2s;
+        }
+
+        .expand-toggle:hover {
+            background: #e9ecef;
+        }
+
+        .creative-count {
+            font-size: 12px;
+            color: #666;
+            margin-left: 5px;
+        }
+
+        .best-creative {
+            background: #d4edda;
+            border-left-color: #28a745 !important;
+        }
+
+        .creative-notes {
+            max-width: 200px;
+            resize: vertical;
+        }
+
         .edit-form {
             background: #f8f9fa;
             padding: 20px;
@@ -494,6 +544,7 @@
         <div class="tabs">
             <button class="tab active" onclick="switchTab('hooks')">🎯 Hooks Tracker</button>
             <button class="tab" onclick="switchTab('books')">📚 Books Management</button>
+            <button class="tab" onclick="switchTab('creatives')">🎨 Creative ID Tracker</button>
         </div>
 
         <!-- Hooks Tab -->
@@ -683,6 +734,53 @@
                 </table>
             </div>
         </div>
+
+        <!-- Creative ID Tracker Tab -->
+        <div id="creativesTab" class="tab-content">
+            <div style="margin-bottom: 30px;">
+                <h2>🎨 Creative ID Tracker</h2>
+                <p>Track performance of individual Creative IDs across all hooks and campaigns</p>
+            </div>
+
+            <!-- Search and Filter Controls -->
+            <div class="controls" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
+                <div class="form-group">
+                    <label for="creativeSearch">Search Creative ID</label>
+                    <input type="text" id="creativeSearch" placeholder="Search by Creative ID..." onkeyup="filterCreatives()">
+                </div>
+                <div class="form-group">
+                    <label for="minRoasFilter">Min ROAS</label>
+                    <input type="number" id="minRoasFilter" step="0.1" placeholder="e.g., 2.0" onchange="filterCreatives()">
+                </div>
+                <div class="form-group">
+                    <label for="minSpendFilter">Min Spend ($)</label>
+                    <input type="number" id="minSpendFilter" step="1" placeholder="e.g., 100" onchange="filterCreatives()">
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-secondary" onclick="clearCreativeFilters()">🔄 Clear Filters</button>
+                </div>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table class="data-table" id="creativesTable">
+                    <thead>
+                        <tr>
+                            <th>Creative ID</th>
+                            <th>Total Spend</th>
+                            <th>Total Revenue</th>
+                            <th>Overall ROAS</th>
+                            <th>Hooks Used</th>
+                            <th>Best Hook (ROAS)</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="creativesTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -729,6 +827,7 @@
         // Global data storage
         let hooks = JSON.parse(localStorage.getItem('adScalingHooks') || '[]');
         let books = JSON.parse(localStorage.getItem('adScalingBooks') || '[]');
+        let creativeNotes = JSON.parse(localStorage.getItem('adScalingCreativeNotes') || '{}');
 
         // Firebase auth and sync variables
         let currentUser = null;
@@ -842,6 +941,7 @@
                 const userData = {
                     hooks: hooks,
                     books: books,
+                    creativeNotes: creativeNotes,
                     lastUpdated: new Date().toISOString(),
                     version: 1
                 };
@@ -877,10 +977,12 @@
                         // Use cloud data
                         hooks = userData.hooks || [];
                         books = userData.books || [];
+                        creativeNotes = userData.creativeNotes || {};
                         
                         // Update local storage
                         localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
                         localStorage.setItem('adScalingBooks', JSON.stringify(books));
+                        localStorage.setItem('adScalingCreativeNotes', JSON.stringify(creativeNotes));
                         localStorage.setItem('lastUpdated', userData.lastUpdated);
                         
                         // Run migration after loading data
@@ -963,6 +1065,7 @@
             // Save to localStorage
             localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
             localStorage.setItem('adScalingBooks', JSON.stringify(books));
+            localStorage.setItem('adScalingCreativeNotes', JSON.stringify(creativeNotes));
             localStorage.setItem('lastUpdated', new Date().toISOString());
             
             // Save to Firebase if signed in
@@ -1087,29 +1190,6 @@
             }, 100);
         });
 
-        function switchTab(tabName) {
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            // Remove active class from all tabs
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Show selected tab content
-            document.getElementById(tabName + 'Tab').classList.add('active');
-            
-            // Add active class to clicked tab
-            event.target.classList.add('active');
-            
-            // Refresh data when switching to books tab
-            if (tabName === 'books') {
-                renderBooks();
-            }
-        }
-
         function toggleAddBookForm() {
             const form = document.getElementById('addBookForm');
             if (form.classList.contains('active')) {
@@ -1200,9 +1280,9 @@
                 return;
             }
 
-            // Find existing hook with same name and book
+            // Find existing hook with same book, hookName, and creativeId
             const existingIndex = hooks.findIndex(h => 
-                h.book === bookSelect && h.hookName === hookName
+                h.book === bookSelect && h.hookName === hookName && h.creativeId === creativeId
             );
 
             const hookData = {
@@ -1500,29 +1580,79 @@
             }
             tbody.innerHTML = '';
 
-            hooks.forEach((hook, index) => {
-                const performance = getPerformanceLevel(hook.totalSpend, hook.testDate);
-                const scaleEff = getScaleEfficiency(hook.roasAt100, hook.roasAt1000);
-                const scaleEfficiencyScore = hook.roasAt100 > 0 && hook.roasAt1000 > 0 ? hook.roasAt1000 / hook.roasAt100 : 0;
-                const actionItem = getActionItem(hook.overallROAS, hook.totalSpend, hook.testDate, scaleEfficiencyScore);
-                const milestoneData = getMilestoneDisplay(hook);
+            // Group hooks by book + hookName
+            const hookGroups = {};
+            hooks.forEach(hook => {
+                const key = `${hook.book}||${hook.hookName}`;
+                if (!hookGroups[key]) {
+                    hookGroups[key] = {
+                        book: hook.book,
+                        hookName: hook.hookName,
+                        campaignName: hook.campaignName,
+                        testDate: hook.testDate,
+                        creatives: []
+                    };
+                }
+                hookGroups[key].creatives.push(hook);
+                
+                // Update to latest test date
+                if (new Date(hook.testDate) > new Date(hookGroups[key].testDate)) {
+                    hookGroups[key].testDate = hook.testDate;
+                    hookGroups[key].campaignName = hook.campaignName;
+                }
+            });
 
+            // Render each hook group
+            Object.keys(hookGroups).forEach((key, groupIndex) => {
+                const group = hookGroups[key];
+                
+                // Calculate aggregated totals
+                const totalSpend = group.creatives.reduce((sum, c) => sum + c.totalSpend, 0);
+                const totalRevenue = group.creatives.reduce((sum, c) => sum + c.totalRevenue, 0);
+                const totalPurchases = group.creatives.reduce((sum, c) => sum + c.purchases, 0);
+                const overallROAS = totalSpend > 0 ? totalRevenue / totalSpend : 0;
+                
+                // Calculate milestone ROAS for aggregated data
+                const aggregatedHook = {
+                    totalSpend,
+                    overallROAS,
+                    roasAt100: totalSpend >= 100 ? overallROAS : 0,
+                    roasAt300: totalSpend >= 300 ? overallROAS : 0,
+                    roasAt1000: totalSpend >= 1000 ? overallROAS : 0,
+                    roasAt3000: totalSpend >= 3000 ? overallROAS : 0
+                };
+
+                const performance = getPerformanceLevel(totalSpend, group.testDate);
+                const scaleEff = getScaleEfficiency(aggregatedHook.roasAt100, aggregatedHook.roasAt1000);
+                const scaleEfficiencyScore = aggregatedHook.roasAt100 > 0 && aggregatedHook.roasAt1000 > 0 ? aggregatedHook.roasAt1000 / aggregatedHook.roasAt100 : 0;
+                const actionItem = getActionItem(overallROAS, totalSpend, group.testDate, scaleEfficiencyScore);
+                const milestoneData = getMilestoneDisplay(aggregatedHook);
+
+                // Find best performing creative
+                const bestCreative = group.creatives.reduce((best, creative) => 
+                    creative.overallROAS > (best?.overallROAS || 0) ? creative : best, null);
+
+                // Main hook row
                 const row = document.createElement('tr');
+                row.className = 'hook-group';
                 row.innerHTML = `
-                    <td>${hook.book}</td>
-                    <td>${hook.hookName}</td>
-                    <td>${hook.campaignName}</td>
-                    <td>${hook.testDate}</td>
-                    <td>$${hook.totalSpend.toFixed(2)}</td>
-                    <td>$${hook.totalRevenue.toFixed(2)}</td>
-                    <td>${hook.purchases}</td>
-                    <td>${hook.overallROAS.toFixed(2)}</td>
+                    <td>
+                        <button class="expand-toggle" onclick="toggleCreativeDetails(${groupIndex})" id="toggle-${groupIndex}">▶</button>
+                        ${group.book}
+                    </td>
+                    <td>${group.hookName}</td>
+                    <td>${group.campaignName}</td>
+                    <td>${group.testDate}</td>
+                    <td>$${totalSpend.toFixed(2)}</td>
+                    <td>$${totalRevenue.toFixed(2)}</td>
+                    <td>${totalPurchases}</td>
+                    <td>${overallROAS.toFixed(2)}</td>
                     <td><span class="performance-badge ${performance.class}">${performance.text}</span></td>
                     <td class="milestone-display">
                         <div class="current-milestone">${milestoneData.display}</div>
                         ${milestoneData.hasHistory ? `
-                            <button id="milestone-toggle-${index}" class="milestone-toggle" onclick="toggleMilestoneHistory(${index})">Show History</button>
-                            <div id="milestone-history-${index}" class="milestone-history">
+                            <button id="milestone-toggle-${groupIndex}" class="milestone-toggle" onclick="toggleMilestoneHistory(${groupIndex})">Show History</button>
+                            <div id="milestone-history-${groupIndex}" class="milestone-history">
                                 ${milestoneData.history.map(m => `
                                     <div class="milestone-item">ROAS @ ${m.label}: ${m.value.toFixed(2)}</div>
                                 `).join('')}
@@ -1531,13 +1661,46 @@
                     </td>
                     <td><span class="scale-efficiency ${scaleEff.class}">${scaleEff.text}</span></td>
                     <td><span class="action-item ${actionItem.class}">${actionItem.text}</span></td>
-                    <td style="font-family: monospace; font-size: 12px;">${hook.creativeId || 'None'}</td>
+                    <td style="font-family: monospace; font-size: 12px;">
+                        ${group.creatives.length} creative${group.creatives.length !== 1 ? 's' : ''}
+                        <span class="creative-count">(Best: ${bestCreative ? bestCreative.overallROAS.toFixed(2) : 'N/A'})</span>
+                    </td>
                     <td>
-                        <button class="btn btn-info btn-sm" onclick="editHook(${index})">✏️ Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteHook(${index})">🗑️ Delete</button>
+                        <button class="btn btn-info btn-sm" onclick="editHookGroup('${key}')">✏️ Edit</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">🗑️ Delete</button>
                     </td>
                 `;
                 tbody.appendChild(row);
+
+                // Creative detail rows (hidden by default)
+                group.creatives.sort((a, b) => b.overallROAS - a.overallROAS); // Sort by ROAS descending
+                group.creatives.forEach((creative, creativeIndex) => {
+                    const isBest = creative === bestCreative;
+                    const detailRow = document.createElement('tr');
+                    detailRow.className = `creative-details ${isBest ? 'best-creative' : ''}`;
+                    detailRow.id = `creative-${groupIndex}-${creativeIndex}`;
+                    detailRow.innerHTML = `
+                        <td style="padding-left: 30px;">
+                            ${isBest ? '👑 ' : '├─ '}${creative.creativeId}
+                        </td>
+                        <td>${creative.hookName}</td>
+                        <td>${creative.campaignName}</td>
+                        <td>${creative.testDate}</td>
+                        <td>$${creative.totalSpend.toFixed(2)}</td>
+                        <td>$${creative.totalRevenue.toFixed(2)}</td>
+                        <td>${creative.purchases}</td>
+                        <td><strong>${creative.overallROAS.toFixed(2)}</strong></td>
+                        <td colspan="4" style="font-size: 12px; color: #666;">
+                            Creative performance details
+                        </td>
+                        <td style="font-family: monospace; font-size: 11px;">${creative.creativeId}</td>
+                        <td>
+                            <button class="btn btn-info btn-xs" onclick="editHook(${hooks.indexOf(creative)})">✏️</button>
+                            <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">🗑️</button>
+                        </td>
+                    `;
+                    tbody.appendChild(detailRow);
+                });
             });
         }
 
@@ -1746,8 +1909,10 @@
             if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
                 hooks = [];
                 books = [];
+                creativeNotes = {};
                 localStorage.removeItem('adScalingHooks');
                 localStorage.removeItem('adScalingBooks');
+                localStorage.removeItem('adScalingCreativeNotes');
                 localStorage.removeItem('lastUpdated');
                 
                 // Clear cloud data too if signed in
@@ -1758,9 +1923,165 @@
                 updateBookOptions();
                 renderHooks();
                 renderBooks();
+                renderCreatives();
                 clearForm();
                 
                 alert('All data cleared successfully!');
+            }
+        }
+
+        // NEW FUNCTIONS FOR EXPANDABLE CREATIVE DETAILS
+        function toggleCreativeDetails(groupIndex) {
+            const toggle = document.getElementById(`toggle-${groupIndex}`);
+            const creativeRows = document.querySelectorAll(`[id^="creative-${groupIndex}-"]`);
+            
+            if (toggle.textContent === '▶') {
+                toggle.textContent = '▼';
+                creativeRows.forEach(row => row.style.display = 'table-row');
+            } else {
+                toggle.textContent = '▶';
+                creativeRows.forEach(row => row.style.display = 'none');
+            }
+        }
+
+        function editHookGroup(key) {
+            const [book, hookName] = key.split('||');
+            const groupHooks = hooks.filter(h => h.book === book && h.hookName === hookName);
+            
+            // For now, edit the first hook in the group (we can enhance this later)
+            const hookIndex = hooks.indexOf(groupHooks[0]);
+            editHook(hookIndex);
+        }
+
+        function deleteHookGroup(key) {
+            const [book, hookName] = key.split('||');
+            const groupHooks = hooks.filter(h => h.book === book && h.hookName === hookName);
+            
+            if (confirm(`Are you sure you want to delete the hook "${hookName}" and all ${groupHooks.length} creative tests?`)) {
+                // Remove all hooks in this group
+                hooks = hooks.filter(h => !(h.book === book && h.hookName === hookName));
+                saveToLocalAndCloud();
+                renderHooks();
+                renderCreatives();
+            }
+        }
+
+        // CREATIVE ID TRACKER FUNCTIONS
+        function renderCreatives() {
+            const tbody = document.getElementById('creativesTableBody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+
+            // Group hooks by Creative ID
+            const creativeGroups = {};
+            hooks.forEach(hook => {
+                if (!hook.creativeId) return;
+                
+                if (!creativeGroups[hook.creativeId]) {
+                    creativeGroups[hook.creativeId] = {
+                        creativeId: hook.creativeId,
+                        hooks: []
+                    };
+                }
+                creativeGroups[hook.creativeId].hooks.push(hook);
+            });
+
+            // Apply filters
+            const searchTerm = document.getElementById('creativeSearch')?.value.toLowerCase() || '';
+            const minRoas = parseFloat(document.getElementById('minRoasFilter')?.value) || 0;
+            const minSpend = parseFloat(document.getElementById('minSpendFilter')?.value) || 0;
+
+            Object.keys(creativeGroups).forEach(creativeId => {
+                const group = creativeGroups[creativeId];
+                
+                // Calculate totals
+                const totalSpend = group.hooks.reduce((sum, h) => sum + h.totalSpend, 0);
+                const totalRevenue = group.hooks.reduce((sum, h) => sum + h.totalRevenue, 0);
+                const overallROAS = totalSpend > 0 ? totalRevenue / totalSpend : 0;
+                const hooksCount = group.hooks.length;
+                
+                // Apply filters
+                if (searchTerm && !creativeId.toLowerCase().includes(searchTerm)) return;
+                if (overallROAS < minRoas) return;
+                if (totalSpend < minSpend) return;
+                
+                // Find best performing hook
+                const bestHook = group.hooks.reduce((best, hook) => 
+                    hook.overallROAS > (best?.overallROAS || 0) ? hook : best, null);
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="font-family: monospace; font-size: 12px;">${creativeId}</td>
+                    <td>$${totalSpend.toFixed(2)}</td>
+                    <td>$${totalRevenue.toFixed(2)}</td>
+                    <td><strong>${overallROAS.toFixed(2)}</strong></td>
+                    <td>${hooksCount}</td>
+                    <td>${bestHook ? `${bestHook.hookName.substring(0, 30)}... (${bestHook.overallROAS.toFixed(2)})` : 'N/A'}</td>
+                    <td>
+                        <textarea class="creative-notes" placeholder="Add notes..." 
+                                onchange="saveCreativeNote('${creativeId}', this.value)"
+                                rows="2">${creativeNotes[creativeId] || ''}</textarea>
+                    </td>
+                    <td>
+                        <button class="btn btn-info btn-sm" onclick="viewCreativeDetails('${creativeId}')">👁️ View</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function filterCreatives() {
+            renderCreatives();
+        }
+
+        function clearCreativeFilters() {
+            document.getElementById('creativeSearch').value = '';
+            document.getElementById('minRoasFilter').value = '';
+            document.getElementById('minSpendFilter').value = '';
+            renderCreatives();
+        }
+
+        function saveCreativeNote(creativeId, note) {
+            creativeNotes[creativeId] = note;
+            saveToLocalAndCloud();
+        }
+
+        function viewCreativeDetails(creativeId) {
+            const creativeHooks = hooks.filter(h => h.creativeId === creativeId);
+            let details = `Creative ID: ${creativeId}\n\n`;
+            details += `Hooks using this creative:\n`;
+            creativeHooks.forEach(hook => {
+                details += `• ${hook.book} - ${hook.hookName}\n`;
+                details += `  Spend: $${hook.totalSpend.toFixed(2)}, Revenue: $${hook.totalRevenue.toFixed(2)}, ROAS: ${hook.overallROAS.toFixed(2)}\n\n`;
+            });
+            
+            alert(details);
+        }
+
+        // UPDATE SWITCH TAB TO INCLUDE CREATIVES
+        function switchTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName + 'Tab').classList.add('active');
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+            
+            // Refresh data when switching tabs
+            if (tabName === 'books') {
+                renderBooks();
+            } else if (tabName === 'creatives') {
+                renderCreatives();
             }
         }
     </script>
