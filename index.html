@@ -683,14 +683,37 @@
                     <!-- Existing hook info will be populated here -->
                 </div>
                 
-                <!-- New Test Date field for Add to Existing mode -->
-                <div style="margin-top: 15px;">
-                    <div class="form-group">
-                        <label for="newTestDate">New Test Date (MM/YYYY)</label>
-                        <input type="text" id="newTestDate" placeholder="MM/YYYY (e.g., 03/2024)" style="max-width: 200px;">
-                        <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
-                            This will update the "Last Test Date" for this hook
-                        </small>
+                <!-- Additional amounts and new test date grouped together -->
+                <div id="additionalFieldsSection" style="margin-top: 20px; padding: 15px; background: white; border-radius: 8px; border: 2px dashed #2196f3; display: none;">
+                    <h5 style="margin-bottom: 15px; color: #1976d2;">Add New Test Data</h5>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                        <div class="form-group">
+                            <label for="additionalSpend">Additional Spend ($)</label>
+                            <input type="number" id="additionalSpend" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="additionalRevenue">Additional Revenue ($)</label>
+                            <input type="number" id="additionalRevenue" step="0.01" min="0" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label for="additionalPurchases">Additional Purchases</label>
+                            <input type="number" id="additionalPurchases" min="0" placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="newTestDate">New Test Date (MM/YYYY)</label>
+                            <input type="text" id="newTestDate" placeholder="MM/YYYY (e.g., 03/2024)">
+                        </div>
+                    </div>
+                    <small style="color: #666; font-size: 12px; margin-top: 10px; display: block;">
+                        Enter the amounts and date for this new test. These will be added to the existing totals.
+                    </small>
+                    
+                    <!-- Save/Cancel buttons moved here -->
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button class="btn btn-primary" onclick="addToExistingHook()" id="addToExistingBtn">
+                            📈 Add to Existing
+                        </button>
+                        <button class="btn btn-secondary" onclick="clearAdditionalFields()">🔄 Clear Fields</button>
                     </div>
                 </div>
             </div>
@@ -928,6 +951,92 @@
             }
         }
 
+        function addToExistingHook() {
+            // Handle adding to existing hook
+            if (!selectedExistingHook) {
+                alert('Please select an existing hook+creative combination first.');
+                return;
+            }
+            
+            const additionalSpend = parseFloat(document.getElementById('additionalSpend').value) || 0;
+            const additionalRevenue = parseFloat(document.getElementById('additionalRevenue').value) || 0;
+            const additionalPurchases = parseInt(document.getElementById('additionalPurchases').value) || 0;
+            const newTestDate = document.getElementById('newTestDate').value.trim();
+            
+            if (additionalSpend === 0 && additionalRevenue === 0) {
+                alert('Please enter at least additional spend or revenue.');
+                return;
+            }
+            
+            if (!newTestDate) {
+                alert('Please enter the new test date (MM/YYYY format).');
+                return;
+            }
+            
+            // Validate date format
+            if (!/^\d{2}\/\d{4}$/.test(newTestDate)) {
+                alert('Please enter the date in MM/YYYY format (e.g., 03/2024).');
+                return;
+            }
+            
+            // Find the hook in the array and update it
+            const hookIndex = hooks.findIndex(h => 
+                h.book === selectedExistingHook.book && 
+                h.hookName === selectedExistingHook.hookName && 
+                h.creativeId === selectedExistingHook.creativeId
+            );
+            
+            if (hookIndex >= 0) {
+                const existingHook = hooks[hookIndex];
+                existingHook.totalSpend += additionalSpend;
+                existingHook.totalRevenue += additionalRevenue;
+                existingHook.purchases += additionalPurchases;
+                existingHook.overallROAS = existingHook.totalSpend > 0 ? existingHook.totalRevenue / existingHook.totalSpend : 0;
+                
+                // Update test date to the specified date (or keep latest if newer)
+                const currentTestDate = new Date(existingHook.testDate.split('/').reverse().join('-'));
+                const newTestDateObj = new Date(newTestDate.split('/').reverse().join('-'));
+                
+                if (newTestDateObj >= currentTestDate) {
+                    existingHook.testDate = newTestDate;
+                }
+                
+                // Calculate milestone ROAS
+                calculateMilestoneROAS();
+                
+                // Save data
+                saveToLocalAndCloud();
+                
+                // Refresh UI
+                renderHooks();
+                renderBooks();
+                renderCreatives();
+                
+                // Clear the additional fields
+                clearAdditionalFields();
+                
+                // Refresh the existing hook selection with updated data
+                populateExistingHooks();
+                
+                alert(`Successfully added $${additionalSpend.toFixed(2)} spend and $${additionalRevenue.toFixed(2)} revenue to existing hook!`);
+                
+                // Scroll to table
+                document.getElementById('hooksTable').scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'nearest' 
+                });
+            } else {
+                alert('Error: Could not find the selected hook to update.');
+            }
+        }
+
+        function clearAdditionalFields() {
+            document.getElementById('additionalSpend').value = '';
+            document.getElementById('additionalRevenue').value = '';
+            document.getElementById('additionalPurchases').value = '';
+            document.getElementById('newTestDate').value = '';
+        }
+
         function populateExistingHooks() {
             const select = document.getElementById('existingHookSelect');
             select.innerHTML = '<option value="">Select existing hook+creative...</option>';
@@ -964,9 +1073,11 @@
         function loadExistingHookData() {
             const select = document.getElementById('existingHookSelect');
             const infoDiv = document.getElementById('existingHookInfo');
+            const additionalFieldsSection = document.getElementById('additionalFieldsSection');
             
             if (!select.value) {
                 infoDiv.style.display = 'none';
+                additionalFieldsSection.style.display = 'none';
                 selectedExistingHook = null;
                 return;
             }
@@ -988,6 +1099,7 @@
                 </div>
             `;
             infoDiv.style.display = 'block';
+            additionalFieldsSection.style.display = 'block';
         }
 
         // Firebase auth and sync variables
@@ -1416,91 +1528,9 @@
         }
 
         function addOrUpdateHook() {
-            if (isAddToExistingMode) {
-                // Handle adding to existing hook
-                if (!selectedExistingHook) {
-                    alert('Please select an existing hook+creative combination first.');
-                    return;
-                }
-                
-                const additionalSpend = parseFloat(document.getElementById('totalSpendInput').value) || 0;
-                const additionalRevenue = parseFloat(document.getElementById('totalRevenueInput').value) || 0;
-                const additionalPurchases = parseInt(document.getElementById('purchases').value) || 0;
-                const newTestDate = document.getElementById('newTestDate').value.trim();
-                
-                if (additionalSpend === 0 && additionalRevenue === 0) {
-                    alert('Please enter at least additional spend or revenue.');
-                    return;
-                }
-                
-                if (!newTestDate) {
-                    alert('Please enter the new test date (MM/YYYY format).');
-                    return;
-                }
-                
-                // Validate date format
-                if (!/^\d{2}\/\d{4}$/.test(newTestDate)) {
-                    alert('Please enter the date in MM/YYYY format (e.g., 03/2024).');
-                    return;
-                }
-                
-                // Find the hook in the array and update it
-                const hookIndex = hooks.findIndex(h => 
-                    h.book === selectedExistingHook.book && 
-                    h.hookName === selectedExistingHook.hookName && 
-                    h.creativeId === selectedExistingHook.creativeId
-                );
-                
-                if (hookIndex >= 0) {
-                    const existingHook = hooks[hookIndex];
-                    existingHook.totalSpend += additionalSpend;
-                    existingHook.totalRevenue += additionalRevenue;
-                    existingHook.purchases += additionalPurchases;
-                    existingHook.overallROAS = existingHook.totalSpend > 0 ? existingHook.totalRevenue / existingHook.totalSpend : 0;
-                    
-                    // Update test date to the specified date (or keep latest if newer)
-                    const currentTestDate = new Date(existingHook.testDate.split('/').reverse().join('-'));
-                    const newTestDateObj = new Date(newTestDate.split('/').reverse().join('-'));
-                    
-                    if (newTestDateObj >= currentTestDate) {
-                        existingHook.testDate = newTestDate;
-                    }
-                    
-                    // Calculate milestone ROAS
-                    calculateMilestoneROAS();
-                    
-                    // Save data
-                    saveToLocalAndCloud();
-                    
-                    // Refresh UI
-                    renderHooks();
-                    renderBooks();
-                    renderCreatives();
-                    
-                    // Clear the form but keep existing mode
-                    document.getElementById('totalSpendInput').value = '';
-                    document.getElementById('totalRevenueInput').value = '';
-                    document.getElementById('purchases').value = '';
-                    document.getElementById('newTestDate').value = '';
-                    
-                    // Refresh the existing hook selection with updated data
-                    populateExistingHooks();
-                    
-                    alert(`Successfully added $${additionalSpend.toFixed(2)} spend and $${additionalRevenue.toFixed(2)} revenue to existing hook!`);
-                    
-                    // Scroll to table
-                    document.getElementById('hooksTable').scrollIntoView({ 
-                        behavior: 'smooth', 
-                        block: 'nearest' 
-                    });
-                } else {
-                    alert('Error: Could not find the selected hook to update.');
-                }
-                
-                return;
-            }
+            // This function now only handles normal "Add New Hook" mode
+            // "Add to Existing" is handled by addToExistingHook()
             
-            // Normal "Add New Hook" mode
             const bookSelect = document.getElementById('bookSelect').value;
             const hookNameElement = document.getElementById('hookName');
             const hookName = hookNameElement ? hookNameElement.value.trim() : '';
@@ -2056,25 +2086,21 @@
                 const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
                 const currentYear = currentDate.getFullYear();
                 document.getElementById('testDate').value = `${currentMonth}/${currentYear}`;
+                document.getElementById('totalSpendInput').value = '';
+                document.getElementById('totalRevenueInput').value = '';
+                document.getElementById('purchases').value = '';
                 document.getElementById('creativesCount').value = '';
                 document.getElementById('creativeId').value = '';
                 document.getElementById('creativeId').setAttribute('readonly', 'readonly');
                 document.getElementById('creativeId').placeholder = "Auto-generated based on book and date";
-            }
-            
-            // Always clear these fields in both modes
-            document.getElementById('totalSpendInput').value = '';
-            document.getElementById('totalRevenueInput').value = '';
-            document.getElementById('purchases').value = '';
-            
-            if (isAddToExistingMode) {
-                // In existing mode, clear the selection and new test date
+                cancelAddBook(); // Hide add book form if open
+            } else {
+                // In existing mode, clear the selection and additional fields
                 document.getElementById('existingHookSelect').value = '';
                 document.getElementById('existingHookInfo').style.display = 'none';
-                document.getElementById('newTestDate').value = '';
+                document.getElementById('additionalFieldsSection').style.display = 'none';
+                clearAdditionalFields();
                 selectedExistingHook = null;
-            } else {
-                cancelAddBook(); // Hide add book form if open
             }
         }
 
