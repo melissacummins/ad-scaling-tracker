@@ -618,7 +618,8 @@
                 </div>
             </div>
 
-            <!-- Add/Edit Hook Form -->
+            <!-- Add/Edit Hook Form (Hidden in Add-to-Existing mode) -->
+            <div id="mainHookForm">
             <div class="controls">
                 <div class="form-group">
                     <div class="book-header">
@@ -663,8 +664,16 @@
                     <input type="text" id="creativeId" placeholder="Auto-generated based on book and date" readonly>
                 </div>
             </div>
+            <div style="text-align: center; margin-bottom: 30px;">
+                <button class="btn btn-primary" onclick="addOrUpdateHook()">
+                    <span id="addButtonText">➕ Add Hook</span>
+                </button>
+                <button class="btn btn-secondary" onclick="clearForm()">🔄 Clear Form</button>
+            </div>
+            </div>
+            <!-- End mainHookForm -->
 
-            <!-- Add to Existing Toggle -->
+            <!-- Add to Existing Toggle (outside main form) -->
             <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
                 <label style="display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 600; cursor: pointer;">
                     <input type="checkbox" id="addToExistingToggle" onchange="toggleAddToExistingMode()" style="transform: scale(1.2);">
@@ -721,15 +730,8 @@
                 </div>
             </div>
 
-            <div style="text-align: center; margin-bottom: 30px;">
-                <button class="btn btn-primary" onclick="addOrUpdateHook()">
-                    <span id="addButtonText">➕ Add Hook</span>
-                </button>
-                <button class="btn btn-secondary" onclick="clearForm()">🔄 Clear Form</button>
-            </div>
-
             <!-- Hooks Table -->
-            <div style="overflow-x: auto;">
+            <div style="overflow-x: auto; max-height: 80vh; position: relative;">
                 <table class="data-table" id="hooksTable">
                     <thead>
                         <tr>
@@ -772,7 +774,7 @@
                 </div>
             </div>
 
-            <div style="overflow-x: auto;">
+            <div style="overflow-x: auto; max-height: 80vh; position: relative;">
                 <table class="data-table" id="booksTable">
                     <thead>
                         <tr>
@@ -818,7 +820,7 @@
                 </div>
             </div>
 
-            <div style="overflow-x: auto;">
+            <div style="overflow-x: auto; max-height: 80vh; position: relative;">
                 <table class="data-table" id="creativesTable">
                     <thead>
                         <tr>
@@ -892,7 +894,7 @@
         function toggleAddToExistingMode() {
             const toggle = document.getElementById('addToExistingToggle');
             const existingSelection = document.getElementById('existingHookSelection');
-            const normalForm = document.querySelectorAll('.controls, .controls-row-2');
+            const mainHookForm = document.getElementById('mainHookForm');
             const addButtonText = document.getElementById('addButtonText');
             const spendLabel = document.getElementById('spendLabel');
             const revenueLabel = document.getElementById('revenueLabel');
@@ -902,53 +904,15 @@
             isAddToExistingMode = toggle.checked;
             
             if (isAddToExistingMode) {
-                // Show existing hook selection
+                // Hide main form and show existing hook selection
+                mainHookForm.style.display = 'none';
                 existingSelection.style.display = 'block';
                 populateExistingHooks();
-                
-                // Hide normal form fields except spend/revenue inputs
-                normalForm.forEach(form => {
-                    const inputs = form.querySelectorAll('.form-group');
-                    inputs.forEach((group, index) => {
-                        if (form.classList.contains('controls')) {
-                            // Hide all fields in first row (book, hook, date, spend)
-                            group.style.display = 'none';
-                        } else {
-                            // In second row, hide only creative ID (now index 2 instead of 3)
-                            if (index >= 2) { // Hide creative ID
-                                group.style.display = 'none';
-                            }
-                        }
-                    });
-                });
-                
-                // Update labels and button text
-                addButtonText.textContent = '📈 Add to Existing';
-                spendLabel.textContent = 'Additional Spend ($)';
-                revenueLabel.textContent = 'Additional Revenue ($)';
-                purchasesLabel.textContent = 'Additional Purchases';
-                
-                // Clear form
                 clearForm();
             } else {
-                // Hide existing hook selection
+                // Show main form and hide existing hook selection
+                mainHookForm.style.display = 'block';
                 existingSelection.style.display = 'none';
-                
-                // Show all normal form fields
-                normalForm.forEach(form => {
-                    const inputs = form.querySelectorAll('.form-group');
-                    inputs.forEach(group => {
-                        group.style.display = 'flex';
-                    });
-                });
-                
-                // Reset labels and button text
-                addButtonText.textContent = '➕ Add Hook';
-                spendLabel.textContent = 'Total Spend ($)';
-                revenueLabel.textContent = 'Total Revenue ($)';
-                purchasesLabel.textContent = 'Number of Purchases';
-                // creativesLabel removed since we removed the field
-                
                 selectedExistingHook = null;
                 clearForm();
             }
@@ -996,13 +960,17 @@
                 existingHook.purchases += additionalPurchases;
                 existingHook.overallROAS = existingHook.totalSpend > 0 ? existingHook.totalRevenue / existingHook.totalSpend : 0;
                 
-                // Update test date to the specified date (or keep latest if newer)
-                const currentTestDate = new Date(existingHook.testDate.split('/').reverse().join('-'));
-                const newTestDateObj = new Date(newTestDate.split('/').reverse().join('-'));
+                // Update test date to the latest date (compare all dates properly)
+                const existingTestDate = new Date(existingHook.testDate.split('/').reverse().join('-') + '-01');
+                const newTestDateObj = new Date(newTestDate.split('/').reverse().join('-') + '-01');
                 
-                if (newTestDateObj >= currentTestDate) {
+                // Always update to the most recent date
+                if (newTestDateObj > existingTestDate) {
                     existingHook.testDate = newTestDate;
                 }
+                
+                // Format the new test date properly
+                formatDateInput({value: newTestDate, dispatchEvent: () => {}});
                 
                 // Calculate milestone ROAS
                 calculateMilestoneROAS();
@@ -1358,13 +1326,23 @@
             if (value.includes('/')) {
                 const parts = value.split('/');
                 if (parts.length === 2) {
-                    let month = parts[0];
-                    const year = parts[1];
+                    let month = parts[0].trim();
+                    const year = parts[1].trim();
                     
                     // Pad month to 2 digits if it's a single digit
                     if (month.length === 1 && parseInt(month) >= 1 && parseInt(month) <= 9) {
                         month = '0' + month;
-                        dateInput.value = `${month}/${year}`;
+                    }
+                    
+                    // Validate month is between 01-12
+                    const monthNum = parseInt(month);
+                    if (monthNum >= 1 && monthNum <= 12 && year.length === 4) {
+                        const formattedDate = `${month.padStart(2, '0')}/${year}`;
+                        if (dateInput.value !== formattedDate) {
+                            dateInput.value = formattedDate;
+                            // Trigger change event to update Creative ID preview if needed
+                            dateInput.dispatchEvent(new Event('change'));
+                        }
                     }
                 }
             }
@@ -1910,8 +1888,10 @@
                 }
                 hookGroups[key].creatives.push(hook);
                 
-                // Update to latest test date
-                if (new Date(hook.testDate) > new Date(hookGroups[key].testDate)) {
+                // Update to latest test date using proper date comparison
+                const currentGroupDate = new Date(hookGroups[key].testDate.split('/').reverse().join('-') + '-01');
+                const hookDate = new Date(hook.testDate.split('/').reverse().join('-') + '-01');
+                if (hookDate > currentGroupDate) {
                     hookGroups[key].testDate = hook.testDate;
                 }
             });
