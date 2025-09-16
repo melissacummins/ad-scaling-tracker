@@ -5,42 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ad Scaling Tracker Dashboard</title>
     
-    <!-- Firebase SDKs -->
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
-        import { getFirestore, doc, setDoc, getDoc, collection, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
-        import { getAnalytics } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-analytics.js';
-
-        // Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyAOJ9lDM3TCVdAra2G340jG5B3wyc4ABiU",
-            authDomain: "ad-scaling-tracker.firebaseapp.com",
-            projectId: "ad-scaling-tracker",
-            storageBucket: "ad-scaling-tracker.firebasestorage.app",
-            messagingSenderId: "83542485482",
-            appId: "1:83542485482:web:721177b941fcc6f49e6a93",
-            measurementId: "G-HLX0FY7BD1"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-        const analytics = getAnalytics(app);
-        const provider = new GoogleAuthProvider();
-
-        // Make Firebase services globally available
-        window.firebaseAuth = auth;
-        window.firebaseDb = db;
-        window.firebaseProvider = provider;
-        window.firebaseSignInWithPopup = signInWithPopup;
-        window.firebaseSignOut = signOut;
-        window.firebaseOnAuthStateChanged = onAuthStateChanged;
-        window.firebaseDoc = doc;
-        window.firebaseSetDoc = setDoc;
-        window.firebaseGetDoc = getDoc;
-    </script>
+    <!-- Firebase SDKs - Using compat version to avoid CSP issues -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-compat.js"></script>
     
     <style>
         * {
@@ -514,7 +480,7 @@
                 <div id="authSection" style="text-align: right; min-width: 200px;">
                     <div id="signedInView">
                         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                            <img id="userPhoto" style="width: 40px; height: 40px; border-radius: 50%;" />
+                            <img id="userPhoto" style="width: 40px; height: 40px; border-radius: 50%;" alt="User photo" />
                             <div id="userName" style="font-weight: bold;"></div>
                         </div>
                         <div style="display: flex; gap: 5px;">
@@ -607,6 +573,7 @@
                         <option value="">Select Book...</option>
                     </select>
                     <div id="addBookForm" class="add-book-form">
+                        <label for="newBook" style="position: absolute; left: -9999px;">New Book Title</label>
                         <input type="text" id="newBook" placeholder="Book title">
                         <button class="btn btn-xs btn-success" onclick="addNewBookFromForm()">✓</button>
                         <button class="btn btn-xs btn-secondary" onclick="cancelAddBook()">✗</button>
@@ -719,6 +686,46 @@
     </div>
 
     <script>
+        // Firebase configuration using compat version
+        const firebaseConfig = {
+            apiKey: "AIzaSyAOJ9lDM3TCVdAra2G340jG5B3wyc4ABiU",
+            authDomain: "ad-scaling-tracker.firebaseapp.com",
+            projectId: "ad-scaling-tracker",
+            storageBucket: "ad-scaling-tracker.firebasestorage.app",
+            messagingSenderId: "83542485482",
+            appId: "1:83542485482:web:721177b941fcc6f49e6a93",
+            measurementId: "G-HLX0FY7BD1"
+        };
+
+        // Initialize Firebase with error handling
+        let auth, db, provider;
+        
+        function initializeFirebase() {
+            try {
+                if (typeof firebase !== 'undefined') {
+                    // Initialize Firebase
+                    firebase.initializeApp(firebaseConfig);
+                    auth = firebase.auth();
+                    db = firebase.firestore();
+                    provider = new firebase.auth.GoogleAuthProvider();
+
+                    // Configure the Google Auth Provider
+                    provider.setCustomParameters({
+                        prompt: 'select_account'
+                    });
+                    
+                    console.log('Firebase initialized successfully');
+                    return true;
+                } else {
+                    console.log('Firebase not available yet');
+                    return false;
+                }
+            } catch (error) {
+                console.error('Firebase initialization error:', error);
+                return false;
+            }
+        }
+
         // Global data storage
         let hooks = JSON.parse(localStorage.getItem('adScalingHooks') || '[]');
         let books = JSON.parse(localStorage.getItem('adScalingBooks') || '[]');
@@ -730,29 +737,26 @@
 
         // Initialize Firebase auth listener
         function initializeAuth() {
-            if (typeof window.firebaseOnAuthStateChanged !== 'undefined') {
-                window.firebaseOnAuthStateChanged(window.firebaseAuth, (user) => {
-                    currentUser = user;
-                    isSignedIn = !!user;
-                    updateAuthUI();
-                    
-                    if (user) {
-                        // User signed in, load their data
-                        loadDataFromFirebase();
-                    } else {
-                        // User signed out
-                        console.log('User signed out');
-                    }
-                });
-                
-                // Configure the Google Auth Provider
-                window.firebaseProvider.setCustomParameters({
-                    prompt: 'select_account'
-                });
-            } else {
-                // Firebase not loaded yet, try again in 1 second
+            // Check if Firebase is loaded
+            if (typeof firebase === 'undefined') {
+                console.log('Firebase not loaded yet, retrying in 1 second...');
                 setTimeout(initializeAuth, 1000);
+                return;
             }
+
+            auth.onAuthStateChanged((user) => {
+                currentUser = user;
+                isSignedIn = !!user;
+                updateAuthUI();
+                
+                if (user) {
+                    // User signed in, load their data
+                    loadDataFromFirebase();
+                } else {
+                    // User signed out
+                    console.log('User signed out');
+                }
+            });
         }
 
         function updateAuthUI() {
@@ -782,12 +786,12 @@
                 }
                 
                 // Clear any existing auth state
-                if (window.firebaseAuth.currentUser) {
-                    await window.firebaseSignOut(window.firebaseAuth);
+                if (auth.currentUser) {
+                    await auth.signOut();
                 }
                 
                 // Try the popup sign-in
-                const result = await window.firebaseSignInWithPopup(window.firebaseAuth, window.firebaseProvider);
+                const result = await auth.signInWithPopup(provider);
                 console.log('Signed in successfully:', result.user);
                 
                 if (loginStatus) {
@@ -820,7 +824,7 @@
 
         async function signOutFromGoogle() {
             try {
-                await window.firebaseSignOut(window.firebaseAuth);
+                await auth.signOut();
                 console.log('Signed out successfully');
             } catch (error) {
                 console.error('Sign out error:', error);
@@ -842,8 +846,8 @@
                     version: 1
                 };
 
-                const userDocRef = window.firebaseDoc(window.firebaseDb, 'users', currentUser.uid);
-                await window.firebaseSetDoc(userDocRef, userData);
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                await userDocRef.set(userData);
                 
                 console.log('Data saved to Firebase successfully');
             } catch (error) {
@@ -859,10 +863,10 @@
             }
 
             try {
-                const userDocRef = window.firebaseDoc(window.firebaseDb, 'users', currentUser.uid);
-                const docSnap = await window.firebaseGetDoc(userDocRef);
+                const userDocRef = db.collection('users').doc(currentUser.uid);
+                const docSnap = await userDocRef.get();
 
-                if (docSnap.exists()) {
+                if (docSnap.exists) {
                     const userData = docSnap.data();
                     
                     // Check if cloud data is newer than local data
@@ -1022,8 +1026,25 @@
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Firebase authentication first
-            setTimeout(initializeAuth, 500); // Give Firebase a moment to load
+            // Try to initialize Firebase first
+            if (initializeFirebase()) {
+                // Firebase loaded successfully, initialize auth
+                setTimeout(initializeAuth, 100);
+            } else {
+                // Firebase not ready, try again
+                let attempts = 0;
+                const firebaseInterval = setInterval(() => {
+                    attempts++;
+                    if (initializeFirebase()) {
+                        clearInterval(firebaseInterval);
+                        setTimeout(initializeAuth, 100);
+                    } else if (attempts > 10) {
+                        clearInterval(firebaseInterval);
+                        console.error('Failed to initialize Firebase after 10 attempts');
+                        // Continue without Firebase - app will work locally
+                    }
+                }, 500);
+            }
             
             updateBookOptions();
             
@@ -1599,4 +1620,152 @@
 
         function deleteBook(bookTitle) {
             const bookHooks = hooks.filter(h => h.book === bookTitle);
-            if (bookH
+            if (bookHooks.length > 0) {
+                if (!confirm(`This book has ${bookHooks.length} hooks. Deleting it will also delete all associated hooks. Continue?`)) {
+                    return;
+                }
+                // Remove all hooks for this book
+                hooks = hooks.filter(h => h.book !== bookTitle);
+                saveToLocalAndCloud();
+            }
+
+            // Remove book
+            books = books.filter(b => b !== bookTitle);
+            saveToLocalAndCloud();
+            
+            updateBookOptions();
+            renderBooks();
+            renderHooks();
+        }
+
+        function deleteHook(index) {
+            if (confirm('Are you sure you want to delete this hook?')) {
+                hooks.splice(index, 1);
+                saveToLocalAndCloud();
+                renderHooks();
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('bookSelect').value = '';
+            document.getElementById('hookName').value = '';
+            document.getElementById('campaignName').value = '';
+            const currentDate = new Date();
+            const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const currentYear = currentDate.getFullYear();
+            document.getElementById('testDate').value = `${currentMonth}/${currentYear}`;
+            document.getElementById('totalSpendInput').value = '';
+            document.getElementById('totalRevenueInput').value = '';
+            document.getElementById('purchases').value = '';
+            document.getElementById('creativesCount').value = '';
+            document.getElementById('creativeId').value = '';
+            document.getElementById('creativeId').setAttribute('readonly', 'readonly');
+            document.getElementById('creativeId').placeholder = "Auto-generated based on book and date";
+            cancelAddBook(); // Hide add book form if open
+        }
+
+        function exportData() {
+            const csvContent = "data:text/csv;charset=utf-8," + 
+                "Book,Hook Name,Campaign/Ad Set,Test Month/Year,Total Spend,Total Revenue,Purchases,Overall ROAS,Performance Level,ROAS @$100,ROAS @$300,ROAS @$1000,ROAS @$3000,Scale Efficiency,Action Item,Creatives Count,Creative ID\n" +
+                hooks.map(hook => {
+                    const performance = getPerformanceLevel(hook.totalSpend, hook.testDate);
+                    const scaleEff = getScaleEfficiency(hook.roasAt100, hook.roasAt1000);
+                    const scaleEfficiencyScore = hook.roasAt100 > 0 && hook.roasAt1000 > 0 ? hook.roasAt1000 / hook.roasAt100 : 0;
+                    const actionItem = getActionItem(hook.overallROAS, hook.totalSpend, hook.testDate, scaleEfficiencyScore);
+                    
+                    return `"${hook.book}","${hook.hookName.replace(/"/g, '""')}","${hook.campaignName}","${hook.testDate}",${hook.totalSpend},${hook.totalRevenue},${hook.purchases},${hook.overallROAS.toFixed(2)},"${performance.text}",${hook.roasAt100 > 0 ? hook.roasAt100.toFixed(2) : 'N/A'},${hook.roasAt300 > 0 ? hook.roasAt300.toFixed(2) : 'N/A'},${hook.roasAt1000 > 0 ? hook.roasAt1000.toFixed(2) : 'N/A'},${hook.roasAt3000 > 0 ? hook.roasAt3000.toFixed(2) : 'N/A'},"${scaleEff.text}","${actionItem.text}",${hook.creativesCount},"${hook.creativeId || ''}"`;
+                }).join("\n");
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `ad_scaling_tracker_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const text = e.target.result;
+                    const lines = text.split('\n');
+                    const headers = lines[0].split(',');
+                    
+                    for (let i = 1; i < lines.length; i++) {
+                        if (lines[i].trim() === '') continue;
+                        
+                        const values = lines[i].split(',');
+                        if (values.length >= 8) {
+                            const hookData = {
+                                book: values[0].replace(/"/g, ''),
+                                hookName: values[1].replace(/"/g, ''),
+                                campaignName: values[2].replace(/"/g, ''),
+                                testDate: values[3].replace(/"/g, ''),
+                                totalSpend: parseFloat(values[4]) || 0,
+                                totalRevenue: parseFloat(values[5]) || 0,
+                                purchases: parseInt(values[6]) || 0,
+                                overallROAS: parseFloat(values[7]) || 0,
+                                creativesCount: parseInt(values[15]) || 0,
+                                creativeId: values[16] ? values[16].replace(/"/g, '') : '',
+                                roasAt100: 0,
+                                roasAt300: 0,
+                                roasAt1000: 0,
+                                roasAt3000: 0
+                            };
+                            
+                            if (!books.includes(hookData.book)) {
+                                books.push(hookData.book);
+                            }
+                            
+                            hooks.push(hookData);
+                        }
+                    }
+                    
+                    calculateMilestoneROAS();
+                    localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
+                    localStorage.setItem('adScalingBooks', JSON.stringify(books));
+                    
+                    updateBookOptions();
+                    renderHooks();
+                    renderBooks();
+                    
+                    alert('Data imported successfully!');
+                } catch (error) {
+                    alert('Error importing file. Please check the format.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+                hooks = [];
+                books = [];
+                localStorage.removeItem('adScalingHooks');
+                localStorage.removeItem('adScalingBooks');
+                localStorage.removeItem('lastUpdated');
+                
+                // Clear cloud data too if signed in
+                if (isSignedIn) {
+                    saveToLocalAndCloud();
+                }
+                
+                updateBookOptions();
+                renderHooks();
+                renderBooks();
+                clearForm();
+                
+                alert('All data cleared successfully!');
+            }
+        }
+    </script>
+        </div>
+        <!-- End of mainApp -->
+    </div>
+</body>
+</html>
