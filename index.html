@@ -252,6 +252,7 @@
             background: #f8f9fa;
             font-weight: 600;
             color: #333;
+            position: -webkit-sticky;
             position: sticky;
             top: 0;
             z-index: 1000;
@@ -472,10 +473,21 @@
             position: relative;
         }
 
-        /* Ensure the "Add to Existing" section has lower z-index than table headers */
+        /* Ensure the "Add to Existing" section and other form elements are NOT sticky */
         #existingHookSelection {
+            position: static;
+            z-index: 1;
+        }
+
+        /* Make sure no form sections are sticky */
+        .controls, .controls-row-2, .import-export, .edit-form {
+            position: static !important;
+            z-index: 1;
+        }
+
+        /* Ensure only table headers are sticky */
+        .data-table {
             position: relative;
-            z-index: 100;
         }
 
         @media (max-width: 1200px) {
@@ -688,7 +700,7 @@
             <!-- End mainHookForm -->
 
             <!-- Add to Existing Toggle (outside main form) -->
-            <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+            <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px; position: static;">
                 <label style="display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 600; cursor: pointer;">
                     <input type="checkbox" id="addToExistingToggle" onchange="toggleAddToExistingMode()" style="transform: scale(1.2);">
                     <span>📈 Add to Existing Hook/Creative</span>
@@ -697,7 +709,7 @@
             </div>
 
             <!-- Existing Hook Selection (Hidden by default) -->
-            <div id="existingHookSelection" style="display: none; margin-bottom: 20px; padding: 20px; background: #e3f2fd; border-radius: 10px; border-left: 4px solid #2196f3;">
+            <div id="existingHookSelection" style="display: none; margin-bottom: 20px; padding: 20px; background: #e3f2fd; border-radius: 10px; border-left: 4px solid #2196f3; position: static !important;">
                 <h4 style="margin-bottom: 15px; color: #1976d2;">Select Existing Hook + Creative</h4>
                 <div class="form-group">
                     <label for="existingHookSelect">Choose existing combination:</label>
@@ -745,23 +757,23 @@
             </div>
 
             <!-- Hooks Table -->
-            <div class="table-wrapper">
+            <div style="overflow-x: auto; max-height: 70vh; position: relative;">
                 <table class="data-table" id="hooksTable">
                     <thead>
                         <tr>
-                            <th>Book</th>
-                            <th>Hook</th>
-                            <th>Test Month/Year</th>
-                            <th>Total Spend</th>
-                            <th>Total Revenue</th>
-                            <th>Purchases</th>
-                            <th>Overall ROAS</th>
-                            <th>Performance Level</th>
-                            <th>ROAS Milestones</th>
-                            <th>Scale Efficiency</th>
-                            <th>Action Item</th>
-                            <th>Creative ID</th>
-                            <th>Actions</th>
+                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Book</th>
+                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Hook</th>
+                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Test Month/Year</th>
+                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Total Spend</th>
+                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Total Revenue</th>
+                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Purchases</th>
+                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Overall ROAS</th>
+                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Performance Level</th>
+                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">ROAS Milestones</th>
+                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Scale Efficiency</th>
+                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Action Item</th>
+                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Creative ID</th>
+                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="hooksTableBody">
