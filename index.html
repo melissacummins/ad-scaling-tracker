@@ -13,6 +13,8 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            /* NUCLEAR OPTION: Reset all positioning to static by default */
+            position: static !important;
         }
 
         body {
@@ -229,6 +231,7 @@
             color: white;
         }
 
+        /* TABLE SPECIFIC STYLES - ONLY THESE CAN BE STICKY */
         .data-table {
             width: 100%;
             border-collapse: collapse;
@@ -237,6 +240,7 @@
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+            position: static !important; /* Table itself is not sticky */
         }
 
         .data-table th,
@@ -246,18 +250,20 @@
             border-bottom: 1px solid #e0e0e0;
             font-size: 14px;
             vertical-align: middle;
+            position: static !important; /* Reset default positioning */
         }
 
-        .data-table th {
-            background: #f8f9fa;
+        /* ONLY TABLE HEADERS CAN BE STICKY - OVERRIDE THE GLOBAL RESET */
+        .data-table thead th {
+            background: #f8f9fa !important;
             font-weight: 600;
             color: #333;
-            position: -webkit-sticky;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-            border-bottom: 2px solid #667eea;
+            position: -webkit-sticky !important;
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 9999 !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+            border-bottom: 3px solid #667eea !important;
         }
 
         .data-table tr:hover {
@@ -427,13 +433,13 @@
         }
 
         .file-upload {
-            position: relative;
+            position: relative !important; /* Exception for file upload functionality */
             display: inline-block;
             cursor: pointer;
         }
 
         .file-upload input[type="file"] {
-            position: absolute;
+            position: absolute !important; /* Exception for file upload functionality */
             opacity: 0;
             width: 100%;
             height: 100%;
@@ -466,28 +472,13 @@
             margin-bottom: 0;
         }
 
-        /* Fix for sticky table headers - ensure they stay on top */
-        .table-wrapper {
+        /* Table wrapper for scrolling */
+        .table-scroll-container {
             overflow-x: auto;
-            max-height: 80vh;
-            position: relative;
-        }
-
-        /* Ensure the "Add to Existing" section and other form elements are NOT sticky */
-        #existingHookSelection {
-            position: static;
-            z-index: 1;
-        }
-
-        /* Make sure no form sections are sticky */
-        .controls, .controls-row-2, .import-export, .edit-form {
-            position: static !important;
-            z-index: 1;
-        }
-
-        /* Ensure only table headers are sticky */
-        .data-table {
-            position: relative;
+            overflow-y: auto;
+            max-height: 70vh;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         @media (max-width: 1200px) {
@@ -656,7 +647,7 @@
                         <option value="">Select Book...</option>
                     </select>
                     <div id="addBookForm" class="add-book-form">
-                        <label for="newBook" style="position: absolute; left: -9999px;">New Book Title</label>
+                        <label for="newBook" style="position: absolute !important; left: -9999px;">New Book Title</label>
                         <input type="text" id="newBook" placeholder="Book title">
                         <button class="btn btn-xs btn-success" onclick="addNewBookFromForm()">✓</button>
                         <button class="btn btn-xs btn-secondary" onclick="cancelAddBook()">✗</button>
@@ -700,7 +691,7 @@
             <!-- End mainHookForm -->
 
             <!-- Add to Existing Toggle (outside main form) -->
-            <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px; position: static;">
+            <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
                 <label style="display: flex; align-items: center; justify-content: center; gap: 10px; font-weight: 600; cursor: pointer;">
                     <input type="checkbox" id="addToExistingToggle" onchange="toggleAddToExistingMode()" style="transform: scale(1.2);">
                     <span>📈 Add to Existing Hook/Creative</span>
@@ -709,7 +700,7 @@
             </div>
 
             <!-- Existing Hook Selection (Hidden by default) -->
-            <div id="existingHookSelection" style="display: none; margin-bottom: 20px; padding: 20px; background: #e3f2fd; border-radius: 10px; border-left: 4px solid #2196f3; position: static !important;">
+            <div id="existingHookSelection" style="display: none; margin-bottom: 20px; padding: 20px; background: #e3f2fd; border-radius: 10px; border-left: 4px solid #2196f3;">
                 <h4 style="margin-bottom: 15px; color: #1976d2;">Select Existing Hook + Creative</h4>
                 <div class="form-group">
                     <label for="existingHookSelect">Choose existing combination:</label>
@@ -757,23 +748,23 @@
             </div>
 
             <!-- Hooks Table -->
-            <div style="overflow-x: auto; max-height: 70vh; position: relative;">
+            <div class="table-scroll-container">
                 <table class="data-table" id="hooksTable">
                     <thead>
                         <tr>
-                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Book</th>
-                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Hook</th>
-                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Test Month/Year</th>
-                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Total Spend</th>
-                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Total Revenue</th>
-                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Purchases</th>
-                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Overall ROAS</th>
-                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Performance Level</th>
-                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">ROAS Milestones</th>
-                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Scale Efficiency</th>
-                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Action Item</th>
-                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Creative ID</th>
-                            <th style="position: sticky; top: 0; z-index: 1000; background: #f8f9fa;">Actions</th>
+                            <th>Book</th>
+                            <th>Hook</th>
+                            <th>Test Month/Year</th>
+                            <th>Total Spend</th>
+                            <th>Total Revenue</th>
+                            <th>Purchases</th>
+                            <th>Overall ROAS</th>
+                            <th>Performance Level</th>
+                            <th>ROAS Milestones</th>
+                            <th>Scale Efficiency</th>
+                            <th>Action Item</th>
+                            <th>Creative ID</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="hooksTableBody">
@@ -800,7 +791,7 @@
                 </div>
             </div>
 
-            <div class="table-wrapper">
+            <div class="table-scroll-container">
                 <table class="data-table" id="booksTable">
                     <thead>
                         <tr>
@@ -846,7 +837,7 @@
                 </div>
             </div>
 
-            <div class="table-wrapper">
+            <div class="table-scroll-container">
                 <table class="data-table" id="creativesTable">
                     <thead>
                         <tr>
