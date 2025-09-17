@@ -261,7 +261,7 @@
             position: -webkit-sticky !important;
             position: sticky !important;
             top: 0 !important;
-            z-index: 9999 !important;
+            z-index: 999999 !important;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
             border-bottom: 3px solid #667eea !important;
         }
@@ -472,6 +472,17 @@
             margin-bottom: 0;
         }
 
+        /* EXISTING HOOK SELECTION - LOWER Z-INDEX TO NOT INTERFERE WITH STICKY HEADERS */
+        #existingHookSelection {
+            z-index: 1 !important;
+            position: relative !important;
+        }
+
+        #additionalFieldsSection {
+            z-index: 1 !important;
+            position: relative !important;
+        }
+
         /* Table wrapper for scrolling */
         .table-scroll-container {
             overflow-x: auto;
@@ -479,6 +490,8 @@
             max-height: 70vh;
             border-radius: 10px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: relative !important;
+            z-index: 1 !important;
         }
 
         @media (max-width: 1200px) {
