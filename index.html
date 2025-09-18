@@ -283,6 +283,14 @@
             text-overflow: ellipsis;
         }
 
+        /* Allow Creative ID column to wrap */
+        .data-table td:nth-child(12) {
+            white-space: normal !important;
+            word-break: break-all !important;
+            overflow: visible !important;
+            text-overflow: unset !important;
+        }
+
         .data-table tr:hover {
             background: #f8f9fa;
         }
@@ -325,7 +333,11 @@
         .data-table th:nth-child(11),
         .data-table td:nth-child(11) { width: 6%; }  /* Action Item */
         .data-table th:nth-child(12),
-        .data-table td:nth-child(12) { width: 11%; } /* Creative ID */
+        .data-table td:nth-child(12) { 
+            width: 11%; 
+            white-space: normal !important;
+            word-break: break-all;
+        } /* Creative ID */
         .data-table th:nth-child(13),
         .data-table td:nth-child(13) { width: 12%; } /* Actions */
 
