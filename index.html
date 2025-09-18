@@ -265,7 +265,7 @@
             vertical-align: middle;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
             white-space: nowrap;
-            overflow: hidden;
+            overflow: visible; /* Allow text to show fully */
         }
 
         /* Left align specific header columns */
@@ -274,20 +274,20 @@
             text-align: left;
         }
 
-        /* Set specific column widths to match data table */
-        .header-table th:nth-child(1) { width: 8%; }   /* Book */
+        /* Set specific column widths to match data table - increased widths */
+        .header-table th:nth-child(1) { width: 10%; }  /* Book */
         .header-table th:nth-child(2) { width: 15%; }  /* Hook */
         .header-table th:nth-child(3) { width: 8%; }   /* Test Month/Year */
-        .header-table th:nth-child(4) { width: 7%; }   /* Total Spend */
-        .header-table th:nth-child(5) { width: 7%; }   /* Total Revenue */
+        .header-table th:nth-child(4) { width: 8%; }   /* Total Spend */
+        .header-table th:nth-child(5) { width: 8%; }   /* Total Revenue */
         .header-table th:nth-child(6) { width: 6%; }   /* Purchases */
         .header-table th:nth-child(7) { width: 7%; }   /* Overall ROAS */
-        .header-table th:nth-child(8) { width: 9%; }   /* Performance Level */
-        .header-table th:nth-child(9) { width: 9%; }   /* ROAS Milestones */
+        .header-table th:nth-child(8) { width: 10%; }  /* Performance Level */
+        .header-table th:nth-child(9) { width: 10%; }  /* ROAS Milestones */
         .header-table th:nth-child(10) { width: 8%; }  /* Scale Efficiency */
         .header-table th:nth-child(11) { width: 6%; }  /* Action Item */
-        .header-table th:nth-child(12) { width: 6%; }  /* Creative ID */
-        .header-table th:nth-child(13) { width: 4%; }  /* Actions */
+        .header-table th:nth-child(12) { width: 8%; }  /* Creative ID */
+        .header-table th:nth-child(13) { width: 6%; }  /* Actions */
 
         /* TABLE SPECIFIC STYLES */
         .data-table {
@@ -311,7 +311,7 @@
             vertical-align: middle;
             position: static !important;
             white-space: nowrap;
-            overflow: hidden;
+            overflow: visible; /* Allow text to show fully */
             text-overflow: ellipsis;
         }
 
@@ -329,33 +329,33 @@
             white-space: normal; /* Allow wrapping for book and hook names */
         }
 
-        /* Set specific column widths to match header table */
+        /* Set specific column widths to match header table - increased widths */
         .data-table th:nth-child(1),
-        .data-table td:nth-child(1) { width: 8%; }   /* Book */
+        .data-table td:nth-child(1) { width: 10%; }  /* Book */
         .data-table th:nth-child(2),
         .data-table td:nth-child(2) { width: 15%; }  /* Hook */
         .data-table th:nth-child(3),
         .data-table td:nth-child(3) { width: 8%; }   /* Test Month/Year */
         .data-table th:nth-child(4),
-        .data-table td:nth-child(4) { width: 7%; }   /* Total Spend */
+        .data-table td:nth-child(4) { width: 8%; }   /* Total Spend */
         .data-table th:nth-child(5),
-        .data-table td:nth-child(5) { width: 7%; }   /* Total Revenue */
+        .data-table td:nth-child(5) { width: 8%; }   /* Total Revenue */
         .data-table th:nth-child(6),
         .data-table td:nth-child(6) { width: 6%; }   /* Purchases */
         .data-table th:nth-child(7),
         .data-table td:nth-child(7) { width: 7%; }   /* Overall ROAS */
         .data-table th:nth-child(8),
-        .data-table td:nth-child(8) { width: 9%; }   /* Performance Level */
+        .data-table td:nth-child(8) { width: 10%; }  /* Performance Level */
         .data-table th:nth-child(9),
-        .data-table td:nth-child(9) { width: 9%; }   /* ROAS Milestones */
+        .data-table td:nth-child(9) { width: 10%; }  /* ROAS Milestones */
         .data-table th:nth-child(10),
         .data-table td:nth-child(10) { width: 8%; }  /* Scale Efficiency */
         .data-table th:nth-child(11),
         .data-table td:nth-child(11) { width: 6%; }  /* Action Item */
         .data-table th:nth-child(12),
-        .data-table td:nth-child(12) { width: 6%; }  /* Creative ID */
+        .data-table td:nth-child(12) { width: 8%; }  /* Creative ID */
         .data-table th:nth-child(13),
-        .data-table td:nth-child(13) { width: 4%; }  /* Actions */
+        .data-table td:nth-child(13) { width: 6%; }  /* Actions */
 
         .performance-badge {
             padding: 4px 8px;
@@ -1510,17 +1510,16 @@
             const testDate = document.getElementById('testDate').value;
             const creativeIdInput = document.getElementById('creativeId');
             
-            // Only auto-fill if the field is empty and readonly
-            if (bookSelect && testDate && !creativeIdInput.value.trim() && creativeIdInput.hasAttribute('readonly')) {
-                const previewId = generateCreativeId(bookSelect, testDate);
-                creativeIdInput.value = previewId;
-            }
+            console.log('updateCreativeIdPreview called with:', { bookSelect, testDate });
             
-            // Always update placeholder to show what would be generated
+            // Always generate a new ID when both book and date are selected
             if (bookSelect && testDate) {
                 const previewId = generateCreativeId(bookSelect, testDate);
+                creativeIdInput.value = previewId;
                 creativeIdInput.placeholder = `Auto-generated: ${previewId}`;
+                console.log('Set Creative ID to:', previewId);
             } else {
+                creativeIdInput.value = '';
                 creativeIdInput.placeholder = "Auto-generated based on book and date";
             }
         }
@@ -1571,10 +1570,16 @@
             const bookSelect = document.getElementById('bookSelect');
             const testDate = document.getElementById('testDate');
             
-            if (bookSelect) bookSelect.addEventListener('change', updateCreativeIdPreview);
+            if (bookSelect) {
+                bookSelect.addEventListener('change', updateCreativeIdPreview);
+            }
             if (testDate) {
                 testDate.addEventListener('change', updateCreativeIdPreview);
-                testDate.addEventListener('blur', () => formatDateInput(testDate));
+                testDate.addEventListener('input', updateCreativeIdPreview); // Add input listener for real-time updates
+                testDate.addEventListener('blur', () => {
+                    formatDateInput(testDate);
+                    updateCreativeIdPreview(); // Update after formatting
+                });
             }
             
             // Add event listeners for auth buttons with safety checks
