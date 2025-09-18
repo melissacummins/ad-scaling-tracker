@@ -276,20 +276,20 @@
             text-align: left;
         }
 
-        /* Set specific column widths to match data table - redistributed for better spacing */
-        .header-table th:nth-child(1) { width: 10%; }  /* Book */
-        .header-table th:nth-child(2) { width: 14%; }  /* Hook */
-        .header-table th:nth-child(3) { width: 7%; }   /* Test Month/Year */
-        .header-table th:nth-child(4) { width: 8%; }   /* Total Spend */
-        .header-table th:nth-child(5) { width: 8%; }   /* Total Revenue */
-        .header-table th:nth-child(6) { width: 6%; }   /* Purchases */
-        .header-table th:nth-child(7) { width: 7%; }   /* Overall ROAS */
-        .header-table th:nth-child(8) { width: 10%; }  /* Performance Level */
+        /* Set specific column widths - optimized for content wrapping */
+        .header-table th:nth-child(1) { width: 8%; }   /* Book */
+        .header-table th:nth-child(2) { width: 12%; }  /* Hook */
+        .header-table th:nth-child(3) { width: 6%; }   /* Test Month/Year */
+        .header-table th:nth-child(4) { width: 7%; }   /* Total Spend */
+        .header-table th:nth-child(5) { width: 7%; }   /* Total Revenue */
+        .header-table th:nth-child(6) { width: 5%; }   /* Purchases */
+        .header-table th:nth-child(7) { width: 6%; }   /* Overall ROAS */
+        .header-table th:nth-child(8) { width: 9%; }   /* Performance Level */
         .header-table th:nth-child(9) { width: 12%; }  /* ROAS Milestones */
         .header-table th:nth-child(10) { width: 8%; }  /* Scale Efficiency */
         .header-table th:nth-child(11) { width: 7%; }  /* Action Item */
-        .header-table th:nth-child(12) { width: 11%; } /* Creative ID */
-        .header-table th:nth-child(13) { width: 8%; }  /* Actions */
+        .header-table th:nth-child(12) { width: 9%; }  /* Creative ID */
+        .header-table th:nth-child(13) { width: 10%; } /* Actions */
 
         /* TABLE SPECIFIC STYLES */
         .data-table {
@@ -331,23 +331,27 @@
             white-space: normal; /* Allow wrapping for book and hook names */
         }
 
-        /* Set specific column widths to match header table - redistributed for better spacing */
+        /* Set specific column widths - optimized for content wrapping */
         .data-table th:nth-child(1),
-        .data-table td:nth-child(1) { width: 10%; }  /* Book */
+        .data-table td:nth-child(1) { width: 8%; }   /* Book */
         .data-table th:nth-child(2),
-        .data-table td:nth-child(2) { width: 14%; }  /* Hook */
+        .data-table td:nth-child(2) { width: 12%; }  /* Hook */
         .data-table th:nth-child(3),
-        .data-table td:nth-child(3) { width: 7%; }   /* Test Month/Year */
+        .data-table td:nth-child(3) { width: 6%; }   /* Test Month/Year */
         .data-table th:nth-child(4),
-        .data-table td:nth-child(4) { width: 8%; }   /* Total Spend */
+        .data-table td:nth-child(4) { width: 7%; }   /* Total Spend */
         .data-table th:nth-child(5),
-        .data-table td:nth-child(5) { width: 8%; }   /* Total Revenue */
+        .data-table td:nth-child(5) { width: 7%; }   /* Total Revenue */
         .data-table th:nth-child(6),
-        .data-table td:nth-child(6) { width: 6%; }   /* Purchases */
+        .data-table td:nth-child(6) { width: 5%; }   /* Purchases */
         .data-table th:nth-child(7),
-        .data-table td:nth-child(7) { width: 7%; }   /* Overall ROAS */
+        .data-table td:nth-child(7) { width: 6%; }   /* Overall ROAS */
+        /* Allow text wrapping in Performance Level column */
         .data-table th:nth-child(8),
-        .data-table td:nth-child(8) { width: 10%; }  /* Performance Level */
+        .data-table td:nth-child(8) { 
+            width: 9%; 
+            white-space: normal !important; /* Allow wrapping for performance badges */
+        }
         .data-table th:nth-child(9),
         .data-table td:nth-child(9) { width: 12%; }  /* ROAS Milestones */
         .data-table th:nth-child(10),
@@ -355,9 +359,9 @@
         .data-table th:nth-child(11),
         .data-table td:nth-child(11) { width: 7%; }  /* Action Item */
         .data-table th:nth-child(12),
-        .data-table td:nth-child(12) { width: 11%; } /* Creative ID */
+        .data-table td:nth-child(12) { width: 9%; }  /* Creative ID */
         .data-table th:nth-child(13),
-        .data-table td:nth-child(13) { width: 8%; }  /* Actions */
+        .data-table td:nth-child(13) { width: 10%; } /* Actions */
 
         .performance-badge {
             padding: 4px 8px;
@@ -365,6 +369,12 @@
             font-size: 12px;
             font-weight: 600;
             text-align: center;
+            white-space: normal; /* Allow text wrapping */
+            line-height: 1.2;
+            min-height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .not-tested { background: #6c757d; color: white; }
@@ -849,15 +859,15 @@
                         <tr>
                             <th>Book</th>
                             <th>Hook</th>
-                            <th>Test Month/Year</th>
-                            <th>Total Spend</th>
-                            <th>Total Revenue</th>
+                            <th>Test<br>Month/Year</th>
+                            <th>Total<br>Spend</th>
+                            <th>Total<br>Revenue</th>
                             <th>Purchases</th>
-                            <th>Overall ROAS</th>
-                            <th>Performance Level</th>
+                            <th>ROAS</th>
+                            <th>Performance<br>Level</th>
                             <th>ROAS Milestones</th>
-                            <th>Scale Efficiency</th>
-                            <th>Action Item</th>
+                            <th>Scale<br>Efficiency</th>
+                            <th>Action<br>Item</th>
                             <th>Creative ID</th>
                             <th>Actions</th>
                         </tr>
