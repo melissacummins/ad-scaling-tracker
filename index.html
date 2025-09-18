@@ -284,8 +284,8 @@
         }
 
         /* Allow Creative ID column to wrap - both header and data */
-        .data-table th:nth-child(12),
-        .data-table td:nth-child(12) {
+        .data-table th:nth-child(13),
+        .data-table td:nth-child(13) {
             white-space: normal !important;
             word-break: break-all !important;
             overflow: visible !important;
@@ -310,39 +310,41 @@
 
         /* Set specific column widths - optimized for better spacing */
         .data-table th:nth-child(1),
-        .data-table td:nth-child(1) { width: 7%; }   /* Book */
+        .data-table td:nth-child(1) { width: 6%; }   /* Book */
         .data-table th:nth-child(2),
-        .data-table td:nth-child(2) { width: 10%; }  /* Hook */
+        .data-table td:nth-child(2) { width: 9%; }   /* Hook */
         .data-table th:nth-child(3),
-        .data-table td:nth-child(3) { width: 8%; }   /* Test Month/Year */
+        .data-table td:nth-child(3) { width: 7%; }   /* Test Month/Year */
         .data-table th:nth-child(4),
-        .data-table td:nth-child(4) { width: 7%; }   /* Total Spend */
+        .data-table td:nth-child(4) { width: 6%; }   /* Total Spend */
         .data-table th:nth-child(5),
-        .data-table td:nth-child(5) { width: 7%; }   /* Total Revenue */
+        .data-table td:nth-child(5) { width: 6%; }   /* Total Revenue */
         .data-table th:nth-child(6),
-        .data-table td:nth-child(6) { width: 7%; }   /* Purchases */
+        .data-table td:nth-child(6) { width: 6%; }   /* Purchases */
         .data-table th:nth-child(7),
-        .data-table td:nth-child(7) { width: 6%; }   /* Overall ROAS */
+        .data-table td:nth-child(7) { width: 5%; }   /* Overall ROAS */
         /* Allow text wrapping in Performance Level column */
         .data-table th:nth-child(8),
         .data-table td:nth-child(8) { 
-            width: 8%; 
+            width: 7%; 
             white-space: normal !important; /* Allow wrapping for performance badges */
         }
         .data-table th:nth-child(9),
-        .data-table td:nth-child(9) { width: 11%; }  /* ROAS Milestones */
+        .data-table td:nth-child(9) { width: 10%; }  /* ROAS Milestones */
         .data-table th:nth-child(10),
-        .data-table td:nth-child(10) { width: 7%; }  /* Scale Efficiency */
+        .data-table td:nth-child(10) { width: 7%; }  /* Dynamic Efficiency */
         .data-table th:nth-child(11),
-        .data-table td:nth-child(11) { width: 6%; }  /* Action Item */
+        .data-table td:nth-child(11) { width: 6%; }  /* Gate Decision */
         .data-table th:nth-child(12),
-        .data-table td:nth-child(12) { 
-            width: 11%; 
+        .data-table td:nth-child(12) { width: 5%; }  /* Action Item */
+        .data-table th:nth-child(13),
+        .data-table td:nth-child(13) { 
+            width: 10%; 
             white-space: normal !important;
             word-break: break-all;
         } /* Creative ID */
-        .data-table th:nth-child(13),
-        .data-table td:nth-child(13) { width: 12%; } /* Actions */
+        .data-table th:nth-child(14),
+        .data-table td:nth-child(14) { width: 10%; } /* Actions */
 
         .performance-badge {
             padding: 4px 8px;
@@ -483,6 +485,38 @@
             max-width: 200px;
             resize: vertical;
         }
+
+        /* ROAS color coding for Creative ID Tracker */
+        .roas-poor {
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .roas-okay {
+            color: #ffc107;
+            font-weight: bold;
+        }
+
+        .roas-good {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .gate-decision {
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .gate-fast-track { background: #28a745; color: white; }
+        .gate-continue { background: #17a2b8; color: white; }
+        .gate-needs-creative { background: #ffc107; color: #212529; }
+        .gate-scale { background: #007bff; color: white; }
+        .gate-maintain { background: #6c757d; color: white; }
+        .gate-kill { background: #dc3545; color: white; }
+        .gate-phase-out { background: #fd7e14; color: white; }
 
         .edit-form {
             background: #f8f9fa;
@@ -823,7 +857,8 @@
                             <th>ROAS</th>
                             <th>Performance<br>Level</th>
                             <th>ROAS Milestones</th>
-                            <th>Scale<br>Efficiency</th>
+                            <th>Dynamic<br>Efficiency</th>
+                            <th>Gate<br>Decision</th>
                             <th>Action<br>Item</th>
                             <th>Creative ID</th>
                             <th>Actions</th>
@@ -1916,13 +1951,78 @@
             return { text: 'Mature Scale', class: 'mature-scale' };
         }
 
-        function getScaleEfficiency(roasAt100, roasAt1000) {
-            if (roasAt100 === 0 || roasAt1000 === 0) return { text: 'N/A', class: 'scales-ok' };
+        function getDynamicEfficiency(hook) {
+            const { totalSpend, roasAt100, roasAt300, roasAt1000 } = hook;
             
-            const efficiency = roasAt1000 / roasAt100;
-            if (efficiency > 0.8) return { text: 'Scales Well', class: 'scales-well' };
-            if (efficiency >= 0.6) return { text: 'Scales OK', class: 'scales-ok' };
-            return { text: "Doesn't Scale", class: 'doesnt-scale' };
+            if (totalSpend >= 1000 && roasAt100 > 0 && roasAt1000 > 0) {
+                const efficiency = roasAt1000 / roasAt100;
+                return {
+                    text: `${(efficiency * 100).toFixed(0)}%`,
+                    class: efficiency > 0.8 ? 'scales-well' : efficiency >= 0.6 ? 'scales-ok' : 'doesnt-scale',
+                    benchmark: '($1000 vs $100)',
+                    value: efficiency
+                };
+            } else if (totalSpend >= 300 && roasAt100 > 0 && roasAt300 > 0) {
+                const efficiency = roasAt300 / roasAt100;
+                return {
+                    text: `${(efficiency * 100).toFixed(0)}%`,
+                    class: efficiency > 0.8 ? 'scales-well' : efficiency >= 0.6 ? 'scales-ok' : 'doesnt-scale',
+                    benchmark: '($300 vs $100)',
+                    value: efficiency
+                };
+            } else {
+                return {
+                    text: 'N/A',
+                    class: 'scales-ok',
+                    benchmark: 'Needs $300+',
+                    value: 0
+                };
+            }
+        }
+
+        function getGateDecision(roas, spend, lastTestDate) {
+            // Parse MM/YYYY format and compare with 6 months ago
+            const sixMonthsAgo = new Date();
+            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+            
+            let testDate = sixMonthsAgo; // Default to old date if parsing fails
+            const dateParts = lastTestDate.split('/');
+            if (dateParts.length === 2) {
+                const month = parseInt(dateParts[0]) - 1; // Month is 0-indexed
+                const year = parseInt(dateParts[1]);
+                testDate = new Date(year, month, 1); // First day of the month
+            }
+            
+            const isOldTest = testDate < sixMonthsAgo;
+            
+            // Gate decisions based on spend thresholds
+            if (spend >= 3000) {
+                // Mature Scale decisions
+                if (roas >= 1.2) return { text: 'Scale Further', class: 'gate-scale' };
+                if (roas >= 1.0) return { text: 'Cap Here', class: 'gate-maintain' };
+                return { text: 'Phase Out', class: 'gate-phase-out' };
+            } else if (spend >= 1000) {
+                // Proven Scale decisions
+                if (roas >= 1.3) return { text: 'Scale to $3K', class: 'gate-scale' };
+                if (roas >= 1.0) return { text: 'Cap at $1K', class: 'gate-maintain' };
+                return { text: 'Kill', class: 'gate-kill' };
+            } else if (spend >= 300) {
+                // Early Scale decisions (at $300 gate)
+                if (roas >= 1.3) return { text: 'Scale to $1K', class: 'gate-scale' };
+                if (roas >= 1.0) return { text: 'Maintain $300', class: 'gate-maintain' };
+                return { text: 'Kill', class: 'gate-kill' };
+            } else if (spend >= 100) {
+                // Testing to Validation gate (at $100 gate)
+                if (isOldTest) return { text: 'Retest First', class: 'gate-needs-creative' };
+                if (roas >= 1.5) return { text: 'Fast Track', class: 'gate-fast-track' };
+                if (roas >= 1.2) return { text: 'Continue to $300', class: 'gate-continue' };
+                if (roas >= 1.0) return { text: 'Needs New Creative', class: 'gate-needs-creative' };
+                return { text: 'Kill', class: 'gate-kill' };
+            } else {
+                // Under $100 - still testing
+                if (isOldTest) return { text: 'Retest', class: 'gate-needs-creative' };
+                return { text: 'Continue Testing', class: 'gate-continue' };
+            }
         }
 
         function getActionItem(roas, spend, lastTestDate, scaleEfficiency) {
@@ -2022,8 +2122,9 @@
                 };
 
                 const performance = getPerformanceLevel(totalSpend, group.testDate);
-                const scaleEff = getScaleEfficiency(aggregatedHook.roasAt100, aggregatedHook.roasAt1000);
-                const scaleEfficiencyScore = aggregatedHook.roasAt100 > 0 && aggregatedHook.roasAt1000 > 0 ? aggregatedHook.roasAt1000 / aggregatedHook.roasAt100 : 0;
+                const dynamicEff = getDynamicEfficiency(aggregatedHook);
+                const gateDecision = getGateDecision(overallROAS, totalSpend, group.testDate);
+                const scaleEfficiencyScore = dynamicEff.value;
                 const actionItem = getActionItem(overallROAS, totalSpend, group.testDate, scaleEfficiencyScore);
                 const milestoneData = getMilestoneDisplay(aggregatedHook);
 
@@ -2057,7 +2158,12 @@
                             </div>
                         ` : ''}
                     </td>
-                    <td><span class="scale-efficiency ${scaleEff.class}">${scaleEff.text}</span></td>
+                    <td>
+                        <span class="scale-efficiency ${dynamicEff.class}" title="${dynamicEff.benchmark}">
+                            ${dynamicEff.text}
+                        </span>
+                    </td>
+                    <td><span class="gate-decision ${gateDecision.class}">${gateDecision.text}</span></td>
                     <td><span class="action-item ${actionItem.class}">${actionItem.text}</span></td>
                     <td style="font-family: monospace; font-size: 12px;">
                         ${group.creatives.length} creative${group.creatives.length !== 1 ? 's' : ''}
@@ -2089,7 +2195,7 @@
                         <td>$${creative.totalRevenue.toFixed(2)}</td>
                         <td>${creative.purchases}</td>
                         <td><strong>${creative.overallROAS.toFixed(2)}</strong></td>
-                        <td colspan="4" style="font-size: 12px; color: #666;">
+                        <td colspan="5" style="font-size: 12px; color: #666;">
                             Creative performance details
                         </td>
                         <td style="font-family: monospace; font-size: 11px; word-break: break-all; white-space: normal;">${creative.creativeId}</td>
@@ -2422,7 +2528,7 @@
                     <td style="font-family: monospace; font-size: 12px; word-break: break-all; white-space: normal;">${creativeId}</td>
                     <td>$${totalSpend.toFixed(2)}</td>
                     <td>$${totalRevenue.toFixed(2)}</td>
-                    <td><strong>${overallROAS.toFixed(2)}</strong></td>
+                    <td><strong class="${getRoasColorClass(overallROAS)}">${overallROAS.toFixed(2)}</strong></td>
                     <td>${hooksCount}</td>
                     <td>${bestHook ? `${bestHook.hookName.substring(0, 30)}... (${bestHook.overallROAS.toFixed(2)})` : 'N/A'}</td>
                     <td>
@@ -2452,6 +2558,12 @@
         function saveCreativeNote(creativeId, note) {
             creativeNotes[creativeId] = note;
             saveToLocalAndCloud();
+        }
+
+        function getRoasColorClass(roas) {
+            if (roas < 0.6) return 'roas-poor';
+            if (roas < 0.8) return 'roas-okay';
+            return 'roas-good';
         }
 
         function viewCreativeDetails(creativeId) {
