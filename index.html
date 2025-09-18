@@ -297,37 +297,37 @@
             white-space: normal; /* Allow wrapping for book and hook names */
         }
 
-        /* Set specific column widths - optimized for content wrapping */
+        /* Set specific column widths - optimized for better spacing */
         .data-table th:nth-child(1),
-        .data-table td:nth-child(1) { width: 8%; }   /* Book */
+        .data-table td:nth-child(1) { width: 7%; }   /* Book */
         .data-table th:nth-child(2),
-        .data-table td:nth-child(2) { width: 12%; }  /* Hook */
+        .data-table td:nth-child(2) { width: 10%; }  /* Hook */
         .data-table th:nth-child(3),
-        .data-table td:nth-child(3) { width: 6%; }   /* Test Month/Year */
+        .data-table td:nth-child(3) { width: 8%; }   /* Test Month/Year */
         .data-table th:nth-child(4),
         .data-table td:nth-child(4) { width: 7%; }   /* Total Spend */
         .data-table th:nth-child(5),
         .data-table td:nth-child(5) { width: 7%; }   /* Total Revenue */
         .data-table th:nth-child(6),
-        .data-table td:nth-child(6) { width: 5%; }   /* Purchases */
+        .data-table td:nth-child(6) { width: 7%; }   /* Purchases */
         .data-table th:nth-child(7),
         .data-table td:nth-child(7) { width: 6%; }   /* Overall ROAS */
         /* Allow text wrapping in Performance Level column */
         .data-table th:nth-child(8),
         .data-table td:nth-child(8) { 
-            width: 9%; 
+            width: 8%; 
             white-space: normal !important; /* Allow wrapping for performance badges */
         }
         .data-table th:nth-child(9),
-        .data-table td:nth-child(9) { width: 12%; }  /* ROAS Milestones */
+        .data-table td:nth-child(9) { width: 11%; }  /* ROAS Milestones */
         .data-table th:nth-child(10),
-        .data-table td:nth-child(10) { width: 8%; }  /* Scale Efficiency */
+        .data-table td:nth-child(10) { width: 7%; }  /* Scale Efficiency */
         .data-table th:nth-child(11),
-        .data-table td:nth-child(11) { width: 7%; }  /* Action Item */
+        .data-table td:nth-child(11) { width: 6%; }  /* Action Item */
         .data-table th:nth-child(12),
-        .data-table td:nth-child(12) { width: 9%; }  /* Creative ID */
+        .data-table td:nth-child(12) { width: 11%; } /* Creative ID */
         .data-table th:nth-child(13),
-        .data-table td:nth-child(13) { width: 10%; } /* Actions */
+        .data-table td:nth-child(13) { width: 12%; } /* Actions */
 
         .performance-badge {
             padding: 4px 8px;
@@ -2066,9 +2066,9 @@
                     detailRow.id = `creative-${groupIndex}-${creativeIndex}`;
                     detailRow.innerHTML = `
                         <td style="padding-left: 30px;">
-                            ${isBest ? '👑 ' : '├─ '}${creative.creativeId}
+                            ${isBest ? '👑 ' : '├─ '}Creative ${creativeIndex + 1}
                         </td>
-                        <td>${creative.hookName}</td>
+                        <td style="font-size: 12px; color: #666;">${creative.hookName}</td>
                         <td>${creative.testDate}</td>
                         <td>$${creative.totalSpend.toFixed(2)}</td>
                         <td>$${creative.totalRevenue.toFixed(2)}</td>
