@@ -237,6 +237,7 @@
             overflow: hidden;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
             background: white;
+            margin-top: 20px;
         }
 
         /* STICKY HEADER TABLE (separate from scrollable content) */
@@ -261,6 +262,7 @@
             border-bottom: 3px solid #667eea !important;
             font-size: 14px;
             vertical-align: middle;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
         }
 
         /* Left align specific header columns */
@@ -269,7 +271,7 @@
             text-align: left;
         }
 
-        /* TABLE SPECIFIC STYLES - ONLY THESE CAN BE STICKY */
+        /* TABLE SPECIFIC STYLES */
         .data-table {
             width: 100%;
             border-collapse: collapse;
@@ -278,7 +280,7 @@
             border-radius: 0;
             overflow: hidden;
             box-shadow: none;
-            position: static !important; /* Table itself is not sticky */
+            position: static !important;
         }
 
         .data-table th,
@@ -288,12 +290,7 @@
             border-bottom: 1px solid #e0e0e0;
             font-size: 14px;
             vertical-align: middle;
-            position: static !important; /* Reset default positioning */
-        }
-
-        /* Remove the old sticky header styles since we're using a separate header table */
-        .data-table thead th {
-            display: none; /* Hide any remaining thead elements */
+            position: static !important;
         }
 
         .data-table tr:hover {
@@ -842,9 +839,8 @@
                 </div>
             </div>
 
-            <div class="table-wrapper">
-                <!-- Sticky Header Table -->
-                <table class="data-table header-table">
+            <div class="table-scroll-container">
+                <table class="data-table" id="booksTable">
                     <thead>
                         <tr>
                             <th>Book Title</th>
@@ -856,15 +852,9 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
+                    <tbody id="booksTableBody">
+                    </tbody>
                 </table>
-                
-                <!-- Scrollable Content Table -->
-                <div class="table-scroll-container">
-                    <table class="data-table" id="booksTable">
-                        <tbody id="booksTableBody">
-                        </tbody>
-                    </table>
-                </div>
             </div>
         </div>
 
@@ -895,9 +885,8 @@
                 </div>
             </div>
 
-            <div class="table-wrapper">
-                <!-- Sticky Header Table -->
-                <table class="data-table header-table">
+            <div class="table-scroll-container">
+                <table class="data-table" id="creativesTable">
                     <thead>
                         <tr>
                             <th>Creative ID</th>
@@ -910,15 +899,9 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
+                    <tbody id="creativesTableBody">
+                    </tbody>
                 </table>
-                
-                <!-- Scrollable Content Table -->
-                <div class="table-scroll-container">
-                    <table class="data-table" id="creativesTable">
-                        <tbody id="creativesTableBody">
-                        </tbody>
-                    </table>
-                </div>
             </div>
         </div>
     </div>
