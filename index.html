@@ -283,12 +283,15 @@
             text-overflow: ellipsis;
         }
 
-        /* Allow Creative ID column to wrap */
+        /* Allow Creative ID column to wrap - both header and data */
+        .data-table th:nth-child(12),
         .data-table td:nth-child(12) {
             white-space: normal !important;
             word-break: break-all !important;
             overflow: visible !important;
             text-overflow: unset !important;
+            word-wrap: break-word !important;
+            hyphens: auto !important;
         }
 
         .data-table tr:hover {
@@ -641,7 +644,7 @@
                     <input type="file" id="csvImport" accept=".csv,.xlsx,.xls" onchange="importData(event)">
                     <label for="csvImport" class="file-upload-label">📤 Import CSV/Excel</label>
                 </div>
-                <button class="btn btn-warning" onclick="clearAllData()">❌ Clear All Data</button>
+                <button class="btn btn-warning" onclick="clearAllData()">⌫ Clear All Data</button>
             </div>
 
             <!-- Edit Form (Hidden by default) -->
@@ -690,7 +693,7 @@
                 </div>
                 <div style="text-align: center;">
                     <button class="btn btn-success" onclick="saveEdit()">💾 Save Changes</button>
-                    <button class="btn btn-secondary" onclick="cancelEdit()">❌ Cancel</button>
+                    <button class="btn btn-secondary" onclick="cancelEdit()">⌫ Cancel</button>
                 </div>
             </div>
 
@@ -1222,11 +1225,11 @@
                 
                 if (error.code === 'auth/popup-closed-by-user') {
                     if (loginStatus) {
-                        loginStatus.innerHTML = '❌ Sign-in popup was closed. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>';
+                        loginStatus.innerHTML = '⌫ Sign-in popup was closed. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>';
                     }
                 } else if (error.code === 'auth/popup-blocked') {
                     if (loginStatus) {
-                        loginStatus.innerHTML = '❌ Popup blocked. Please allow popups and <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">try again</button>';
+                        loginStatus.innerHTML = '⌫ Popup blocked. Please allow popups and <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">try again</button>';
                     }
                 } else if (error.code === 'auth/cancelled-popup-request') {
                     if (loginStatus) {
@@ -1235,7 +1238,7 @@
                     // Don't show an error for this one, just wait
                 } else {
                     if (loginStatus) {
-                        loginStatus.innerHTML = `❌ Sign in failed: ${error.message}. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>`;
+                        loginStatus.innerHTML = `⌫ Sign in failed: ${error.message}. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>`;
                     }
                 }
             }
@@ -2056,7 +2059,7 @@
                     </td>
                     <td><span class="scale-efficiency ${scaleEff.class}">${scaleEff.text}</span></td>
                     <td><span class="action-item ${actionItem.class}">${actionItem.text}</span></td>
-                    <td style="font-family: monospace; font-size: 12px; white-space: normal; word-break: break-all;">
+                    <td style="font-family: monospace; font-size: 12px;">
                         ${group.creatives.length} creative${group.creatives.length !== 1 ? 's' : ''}
                         <div class="creative-count" style="font-size: 11px; color: #666; margin-top: 2px;">
                             Best ROAS: ${bestCreative ? bestCreative.overallROAS.toFixed(2) : 'N/A'}
@@ -2064,7 +2067,7 @@
                     </td>
                     <td>
                         <button class="btn btn-info btn-sm" onclick="editHookGroup('${key}')">✏️ Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">❌ Delete</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">⌫ Delete</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -2089,10 +2092,10 @@
                         <td colspan="4" style="font-size: 12px; color: #666;">
                             Creative performance details
                         </td>
-                        <td style="font-family: monospace; font-size: 11px;">${creative.creativeId}</td>
+                        <td style="font-family: monospace; font-size: 11px; word-break: break-all; white-space: normal;">${creative.creativeId}</td>
                         <td>
                             <button class="btn btn-info btn-xs" onclick="editHook(${hooks.indexOf(creative)})">✏️</button>
-                            <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">❌</button>
+                            <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">⌫</button>
                         </td>
                     `;
                     tbody.appendChild(detailRow);
@@ -2123,7 +2126,7 @@
                     <td>${bestHook ? `${bestHook.hookName.substring(0, 50)}... (ROAS: ${bestHook.overallROAS.toFixed(2)})` : 'None'}</td>
                     <td>
                         <button class="btn btn-info btn-sm" onclick="editBookTitle('${book}')">✏️ Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteBook('${book}')">❌ Delete</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteBook('${book}')">⌫ Delete</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -2416,7 +2419,7 @@
 
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td style="font-family: monospace; font-size: 12px;">${creativeId}</td>
+                    <td style="font-family: monospace; font-size: 12px; word-break: break-all; white-space: normal;">${creativeId}</td>
                     <td>$${totalSpend.toFixed(2)}</td>
                     <td>$${totalRevenue.toFixed(2)}</td>
                     <td><strong>${overallROAS.toFixed(2)}</strong></td>
