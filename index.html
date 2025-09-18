@@ -251,6 +251,7 @@
             position: sticky !important;
             top: 0 !important;
             z-index: 999999 !important;
+            table-layout: fixed; /* Force fixed layout to match data table */
         }
 
         .header-table thead th {
@@ -263,6 +264,8 @@
             font-size: 14px;
             vertical-align: middle;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+            white-space: nowrap;
+            overflow: hidden;
         }
 
         /* Left align specific header columns */
@@ -270,6 +273,21 @@
         .header-table th:nth-child(2) {
             text-align: left;
         }
+
+        /* Set specific column widths to match data table */
+        .header-table th:nth-child(1) { width: 8%; }   /* Book */
+        .header-table th:nth-child(2) { width: 15%; }  /* Hook */
+        .header-table th:nth-child(3) { width: 8%; }   /* Test Month/Year */
+        .header-table th:nth-child(4) { width: 7%; }   /* Total Spend */
+        .header-table th:nth-child(5) { width: 7%; }   /* Total Revenue */
+        .header-table th:nth-child(6) { width: 6%; }   /* Purchases */
+        .header-table th:nth-child(7) { width: 7%; }   /* Overall ROAS */
+        .header-table th:nth-child(8) { width: 9%; }   /* Performance Level */
+        .header-table th:nth-child(9) { width: 9%; }   /* ROAS Milestones */
+        .header-table th:nth-child(10) { width: 8%; }  /* Scale Efficiency */
+        .header-table th:nth-child(11) { width: 6%; }  /* Action Item */
+        .header-table th:nth-child(12) { width: 6%; }  /* Creative ID */
+        .header-table th:nth-child(13) { width: 4%; }  /* Actions */
 
         /* TABLE SPECIFIC STYLES */
         .data-table {
@@ -281,6 +299,7 @@
             overflow: hidden;
             box-shadow: none;
             position: static !important;
+            table-layout: fixed; /* Match header table layout */
         }
 
         .data-table th,
@@ -291,6 +310,9 @@
             font-size: 14px;
             vertical-align: middle;
             position: static !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .data-table tr:hover {
@@ -304,7 +326,36 @@
         .data-table td:nth-child(2)  /* Hook */
         {
             text-align: left;
+            white-space: normal; /* Allow wrapping for book and hook names */
         }
+
+        /* Set specific column widths to match header table */
+        .data-table th:nth-child(1),
+        .data-table td:nth-child(1) { width: 8%; }   /* Book */
+        .data-table th:nth-child(2),
+        .data-table td:nth-child(2) { width: 15%; }  /* Hook */
+        .data-table th:nth-child(3),
+        .data-table td:nth-child(3) { width: 8%; }   /* Test Month/Year */
+        .data-table th:nth-child(4),
+        .data-table td:nth-child(4) { width: 7%; }   /* Total Spend */
+        .data-table th:nth-child(5),
+        .data-table td:nth-child(5) { width: 7%; }   /* Total Revenue */
+        .data-table th:nth-child(6),
+        .data-table td:nth-child(6) { width: 6%; }   /* Purchases */
+        .data-table th:nth-child(7),
+        .data-table td:nth-child(7) { width: 7%; }   /* Overall ROAS */
+        .data-table th:nth-child(8),
+        .data-table td:nth-child(8) { width: 9%; }   /* Performance Level */
+        .data-table th:nth-child(9),
+        .data-table td:nth-child(9) { width: 9%; }   /* ROAS Milestones */
+        .data-table th:nth-child(10),
+        .data-table td:nth-child(10) { width: 8%; }  /* Scale Efficiency */
+        .data-table th:nth-child(11),
+        .data-table td:nth-child(11) { width: 6%; }  /* Action Item */
+        .data-table th:nth-child(12),
+        .data-table td:nth-child(12) { width: 6%; }  /* Creative ID */
+        .data-table th:nth-child(13),
+        .data-table td:nth-child(13) { width: 4%; }  /* Actions */
 
         .performance-badge {
             padding: 4px 8px;
@@ -623,7 +674,7 @@
                     <input type="file" id="csvImport" accept=".csv,.xlsx,.xls" onchange="importData(event)">
                     <label for="csvImport" class="file-upload-label">📤 Import CSV/Excel</label>
                 </div>
-                <button class="btn btn-warning" onclick="clearAllData()">❌ Clear All Data</button>
+                <button class="btn btn-warning" onclick="clearAllData()">⌫ Clear All Data</button>
             </div>
 
             <!-- Edit Form (Hidden by default) -->
@@ -672,7 +723,7 @@
                 </div>
                 <div style="text-align: center;">
                     <button class="btn btn-success" onclick="saveEdit()">💾 Save Changes</button>
-                    <button class="btn btn-secondary" onclick="cancelEdit()">❌ Cancel</button>
+                    <button class="btn btn-secondary" onclick="cancelEdit()">⌫ Cancel</button>
                 </div>
             </div>
 
@@ -1211,11 +1262,11 @@
                 
                 if (error.code === 'auth/popup-closed-by-user') {
                     if (loginStatus) {
-                        loginStatus.innerHTML = '❌ Sign-in popup was closed. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>';
+                        loginStatus.innerHTML = '⌫ Sign-in popup was closed. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>';
                     }
                 } else if (error.code === 'auth/popup-blocked') {
                     if (loginStatus) {
-                        loginStatus.innerHTML = '❌ Popup blocked. Please allow popups and <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">try again</button>';
+                        loginStatus.innerHTML = '⌫ Popup blocked. Please allow popups and <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">try again</button>';
                     }
                 } else if (error.code === 'auth/cancelled-popup-request') {
                     if (loginStatus) {
@@ -1224,7 +1275,7 @@
                     // Don't show an error for this one, just wait
                 } else {
                     if (loginStatus) {
-                        loginStatus.innerHTML = `❌ Sign in failed: ${error.message}. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>`;
+                        loginStatus.innerHTML = `⌫ Sign in failed: ${error.message}. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>`;
                     }
                 }
             }
@@ -1423,15 +1474,23 @@
             
             // Convert MM/YYYY to MMYYYY format
             let dateStr = '';
-            if (testDate && testDate.includes('/')) {
-                const dateParts = testDate.split('/');
-                if (dateParts.length === 2) {
+            if (testDate && testDate.trim() && testDate.includes('/')) {
+                const dateParts = testDate.trim().split('/');
+                console.log('Date parts:', dateParts);
+                if (dateParts.length === 2 && dateParts[0] && dateParts[1]) {
                     const month = dateParts[0].padStart(2, '0');
                     const year = dateParts[1];
-                    dateStr = month + year;
+                    // Validate month is 01-12 and year is 4 digits
+                    if (month >= '01' && month <= '12' && year.length === 4) {
+                        dateStr = month + year;
+                        console.log('Valid date converted to:', dateStr);
+                    }
                 }
-            } else {
-                // Fallback: use current date if format is wrong
+            }
+            
+            // Only fallback to current date if we couldn't parse the input date
+            if (!dateStr) {
+                console.log('Using fallback current date');
                 const currentDate = new Date();
                 const currentMonth = String(currentDate.getMonth() + 1).padStart(2, '0');
                 const currentYear = currentDate.getFullYear();
@@ -1962,7 +2021,20 @@
             });
 
             // Render each hook group
-            Object.keys(hookGroups).forEach((key, groupIndex) => {
+            const sortedKeys = Object.keys(hookGroups).sort((a, b) => {
+                const groupA = hookGroups[a];
+                const groupB = hookGroups[b];
+                
+                // First sort by book name alphabetically
+                if (groupA.book !== groupB.book) {
+                    return groupA.book.localeCompare(groupB.book);
+                }
+                
+                // Then sort by hook name alphabetically
+                return groupA.hookName.localeCompare(groupB.hookName);
+            });
+
+            sortedKeys.forEach((key, groupIndex) => {
                 const group = hookGroups[key];
                 
                 // Calculate aggregated totals
@@ -2027,7 +2099,7 @@
                     </td>
                     <td>
                         <button class="btn btn-info btn-sm" onclick="editHookGroup('${key}')">✏️ Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">❌ Delete</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">⌫ Delete</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -2055,7 +2127,7 @@
                         <td style="font-family: monospace; font-size: 11px;">${creative.creativeId}</td>
                         <td>
                             <button class="btn btn-info btn-xs" onclick="editHook(${hooks.indexOf(creative)})">✏️</button>
-                            <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">❌</button>
+                            <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">⌫</button>
                         </td>
                     `;
                     tbody.appendChild(detailRow);
@@ -2086,7 +2158,7 @@
                     <td>${bestHook ? `${bestHook.hookName.substring(0, 50)}... (ROAS: ${bestHook.overallROAS.toFixed(2)})` : 'None'}</td>
                     <td>
                         <button class="btn btn-info btn-sm" onclick="editBookTitle('${book}')">✏️ Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteBook('${book}')">❌ Delete</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteBook('${book}')">⌫ Delete</button>
                     </td>
                 `;
                 tbody.appendChild(row);
