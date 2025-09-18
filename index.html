@@ -284,8 +284,8 @@
         }
 
         /* Allow Creative ID column to wrap - both header and data */
-        .data-table th:nth-child(13),
-        .data-table td:nth-child(13) {
+        .data-table th:nth-child(12),
+        .data-table td:nth-child(12) {
             white-space: normal !important;
             word-break: break-all !important;
             overflow: visible !important;
@@ -308,7 +308,7 @@
             white-space: normal; /* Allow wrapping for book and hook names */
         }
 
-        /* Set specific column widths - optimized for better spacing */
+        /* Set specific column widths - optimized for better spacing (removed one column) */
         .data-table th:nth-child(1),
         .data-table td:nth-child(1) { width: 6%; }   /* Book */
         .data-table th:nth-child(2),
@@ -334,17 +334,62 @@
         .data-table th:nth-child(10),
         .data-table td:nth-child(10) { width: 7%; }  /* Dynamic Efficiency */
         .data-table th:nth-child(11),
-        .data-table td:nth-child(11) { width: 6%; }  /* Gate Decision */
+        .data-table td:nth-child(11) { width: 8%; }  /* Next Action (increased width) */
         .data-table th:nth-child(12),
-        .data-table td:nth-child(12) { width: 5%; }  /* Action Item */
-        .data-table th:nth-child(13),
-        .data-table td:nth-child(13) { 
+        .data-table td:nth-child(12) { 
             width: 10%; 
             white-space: normal !important;
             word-break: break-all;
         } /* Creative ID */
-        .data-table th:nth-child(14),
-        .data-table td:nth-child(14) { width: 10%; } /* Actions */
+        .data-table th:nth-child(13),
+        .data-table td:nth-child(13) { width: 10%; } /* Actions */
+
+        /* Creative ID Tracker table specific column widths */
+        .creatives-table th:nth-child(1),
+        .creatives-table td:nth-child(1) { width: 20%; } /* Creative ID */
+        .creatives-table th:nth-child(2),
+        .creatives-table td:nth-child(2) { width: 12%; } /* Total Spend */
+        .creatives-table th:nth-child(3),
+        .creatives-table td:nth-child(3) { width: 12%; } /* Total Revenue */
+        .creatives-table th:nth-child(4),
+        .creatives-table td:nth-child(4) { width: 10%; } /* Overall ROAS */
+        .creatives-table th:nth-child(5),
+        .creatives-table td:nth-child(5) { width: 8%; }  /* Hooks Used */
+        .creatives-table th:nth-child(6),
+        .creatives-table td:nth-child(6) { width: 20%; } /* Best Hook (ROAS) */
+        .creatives-table th:nth-child(7),
+        .creatives-table td:nth-child(7) { width: 15%; } /* Notes */
+        .creatives-table th:nth-child(8),
+        .creatives-table td:nth-child(8) { width: 8%; }  /* Actions */
+
+        /* Books Management table specific column widths */
+        .books-table th:nth-child(1),
+        .books-table td:nth-child(1) { width: 20%; } /* Book Title */
+        .books-table th:nth-child(2),
+        .books-table td:nth-child(2) { width: 10%; } /* Total Hooks */
+        .books-table th:nth-child(3),
+        .books-table td:nth-child(3) { width: 12%; } /* Total Spend */
+        .books-table th:nth-child(4),
+        .books-table td:nth-child(4) { width: 12%; } /* Total Revenue */
+        .books-table th:nth-child(5),
+        .books-table td:nth-child(5) { width: 10%; } /* Average ROAS */
+        .books-table th:nth-child(6),
+        .books-table td:nth-child(6) { width: 25%; } /* Best Performing Hook */
+        .books-table th:nth-child(7),
+        .books-table td:nth-child(7) { width: 11%; } /* Actions */
+
+        /* Allow text wrapping in specific columns for these tables */
+        .creatives-table th:nth-child(1),
+        .creatives-table td:nth-child(1),
+        .creatives-table th:nth-child(6),
+        .creatives-table td:nth-child(6),
+        .books-table th:nth-child(1),
+        .books-table td:nth-child(1),
+        .books-table th:nth-child(6),
+        .books-table td:nth-child(6) {
+            white-space: normal !important;
+            word-wrap: break-word !important;
+        }
 
         .performance-badge {
             padding: 4px 8px;
@@ -380,18 +425,28 @@
         .scales-ok { background: #ffc107; color: #212529; }
         .doesnt-scale { background: #dc3545; color: white; }
 
-        .action-item {
+        .next-action {
             padding: 4px 8px;
             border-radius: 20px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
             text-align: center;
+            white-space: normal !important;
+            line-height: 1.2;
+            min-height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .action-scale { background: #28a745; color: white; }
-        .action-maintain { background: #17a2b8; color: white; }
-        .action-retest { background: #ffc107; color: #212529; }
+        .action-scale-now { background: #28a745; color: white; }
+        .action-continue { background: #007bff; color: white; }
+        .action-test-creative { background: #ffc107; color: #212529; }
+        .action-scale-further { background: #007bff; color: white; }
+        .action-cap-here { background: #6c757d; color: white; }
+        .action-phase-out { background: #fd7e14; color: white; }
         .action-kill { background: #dc3545; color: white; }
+        .action-scale-optimize { background: #6f42c1; color: white; }
 
         .milestone-display {
             text-align: center;
@@ -501,22 +556,6 @@
             color: #28a745;
             font-weight: bold;
         }
-
-        .gate-decision {
-            padding: 4px 8px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            text-align: center;
-        }
-
-        .gate-fast-track { background: #28a745; color: white; }
-        .gate-continue { background: #17a2b8; color: white; }
-        .gate-needs-creative { background: #ffc107; color: #212529; }
-        .gate-scale { background: #007bff; color: white; }
-        .gate-maintain { background: #6c757d; color: white; }
-        .gate-kill { background: #dc3545; color: white; }
-        .gate-phase-out { background: #fd7e14; color: white; }
 
         .edit-form {
             background: #f8f9fa;
@@ -678,7 +717,7 @@
                     <input type="file" id="csvImport" accept=".csv,.xlsx,.xls" onchange="importData(event)">
                     <label for="csvImport" class="file-upload-label">📤 Import CSV/Excel</label>
                 </div>
-                <button class="btn btn-warning" onclick="clearAllData()">⌫ Clear All Data</button>
+                <button class="btn btn-warning" onclick="clearAllData()">❌ Clear All Data</button>
             </div>
 
             <!-- Edit Form (Hidden by default) -->
@@ -727,7 +766,7 @@
                 </div>
                 <div style="text-align: center;">
                     <button class="btn btn-success" onclick="saveEdit()">💾 Save Changes</button>
-                    <button class="btn btn-secondary" onclick="cancelEdit()">⌫ Cancel</button>
+                    <button class="btn btn-secondary" onclick="cancelEdit()">❌ Cancel</button>
                 </div>
             </div>
 
@@ -858,8 +897,7 @@
                             <th>Performance<br>Level</th>
                             <th>ROAS Milestones</th>
                             <th>Dynamic<br>Efficiency</th>
-                            <th>Gate<br>Decision</th>
-                            <th>Action<br>Item</th>
+                            <th>Next<br>Action</th>
                             <th>Creative ID</th>
                             <th>Actions</th>
                         </tr>
@@ -889,7 +927,7 @@
             </div>
 
             <div class="table-wrapper">
-                <table class="data-table" id="booksTable">
+                <table class="data-table books-table" id="booksTable">
                     <thead>
                         <tr>
                             <th>Book Title</th>
@@ -935,7 +973,7 @@
             </div>
 
             <div class="table-wrapper">
-                <table class="data-table" id="creativesTable">
+                <table class="data-table creatives-table" id="creativesTable">
                     <thead>
                         <tr>
                             <th>Creative ID</th>
@@ -1260,11 +1298,11 @@
                 
                 if (error.code === 'auth/popup-closed-by-user') {
                     if (loginStatus) {
-                        loginStatus.innerHTML = '⌫ Sign-in popup was closed. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>';
+                        loginStatus.innerHTML = '❌ Sign-in popup was closed. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>';
                     }
                 } else if (error.code === 'auth/popup-blocked') {
                     if (loginStatus) {
-                        loginStatus.innerHTML = '⌫ Popup blocked. Please allow popups and <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">try again</button>';
+                        loginStatus.innerHTML = '❌ Popup blocked. Please allow popups and <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">try again</button>';
                     }
                 } else if (error.code === 'auth/cancelled-popup-request') {
                     if (loginStatus) {
@@ -1273,7 +1311,7 @@
                     // Don't show an error for this one, just wait
                 } else {
                     if (loginStatus) {
-                        loginStatus.innerHTML = `⌫ Sign in failed: ${error.message}. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>`;
+                        loginStatus.innerHTML = `❌ Sign in failed: ${error.message}. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>`;
                     }
                 }
             }
@@ -1980,7 +2018,8 @@
             }
         }
 
-        function getGateDecision(roas, spend, lastTestDate) {
+        // NEW SOPHISTICATED NEXT ACTION LOGIC
+        function getNextAction(roas, spend, lastTestDate, creativeGroup) {
             // Parse MM/YYYY format and compare with 6 months ago
             const sixMonthsAgo = new Date();
             sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -1988,74 +2027,68 @@
             let testDate = sixMonthsAgo; // Default to old date if parsing fails
             const dateParts = lastTestDate.split('/');
             if (dateParts.length === 2) {
-                const month = parseInt(dateParts[0]) - 1; // Month is 0-indexed
+                const month = parseInt(dateParts[0]) - 1;
                 const year = parseInt(dateParts[1]);
-                testDate = new Date(year, month, 1); // First day of the month
+                testDate = new Date(year, month, 1);
             }
             
             const isOldTest = testDate < sixMonthsAgo;
             
-            // Gate decisions based on spend thresholds
-            if (spend >= 3000) {
-                // Mature Scale decisions
-                if (roas >= 1.2) return { text: 'Scale Further', class: 'gate-scale' };
-                if (roas >= 1.0) return { text: 'Cap Here', class: 'gate-maintain' };
-                return { text: 'Phase Out', class: 'gate-phase-out' };
-            } else if (spend >= 1000) {
-                // Proven Scale decisions
-                if (roas >= 1.3) return { text: 'Scale to $3K', class: 'gate-scale' };
-                if (roas >= 1.0) return { text: 'Cap at $1K', class: 'gate-maintain' };
-                return { text: 'Kill', class: 'gate-kill' };
-            } else if (spend >= 300) {
-                // Early Scale decisions (at $300 gate)
-                if (roas >= 1.3) return { text: 'Scale to $1K', class: 'gate-scale' };
-                if (roas >= 1.0) return { text: 'Maintain $300', class: 'gate-maintain' };
-                return { text: 'Kill', class: 'gate-kill' };
-            } else if (spend >= 100) {
-                // Testing to Validation gate (at $100 gate)
-                if (isOldTest) return { text: 'Retest First', class: 'gate-needs-creative' };
-                if (roas >= 1.5) return { text: 'Fast Track', class: 'gate-fast-track' };
-                if (roas >= 1.2) return { text: 'Continue to $300', class: 'gate-continue' };
-                if (roas >= 1.0) return { text: 'Needs New Creative', class: 'gate-needs-creative' };
-                return { text: 'Kill', class: 'gate-kill' };
-            } else {
-                // Under $100 - still testing
-                if (isOldTest) return { text: 'Retest', class: 'gate-needs-creative' };
-                return { text: 'Continue Testing', class: 'gate-continue' };
+            // Calculate optimization opportunity for hooks with multiple creatives
+            let hasOptimizationOpportunity = false;
+            let bestCreativeROAS = roas;
+            
+            if (creativeGroup && creativeGroup.creatives && creativeGroup.creatives.length > 1) {
+                const creativeROASValues = creativeGroup.creatives.map(c => c.overallROAS).sort((a, b) => b - a);
+                bestCreativeROAS = creativeROASValues[0];
+                
+                // Check if there's a significant gap between best and overall
+                if (bestCreativeROAS - roas > 0.3) {
+                    hasOptimizationOpportunity = true;
+                }
             }
-        }
 
-        function getActionItem(roas, spend, lastTestDate, scaleEfficiency) {
-            // Parse MM/YYYY format and compare with 6 months ago
-            const sixMonthsAgo = new Date();
-            sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-            
-            let testDate = sixMonthsAgo; // Default to old date if parsing fails
-            const dateParts = lastTestDate.split('/');
-            if (dateParts.length === 2) {
-                const month = parseInt(dateParts[0]) - 1; // Month is 0-indexed
-                const year = parseInt(dateParts[1]);
-                testDate = new Date(year, month, 1); // First day of the month
+            // UNDER $100 GATE
+            if (spend < 100) {
+                if (isOldTest) return { text: '🟡 Test New Creative', class: 'action-test-creative' };
+                if (roas >= 1.5) return { text: '🟢 Scale NOW', class: 'action-scale-now' };
+                if (roas >= 1.2) return { text: '🔵 Continue to $300', class: 'action-continue' };
+                if (roas >= 1.0) return { text: '🟡 Test New Creative', class: 'action-test-creative' };
+                return { text: '🔴 Kill', class: 'action-kill' };
             }
             
-            if (spend < 300 || testDate < sixMonthsAgo) {
-                return { text: 'Retest', class: 'action-retest' };
+            // AT $300 GATE (Validation → Early Scale)
+            if (spend >= 100 && spend < 1000) {
+                if (roas >= 1.3) return { text: '🔵 Scale to $1K', class: 'action-scale-further' };
+                if (roas >= 1.0) return { text: '🟡 Test New Creative', class: 'action-test-creative' };
+                return { text: '🔴 Kill', class: 'action-kill' };
             }
-            
-            if (roas < 1.0 && spend >= 300) {
-                return { text: 'Kill', class: 'action-kill' };
+
+            // AT $1000+ GATE (Proven Scale Gates)
+            if (spend >= 1000) {
+                // Check for optimization opportunity first
+                if (hasOptimizationOpportunity && bestCreativeROAS > 1.5) {
+                    return { text: '🟣 Scale + Optimize', class: 'action-scale-optimize' };
+                }
+                
+                // Scale Further conditions
+                if (roas >= 1.3 || (roas >= 1.1 && bestCreativeROAS > 1.5)) {
+                    return { text: '🔵 Scale Further', class: 'action-scale-further' };
+                }
+                
+                // Cap Here conditions
+                if ((roas >= 1.1 && roas < 1.3) || (roas < 1.1 && bestCreativeROAS > 1.3)) {
+                    return { text: '⚪ Cap Here', class: 'action-cap-here' };
+                }
+                
+                // Phase Out conditions
+                if (roas < 1.1 && bestCreativeROAS <= 1.3) {
+                    return { text: '🟠 Phase Out', class: 'action-phase-out' };
+                }
             }
-            
-            const efficiencyScore = isNaN(scaleEfficiency) ? 0 : scaleEfficiency;
-            if (roas >= 1.2 && efficiencyScore > 0.6) {
-                return { text: 'Scale', class: 'action-scale' };
-            }
-            
-            if (roas >= 1.0 && roas < 1.2) {
-                return { text: 'Maintain', class: 'action-maintain' };
-            }
-            
-            return { text: 'Monitor', class: 'action-maintain' };
+
+            // Default fallback
+            return { text: '🔵 Continue', class: 'action-continue' };
         }
 
         function renderHooks() {
@@ -2123,9 +2156,7 @@
 
                 const performance = getPerformanceLevel(totalSpend, group.testDate);
                 const dynamicEff = getDynamicEfficiency(aggregatedHook);
-                const gateDecision = getGateDecision(overallROAS, totalSpend, group.testDate);
-                const scaleEfficiencyScore = dynamicEff.value;
-                const actionItem = getActionItem(overallROAS, totalSpend, group.testDate, scaleEfficiencyScore);
+                const nextAction = getNextAction(overallROAS, totalSpend, group.testDate, group);
                 const milestoneData = getMilestoneDisplay(aggregatedHook);
 
                 // Find best performing creative
@@ -2163,8 +2194,7 @@
                             ${dynamicEff.text}
                         </span>
                     </td>
-                    <td><span class="gate-decision ${gateDecision.class}">${gateDecision.text}</span></td>
-                    <td><span class="action-item ${actionItem.class}">${actionItem.text}</span></td>
+                    <td><span class="next-action ${nextAction.class}">${nextAction.text}</span></td>
                     <td style="font-family: monospace; font-size: 12px;">
                         ${group.creatives.length} creative${group.creatives.length !== 1 ? 's' : ''}
                         <div class="creative-count" style="font-size: 11px; color: #666; margin-top: 2px;">
@@ -2173,7 +2203,7 @@
                     </td>
                     <td>
                         <button class="btn btn-info btn-sm" onclick="editHookGroup('${key}')">✏️ Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">⌫ Delete</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">❌ Delete</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -2195,13 +2225,13 @@
                         <td>$${creative.totalRevenue.toFixed(2)}</td>
                         <td>${creative.purchases}</td>
                         <td><strong>${creative.overallROAS.toFixed(2)}</strong></td>
-                        <td colspan="5" style="font-size: 12px; color: #666;">
+                        <td colspan="4" style="font-size: 12px; color: #666;">
                             Creative performance details
                         </td>
                         <td style="font-family: monospace; font-size: 11px; word-break: break-all; white-space: normal;">${creative.creativeId}</td>
                         <td>
                             <button class="btn btn-info btn-xs" onclick="editHook(${hooks.indexOf(creative)})">✏️</button>
-                            <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">⌫</button>
+                            <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">❌</button>
                         </td>
                     `;
                     tbody.appendChild(detailRow);
@@ -2232,7 +2262,7 @@
                     <td>${bestHook ? `${bestHook.hookName.substring(0, 50)}... (ROAS: ${bestHook.overallROAS.toFixed(2)})` : 'None'}</td>
                     <td>
                         <button class="btn btn-info btn-sm" onclick="editBookTitle('${book}')">✏️ Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteBook('${book}')">⌫ Delete</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteBook('${book}')">❌ Delete</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -2343,14 +2373,13 @@
 
         function exportData() {
             const csvContent = "data:text/csv;charset=utf-8," + 
-                "Book,Hook Name,Test Month/Year,Total Spend,Total Revenue,Purchases,Overall ROAS,Performance Level,ROAS @$100,ROAS @$300,ROAS @$1000,ROAS @$3000,Scale Efficiency,Action Item,Creatives Count,Creative ID\n" +
+                "Book,Hook Name,Test Month/Year,Total Spend,Total Revenue,Purchases,Overall ROAS,Performance Level,ROAS @$100,ROAS @$300,ROAS @$1000,ROAS @$3000,Scale Efficiency,Next Action,Creatives Count,Creative ID\n" +
                 hooks.map(hook => {
                     const performance = getPerformanceLevel(hook.totalSpend, hook.testDate);
-                    const scaleEff = getScaleEfficiency(hook.roasAt100, hook.roasAt1000);
-                    const scaleEfficiencyScore = hook.roasAt100 > 0 && hook.roasAt1000 > 0 ? hook.roasAt1000 / hook.roasAt100 : 0;
-                    const actionItem = getActionItem(hook.overallROAS, hook.totalSpend, hook.testDate, scaleEfficiencyScore);
+                    const scaleEff = getDynamicEfficiency(hook);
+                    const nextAction = getNextAction(hook.overallROAS, hook.totalSpend, hook.testDate);
                     
-                    return `"${hook.book}","${hook.hookName.replace(/"/g, '""')}","${hook.testDate}",${hook.totalSpend},${hook.totalRevenue},${hook.purchases},${hook.overallROAS.toFixed(2)},"${performance.text}",${hook.roasAt100 > 0 ? hook.roasAt100.toFixed(2) : 'N/A'},${hook.roasAt300 > 0 ? hook.roasAt300.toFixed(2) : 'N/A'},${hook.roasAt1000 > 0 ? hook.roasAt1000.toFixed(2) : 'N/A'},${hook.roasAt3000 > 0 ? hook.roasAt3000.toFixed(2) : 'N/A'},"${scaleEff.text}","${actionItem.text}",${hook.creativesCount},"${hook.creativeId || ''}"`;
+                    return `"${hook.book}","${hook.hookName.replace(/"/g, '""')}","${hook.testDate}",${hook.totalSpend},${hook.totalRevenue},${hook.purchases},${hook.overallROAS.toFixed(2)},"${performance.text}",${hook.roasAt100 > 0 ? hook.roasAt100.toFixed(2) : 'N/A'},${hook.roasAt300 > 0 ? hook.roasAt300.toFixed(2) : 'N/A'},${hook.roasAt1000 > 0 ? hook.roasAt1000.toFixed(2) : 'N/A'},${hook.roasAt3000 > 0 ? hook.roasAt3000.toFixed(2) : 'N/A'},"${scaleEff.text}","${nextAction.text}",${hook.creativesCount},"${hook.creativeId || ''}"`;
                 }).join("\n");
 
             const encodedUri = encodeURI(csvContent);
