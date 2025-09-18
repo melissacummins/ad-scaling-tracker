@@ -258,14 +258,16 @@
             background: #f8f9fa !important;
             font-weight: 600;
             color: #333;
-            padding: 12px;
+            padding: 8px 4px; /* Reduced padding to fit more text */
             text-align: center;
             border-bottom: 3px solid #667eea !important;
-            font-size: 14px;
+            font-size: 12px; /* Slightly smaller font */
             vertical-align: middle;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
-            white-space: nowrap;
-            overflow: visible; /* Allow text to show fully */
+            white-space: normal; /* Allow text wrapping */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            line-height: 1.2; /* Tighter line height */
         }
 
         /* Left align specific header columns */
@@ -274,20 +276,20 @@
             text-align: left;
         }
 
-        /* Set specific column widths to match data table - increased widths */
-        .header-table th:nth-child(1) { width: 10%; }  /* Book */
-        .header-table th:nth-child(2) { width: 15%; }  /* Hook */
-        .header-table th:nth-child(3) { width: 8%; }   /* Test Month/Year */
-        .header-table th:nth-child(4) { width: 8%; }   /* Total Spend */
-        .header-table th:nth-child(5) { width: 8%; }   /* Total Revenue */
-        .header-table th:nth-child(6) { width: 6%; }   /* Purchases */
-        .header-table th:nth-child(7) { width: 7%; }   /* Overall ROAS */
-        .header-table th:nth-child(8) { width: 10%; }  /* Performance Level */
-        .header-table th:nth-child(9) { width: 10%; }  /* ROAS Milestones */
-        .header-table th:nth-child(10) { width: 8%; }  /* Scale Efficiency */
-        .header-table th:nth-child(11) { width: 6%; }  /* Action Item */
-        .header-table th:nth-child(12) { width: 8%; }  /* Creative ID */
-        .header-table th:nth-child(13) { width: 6%; }  /* Actions */
+        /* Set specific column widths to match data table - wider columns to prevent overlap */
+        .header-table th:nth-child(1) { width: 12%; }  /* Book */
+        .header-table th:nth-child(2) { width: 18%; }  /* Hook */
+        .header-table th:nth-child(3) { width: 9%; }   /* Test Month/Year */
+        .header-table th:nth-child(4) { width: 9%; }   /* Total Spend */
+        .header-table th:nth-child(5) { width: 9%; }   /* Total Revenue */
+        .header-table th:nth-child(6) { width: 7%; }   /* Purchases */
+        .header-table th:nth-child(7) { width: 8%; }   /* Overall ROAS */
+        .header-table th:nth-child(8) { width: 12%; }  /* Performance Level */
+        .header-table th:nth-child(9) { width: 12%; }  /* ROAS Milestones */
+        .header-table th:nth-child(10) { width: 10%; } /* Scale Efficiency */
+        .header-table th:nth-child(11) { width: 8%; }  /* Action Item */
+        .header-table th:nth-child(12) { width: 10%; } /* Creative ID */
+        .header-table th:nth-child(13) { width: 8%; }  /* Actions */
 
         /* TABLE SPECIFIC STYLES */
         .data-table {
@@ -304,14 +306,14 @@
 
         .data-table th,
         .data-table td {
-            padding: 12px;
+            padding: 12px 4px; /* Match header padding */
             text-align: center;
             border-bottom: 1px solid #e0e0e0;
-            font-size: 14px;
+            font-size: 13px; /* Slightly smaller font */
             vertical-align: middle;
             position: static !important;
             white-space: nowrap;
-            overflow: visible; /* Allow text to show fully */
+            overflow: hidden;
             text-overflow: ellipsis;
         }
 
@@ -329,33 +331,33 @@
             white-space: normal; /* Allow wrapping for book and hook names */
         }
 
-        /* Set specific column widths to match header table - increased widths */
+        /* Set specific column widths to match header table - wider columns to prevent overlap */
         .data-table th:nth-child(1),
-        .data-table td:nth-child(1) { width: 10%; }  /* Book */
+        .data-table td:nth-child(1) { width: 12%; }  /* Book */
         .data-table th:nth-child(2),
-        .data-table td:nth-child(2) { width: 15%; }  /* Hook */
+        .data-table td:nth-child(2) { width: 18%; }  /* Hook */
         .data-table th:nth-child(3),
-        .data-table td:nth-child(3) { width: 8%; }   /* Test Month/Year */
+        .data-table td:nth-child(3) { width: 9%; }   /* Test Month/Year */
         .data-table th:nth-child(4),
-        .data-table td:nth-child(4) { width: 8%; }   /* Total Spend */
+        .data-table td:nth-child(4) { width: 9%; }   /* Total Spend */
         .data-table th:nth-child(5),
-        .data-table td:nth-child(5) { width: 8%; }   /* Total Revenue */
+        .data-table td:nth-child(5) { width: 9%; }   /* Total Revenue */
         .data-table th:nth-child(6),
-        .data-table td:nth-child(6) { width: 6%; }   /* Purchases */
+        .data-table td:nth-child(6) { width: 7%; }   /* Purchases */
         .data-table th:nth-child(7),
-        .data-table td:nth-child(7) { width: 7%; }   /* Overall ROAS */
+        .data-table td:nth-child(7) { width: 8%; }   /* Overall ROAS */
         .data-table th:nth-child(8),
-        .data-table td:nth-child(8) { width: 10%; }  /* Performance Level */
+        .data-table td:nth-child(8) { width: 12%; }  /* Performance Level */
         .data-table th:nth-child(9),
-        .data-table td:nth-child(9) { width: 10%; }  /* ROAS Milestones */
+        .data-table td:nth-child(9) { width: 12%; }  /* ROAS Milestones */
         .data-table th:nth-child(10),
-        .data-table td:nth-child(10) { width: 8%; }  /* Scale Efficiency */
+        .data-table td:nth-child(10) { width: 10%; } /* Scale Efficiency */
         .data-table th:nth-child(11),
-        .data-table td:nth-child(11) { width: 6%; }  /* Action Item */
+        .data-table td:nth-child(11) { width: 8%; }  /* Action Item */
         .data-table th:nth-child(12),
-        .data-table td:nth-child(12) { width: 8%; }  /* Creative ID */
+        .data-table td:nth-child(12) { width: 10%; } /* Creative ID */
         .data-table th:nth-child(13),
-        .data-table td:nth-child(13) { width: 6%; }  /* Actions */
+        .data-table td:nth-child(13) { width: 8%; }  /* Actions */
 
         .performance-badge {
             padding: 4px 8px;
@@ -674,7 +676,7 @@
                     <input type="file" id="csvImport" accept=".csv,.xlsx,.xls" onchange="importData(event)">
                     <label for="csvImport" class="file-upload-label">📤 Import CSV/Excel</label>
                 </div>
-                <button class="btn btn-warning" onclick="clearAllData()">⌫ Clear All Data</button>
+                <button class="btn btn-warning" onclick="clearAllData()">❌ Clear All Data</button>
             </div>
 
             <!-- Edit Form (Hidden by default) -->
@@ -723,7 +725,7 @@
                 </div>
                 <div style="text-align: center;">
                     <button class="btn btn-success" onclick="saveEdit()">💾 Save Changes</button>
-                    <button class="btn btn-secondary" onclick="cancelEdit()">⌫ Cancel</button>
+                    <button class="btn btn-secondary" onclick="cancelEdit()">❌ Cancel</button>
                 </div>
             </div>
 
@@ -1262,11 +1264,11 @@
                 
                 if (error.code === 'auth/popup-closed-by-user') {
                     if (loginStatus) {
-                        loginStatus.innerHTML = '⌫ Sign-in popup was closed. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>';
+                        loginStatus.innerHTML = '❌ Sign-in popup was closed. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>';
                     }
                 } else if (error.code === 'auth/popup-blocked') {
                     if (loginStatus) {
-                        loginStatus.innerHTML = '⌫ Popup blocked. Please allow popups and <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">try again</button>';
+                        loginStatus.innerHTML = '❌ Popup blocked. Please allow popups and <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">try again</button>';
                     }
                 } else if (error.code === 'auth/cancelled-popup-request') {
                     if (loginStatus) {
@@ -1275,7 +1277,7 @@
                     // Don't show an error for this one, just wait
                 } else {
                     if (loginStatus) {
-                        loginStatus.innerHTML = `⌫ Sign in failed: ${error.message}. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>`;
+                        loginStatus.innerHTML = `❌ Sign in failed: ${error.message}. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>`;
                     }
                 }
             }
@@ -2104,7 +2106,7 @@
                     </td>
                     <td>
                         <button class="btn btn-info btn-sm" onclick="editHookGroup('${key}')">✏️ Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">⌫ Delete</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">❌ Delete</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -2132,7 +2134,7 @@
                         <td style="font-family: monospace; font-size: 11px;">${creative.creativeId}</td>
                         <td>
                             <button class="btn btn-info btn-xs" onclick="editHook(${hooks.indexOf(creative)})">✏️</button>
-                            <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">⌫</button>
+                            <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">❌</button>
                         </td>
                     `;
                     tbody.appendChild(detailRow);
@@ -2163,7 +2165,7 @@
                     <td>${bestHook ? `${bestHook.hookName.substring(0, 50)}... (ROAS: ${bestHook.overallROAS.toFixed(2)})` : 'None'}</td>
                     <td>
                         <button class="btn btn-info btn-sm" onclick="editBookTitle('${book}')">✏️ Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteBook('${book}')">⌫ Delete</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteBook('${book}')">❌ Delete</button>
                     </td>
                 `;
                 tbody.appendChild(row);
