@@ -1155,11 +1155,17 @@
                 const currentSpend = existingHook.totalSpend;
                 const currentROAS = existingHook.overallROAS;
                 
+                console.log(`🔍 ADD TO EXISTING DEBUG:`);
+                console.log(`  Before update - Spend: ${currentSpend.toFixed(2)}, ROAS: ${currentROAS.toFixed(2)}`);
+                console.log(`  Adding - Spend: ${additionalSpend.toFixed(2)}, Revenue: ${additionalRevenue.toFixed(2)}`);
+                
                 // Update totals
                 existingHook.totalSpend += additionalSpend;
                 existingHook.totalRevenue += additionalRevenue;
                 existingHook.purchases += additionalPurchases;
                 existingHook.overallROAS = existingHook.totalSpend > 0 ? existingHook.totalRevenue / existingHook.totalSpend : 0;
+                
+                console.log(`  After update - Spend: ${existingHook.totalSpend.toFixed(2)}, ROAS: ${existingHook.overallROAS.toFixed(2)}`);
                 
                 // FIXED MILESTONE TRACKING: Record ROAS at the exact moment we cross thresholds
                 recordMilestoneROAS(existingHook, currentSpend, currentROAS);
@@ -1207,6 +1213,19 @@
             const newSpend = hook.totalSpend;
             const currentROAS = hook.overallROAS;
             
+            console.log(`🔍 MILESTONE DEBUG START:`);
+            console.log(`  Hook: ${hook.hookName}`);
+            console.log(`  Previous Spend: ${previousSpend.toFixed(2)}`);
+            console.log(`  New Spend: ${newSpend.toFixed(2)}`);
+            console.log(`  Previous ROAS: ${previousROAS.toFixed(2)}`);
+            console.log(`  Current ROAS: ${currentROAS.toFixed(2)}`);
+            console.log(`  Current milestones:`, {
+                roasAt100: hook.roasAt100,
+                roasAt300: hook.roasAt300,
+                roasAt1000: hook.roasAt1000,
+                roasAt3000: hook.roasAt3000
+            });
+            
             // Check each milestone threshold
             const milestones = [
                 { threshold: 100, field: 'roasAt100' },
@@ -1216,28 +1235,46 @@
             ];
             
             milestones.forEach(milestone => {
-                // FIXED: Removed the "=== 0" check to allow milestone updates
-                if (previousSpend < milestone.threshold && newSpend >= milestone.threshold) {
-                    
-                    // Calculate what the ROAS was at the exact threshold crossing point
-                    // If we went from $80 to $120, and threshold is $100, we need ROAS at exactly $100
+                console.log(`  Checking ${milestone.field} (threshold: ${milestone.threshold})`);
+                console.log(`    Previous < threshold? ${previousSpend} < ${milestone.threshold} = ${previousSpend < milestone.threshold}`);
+                console.log(`    New >= threshold? ${newSpend} >= ${milestone.threshold} = ${newSpend >= milestone.threshold}`);
+                
+                // ALWAYS update milestones when we have spend >= threshold
+                if (newSpend >= milestone.threshold) {
                     let roasAtThreshold;
                     
-                    if (previousSpend === 0) {
-                        // First entry that crosses threshold - use current ROAS
-                        roasAtThreshold = currentROAS;
+                    if (previousSpend < milestone.threshold) {
+                        // We just crossed this threshold
+                        if (previousSpend === 0) {
+                            // First entry that crosses threshold - use current ROAS
+                            roasAtThreshold = currentROAS;
+                            console.log(`    ✅ First entry crossing ${milestone.threshold}: Using current ROAS ${roasAtThreshold.toFixed(2)}`);
+                        } else {
+                            // Interpolate ROAS at the exact threshold point
+                            const spendDiff = newSpend - previousSpend;
+                            const roasDiff = currentROAS - previousROAS;
+                            const thresholdProgress = (milestone.threshold - previousSpend) / spendDiff;
+                            roasAtThreshold = previousROAS + (roasDiff * thresholdProgress);
+                            console.log(`    ✅ Interpolating for ${milestone.threshold}: ${roasAtThreshold.toFixed(2)} (progress: ${thresholdProgress.toFixed(2)})`);
+                        }
                     } else {
-                        // Interpolate ROAS at the exact threshold point
-                        const spendDiff = newSpend - previousSpend;
-                        const roasDiff = currentROAS - previousROAS;
-                        const thresholdProgress = (milestone.threshold - previousSpend) / spendDiff;
-                        roasAtThreshold = previousROAS + (roasDiff * thresholdProgress);
+                        // We already passed this threshold, update with current ROAS
+                        roasAtThreshold = currentROAS;
+                        console.log(`    ✅ Already past threshold ${milestone.threshold}: Updating to current ROAS ${roasAtThreshold.toFixed(2)}`);
                     }
                     
                     hook[milestone.field] = roasAtThreshold;
-                    
-                    console.log(`🎯 Updated milestone: ${milestone.field} = ${roasAtThreshold.toFixed(2)} (spend went from ${previousSpend.toFixed(2)} to ${newSpend.toFixed(2)})`);
+                    console.log(`    🎯 SET ${milestone.field} = ${roasAtThreshold.toFixed(2)}`);
+                } else {
+                    console.log(`    ❌ Spend ${newSpend} below threshold ${milestone.threshold}, skipping`);
                 }
+            });
+            
+            console.log(`🔍 MILESTONE DEBUG END - Final milestones:`, {
+                roasAt100: hook.roasAt100,
+                roasAt300: hook.roasAt300,
+                roasAt1000: hook.roasAt1000,
+                roasAt3000: hook.roasAt3000
             });
         }
 
