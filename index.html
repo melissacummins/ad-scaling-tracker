@@ -760,7 +760,7 @@
                     <input type="file" id="csvImport" accept=".csv,.xlsx,.xls" onchange="importData(event)">
                     <label for="csvImport" class="file-upload-label">📤 Import CSV/Excel</label>
                 </div>
-                <button class="btn btn-warning" onclick="clearAllData()">⌫ Clear All Data</button>
+                <button class="btn btn-warning" onclick="clearAllData()">❌ Clear All Data</button>
             </div>
 
             <!-- Edit Form (Hidden by default) -->
@@ -809,7 +809,7 @@
                 </div>
                 <div style="text-align: center;">
                     <button class="btn btn-success" onclick="saveEdit()">💾 Save Changes</button>
-                    <button class="btn btn-secondary" onclick="cancelEdit()">⌫ Cancel</button>
+                    <button class="btn btn-secondary" onclick="cancelEdit()">❌ Cancel</button>
                 </div>
             </div>
 
@@ -1208,7 +1208,7 @@
             }
         }
 
-        // FIXED FUNCTION: Record milestone ROAS at the exact moment thresholds are crossed
+        // FIXED FUNCTION: Record milestone ROAS ONLY when crossing thresholds for the first time
         function recordMilestoneROAS(hook, previousSpend, previousROAS) {
             const newSpend = hook.totalSpend;
             const currentROAS = hook.overallROAS;
@@ -1238,35 +1238,31 @@
                 console.log(`  Checking ${milestone.field} (threshold: ${milestone.threshold})`);
                 console.log(`    Previous < threshold? ${previousSpend} < ${milestone.threshold} = ${previousSpend < milestone.threshold}`);
                 console.log(`    New >= threshold? ${newSpend} >= ${milestone.threshold} = ${newSpend >= milestone.threshold}`);
+                console.log(`    Already has milestone? ${hook[milestone.field]} > 0 = ${hook[milestone.field] > 0}`);
                 
-                // ALWAYS update milestones when we have spend >= threshold
-                if (newSpend >= milestone.threshold) {
+                // ONLY set milestone if we're crossing the threshold AND don't already have a value
+                if (newSpend >= milestone.threshold && previousSpend < milestone.threshold && hook[milestone.field] === 0) {
                     let roasAtThreshold;
                     
-                    if (previousSpend < milestone.threshold) {
-                        // We just crossed this threshold
-                        if (previousSpend === 0) {
-                            // First entry that crosses threshold - use current ROAS
-                            roasAtThreshold = currentROAS;
-                            console.log(`    ✅ First entry crossing ${milestone.threshold}: Using current ROAS ${roasAtThreshold.toFixed(2)}`);
-                        } else {
-                            // Interpolate ROAS at the exact threshold point
-                            const spendDiff = newSpend - previousSpend;
-                            const roasDiff = currentROAS - previousROAS;
-                            const thresholdProgress = (milestone.threshold - previousSpend) / spendDiff;
-                            roasAtThreshold = previousROAS + (roasDiff * thresholdProgress);
-                            console.log(`    ✅ Interpolating for ${milestone.threshold}: ${roasAtThreshold.toFixed(2)} (progress: ${thresholdProgress.toFixed(2)})`);
-                        }
-                    } else {
-                        // We already passed this threshold, update with current ROAS
+                    if (previousSpend === 0) {
+                        // First entry that crosses threshold - use current ROAS
                         roasAtThreshold = currentROAS;
-                        console.log(`    ✅ Already past threshold ${milestone.threshold}: Updating to current ROAS ${roasAtThreshold.toFixed(2)}`);
+                        console.log(`    ✅ First entry crossing ${milestone.threshold}: Using current ROAS ${roasAtThreshold.toFixed(2)}`);
+                    } else {
+                        // Interpolate ROAS at the exact threshold point
+                        const spendDiff = newSpend - previousSpend;
+                        const roasDiff = currentROAS - previousROAS;
+                        const thresholdProgress = (milestone.threshold - previousSpend) / spendDiff;
+                        roasAtThreshold = previousROAS + (roasDiff * thresholdProgress);
+                        console.log(`    ✅ Interpolating for ${milestone.threshold}: ${roasAtThreshold.toFixed(2)} (progress: ${thresholdProgress.toFixed(2)})`);
                     }
                     
                     hook[milestone.field] = roasAtThreshold;
-                    console.log(`    🎯 SET ${milestone.field} = ${roasAtThreshold.toFixed(2)}`);
+                    console.log(`    🎯 SET ${milestone.field} = ${roasAtThreshold.toFixed(2)} (HISTORICAL VALUE LOCKED)`);
+                } else if (hook[milestone.field] > 0) {
+                    console.log(`    🔒 PRESERVING existing ${milestone.field} = ${hook[milestone.field].toFixed(2)} (historical value)`);
                 } else {
-                    console.log(`    ❌ Spend ${newSpend} below threshold ${milestone.threshold}, skipping`);
+                    console.log(`    ❌ Not crossing threshold or already have value, skipping`);
                 }
             });
             
@@ -1469,11 +1465,11 @@
                 
                 if (error.code === 'auth/popup-closed-by-user') {
                     if (loginStatus) {
-                        loginStatus.innerHTML = '⌫ Sign-in popup was closed. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>';
+                        loginStatus.innerHTML = '❌ Sign-in popup was closed. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>';
                     }
                 } else if (error.code === 'auth/popup-blocked') {
                     if (loginStatus) {
-                        loginStatus.innerHTML = '⌫ Popup blocked. Please allow popups and <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">try again</button>';
+                        loginStatus.innerHTML = '❌ Popup blocked. Please allow popups and <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">try again</button>';
                     }
                 } else if (error.code === 'auth/cancelled-popup-request') {
                     if (loginStatus) {
@@ -1482,7 +1478,7 @@
                     // Don't show an error for this one, just wait
                 } else {
                     if (loginStatus) {
-                        loginStatus.innerHTML = `⌫ Sign in failed: ${error.message}. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>`;
+                        loginStatus.innerHTML = `❌ Sign in failed: ${error.message}. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>`;
                     }
                 }
             }
@@ -2453,7 +2449,7 @@
                     </td>
                     <td>
                         <button class="btn btn-info btn-sm" onclick="editHookGroup('${key}')">✏️ Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">⌫ Delete</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">❌ Delete</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -2481,7 +2477,7 @@
                         <td style="font-family: monospace; font-size: 11px; word-break: break-all; white-space: normal;">${creative.creativeId}</td>
                         <td>
                             <button class="btn btn-info btn-xs" onclick="editHook(${hooks.indexOf(creative)})">✏️</button>
-                            <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">⌫</button>
+                            <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">❌</button>
                         </td>
                     `;
                     tbody.appendChild(detailRow);
@@ -2515,7 +2511,7 @@
                     <td>${bestHook ? `${bestHook.hookName.substring(0, 50)}... (ROAS: ${bestHook.overallROAS.toFixed(2)})` : 'None'}</td>
                     <td>
                         <button class="btn btn-info btn-sm" onclick="editBookTitle('${book}')">✏️ Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteBook('${book}')">⌫ Delete</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteBook('${book}')">❌ Delete</button>
                     </td>
                 `;
                 tbody.appendChild(row);
