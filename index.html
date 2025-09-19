@@ -675,7 +675,7 @@
                     Sign in with your Google account to get started.
                 </p>
                 <button id="loginButton" class="btn btn-primary" style="font-size: 18px; padding: 15px 30px;">
-                    🔐 Sign in with Google
+                    🔑 Sign in with Google
                 </button>
                 <div id="loginStatus" style="margin-top: 20px; color: #666;"></div>
             </div>
@@ -1202,7 +1202,7 @@
             }
         }
 
-        // NEW FUNCTION: Record milestone ROAS at the exact moment thresholds are crossed
+        // FIXED FUNCTION: Record milestone ROAS at the exact moment thresholds are crossed
         function recordMilestoneROAS(hook, previousSpend, previousROAS) {
             const newSpend = hook.totalSpend;
             const currentROAS = hook.overallROAS;
@@ -1221,11 +1221,24 @@
                     newSpend >= milestone.threshold && 
                     hook[milestone.field] === 0) {
                     
-                    // Record the ROAS from when we first hit this spend level
-                    // Use previous ROAS since that was the performance at threshold crossing
-                    hook[milestone.field] = previousROAS;
+                    // Calculate what the ROAS was at the exact threshold crossing point
+                    // If we went from $80 to $120, and threshold is $100, we need ROAS at exactly $100
+                    let roasAtThreshold;
                     
-                    console.log(`📊 Recorded milestone: ${milestone.field} = ${previousROAS.toFixed(2)} (was ${previousSpend.toFixed(2)}, now ${newSpend.toFixed(2)})`);
+                    if (previousSpend === 0) {
+                        // First entry that crosses threshold - use current ROAS
+                        roasAtThreshold = currentROAS;
+                    } else {
+                        // Interpolate ROAS at the exact threshold point
+                        const spendDiff = newSpend - previousSpend;
+                        const roasDiff = currentROAS - previousROAS;
+                        const thresholdProgress = (milestone.threshold - previousSpend) / spendDiff;
+                        roasAtThreshold = previousROAS + (roasDiff * thresholdProgress);
+                    }
+                    
+                    hook[milestone.field] = roasAtThreshold;
+                    
+                    console.log(`🎯 Recorded milestone: ${milestone.field} = ${roasAtThreshold.toFixed(2)} (spend went from ${previousSpend.toFixed(2)} to ${newSpend.toFixed(2)})`);
                 }
             });
         }
