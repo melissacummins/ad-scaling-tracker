@@ -675,7 +675,7 @@
                     Sign in with your Google account to get started.
                 </p>
                 <button id="loginButton" class="btn btn-primary" style="font-size: 18px; padding: 15px 30px;">
-                    🔑 Sign in with Google
+                    🔐 Sign in with Google
                 </button>
                 <div id="loginStatus" style="margin-top: 20px; color: #666;"></div>
             </div>
@@ -760,7 +760,7 @@
                     <input type="file" id="csvImport" accept=".csv,.xlsx,.xls" onchange="importData(event)">
                     <label for="csvImport" class="file-upload-label">📤 Import CSV/Excel</label>
                 </div>
-                <button class="btn btn-warning" onclick="clearAllData()">❌ Clear All Data</button>
+                <button class="btn btn-warning" onclick="clearAllData()">⌫ Clear All Data</button>
             </div>
 
             <!-- Edit Form (Hidden by default) -->
@@ -809,7 +809,7 @@
                 </div>
                 <div style="text-align: center;">
                     <button class="btn btn-success" onclick="saveEdit()">💾 Save Changes</button>
-                    <button class="btn btn-secondary" onclick="cancelEdit()">❌ Cancel</button>
+                    <button class="btn btn-secondary" onclick="cancelEdit()">⌫ Cancel</button>
                 </div>
             </div>
 
@@ -1274,43 +1274,41 @@
             });
         }
 
-        // FIXED: New function to calculate group-level milestones
+        // FIXED: New function to calculate group-level milestones - PRESERVES EXISTING VALUES
         function calculateGroupMilestones(group, totalSpend, overallROAS) {
             console.log(`🎯 GROUP MILESTONE CALCULATION START:`);
             console.log(`  Group: ${group.book} -> ${group.hookName}`);
             console.log(`  Total Group Spend: ${totalSpend.toFixed(2)}`);
             console.log(`  Total Group ROAS: ${overallROAS.toFixed(2)}`);
             
-            // Initialize group milestones object
+            // Find the best milestone values from all creatives in this group
+            let bestRoasAt100 = 0, bestRoasAt300 = 0, bestRoasAt1000 = 0, bestRoasAt3000 = 0;
+            
+            group.creatives.forEach(creative => {
+                if (creative.roasAt100 > bestRoasAt100) bestRoasAt100 = creative.roasAt100;
+                if (creative.roasAt300 > bestRoasAt300) bestRoasAt300 = creative.roasAt300;
+                if (creative.roasAt1000 > bestRoasAt1000) bestRoasAt1000 = creative.roasAt1000;
+                if (creative.roasAt3000 > bestRoasAt3000) bestRoasAt3000 = creative.roasAt3000;
+            });
+            
+            console.log(`  📊 Best milestones from group creatives:`, {
+                roasAt100: bestRoasAt100,
+                roasAt300: bestRoasAt300, 
+                roasAt1000: bestRoasAt1000,
+                roasAt3000: bestRoasAt3000
+            });
+            
+            // Initialize group milestones object with preserved values
             const groupMilestones = {
                 totalSpend,
                 overallROAS,
-                roasAt100: 0,
-                roasAt300: 0,
-                roasAt1000: 0,
-                roasAt3000: 0
+                roasAt100: bestRoasAt100,  // Use best from group, not current ROAS
+                roasAt300: bestRoasAt300,  // Use best from group, not current ROAS
+                roasAt1000: bestRoasAt1000, // Use best from group, not current ROAS
+                roasAt3000: bestRoasAt3000  // Use best from group, not current ROAS
             };
             
-            // For group-level milestones, we need to calculate based on aggregated spend
-            // Set milestone ROAS to current group ROAS if we've reached that spend threshold
-            if (totalSpend >= 100) {
-                groupMilestones.roasAt100 = overallROAS;
-                console.log(`  ✅ Group reached $100: Setting roasAt100 = ${overallROAS.toFixed(2)}`);
-            }
-            if (totalSpend >= 300) {
-                groupMilestones.roasAt300 = overallROAS;
-                console.log(`  ✅ Group reached $300: Setting roasAt300 = ${overallROAS.toFixed(2)}`);
-            }
-            if (totalSpend >= 1000) {
-                groupMilestones.roasAt1000 = overallROAS;
-                console.log(`  ✅ Group reached $1000: Setting roasAt1000 = ${overallROAS.toFixed(2)}`);
-            }
-            if (totalSpend >= 3000) {
-                groupMilestones.roasAt3000 = overallROAS;
-                console.log(`  ✅ Group reached $3000: Setting roasAt3000 = ${overallROAS.toFixed(2)}`);
-            }
-            
-            console.log(`🎯 GROUP MILESTONE CALCULATION END - Final:`, {
+            console.log(`🎯 GROUP MILESTONE CALCULATION END - Preserved historical values:`, {
                 roasAt100: groupMilestones.roasAt100,
                 roasAt300: groupMilestones.roasAt300,
                 roasAt1000: groupMilestones.roasAt1000,
@@ -1465,11 +1463,11 @@
                 
                 if (error.code === 'auth/popup-closed-by-user') {
                     if (loginStatus) {
-                        loginStatus.innerHTML = '❌ Sign-in popup was closed. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>';
+                        loginStatus.innerHTML = '⌫ Sign-in popup was closed. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>';
                     }
                 } else if (error.code === 'auth/popup-blocked') {
                     if (loginStatus) {
-                        loginStatus.innerHTML = '❌ Popup blocked. Please allow popups and <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">try again</button>';
+                        loginStatus.innerHTML = '⌫ Popup blocked. Please allow popups and <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">try again</button>';
                     }
                 } else if (error.code === 'auth/cancelled-popup-request') {
                     if (loginStatus) {
@@ -1478,7 +1476,7 @@
                     // Don't show an error for this one, just wait
                 } else {
                     if (loginStatus) {
-                        loginStatus.innerHTML = `❌ Sign in failed: ${error.message}. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>`;
+                        loginStatus.innerHTML = `⌫ Sign in failed: ${error.message}. <button onclick="signInWithGoogle()" style="background: none; border: none; color: #667eea; text-decoration: underline; cursor: pointer;">Try again</button>`;
                     }
                 }
             }
@@ -2449,7 +2447,7 @@
                     </td>
                     <td>
                         <button class="btn btn-info btn-sm" onclick="editHookGroup('${key}')">✏️ Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">❌ Delete</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">⌫ Delete</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -2477,7 +2475,7 @@
                         <td style="font-family: monospace; font-size: 11px; word-break: break-all; white-space: normal;">${creative.creativeId}</td>
                         <td>
                             <button class="btn btn-info btn-xs" onclick="editHook(${hooks.indexOf(creative)})">✏️</button>
-                            <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">❌</button>
+                            <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">⌫</button>
                         </td>
                     `;
                     tbody.appendChild(detailRow);
@@ -2511,7 +2509,7 @@
                     <td>${bestHook ? `${bestHook.hookName.substring(0, 50)}... (ROAS: ${bestHook.overallROAS.toFixed(2)})` : 'None'}</td>
                     <td>
                         <button class="btn btn-info btn-sm" onclick="editBookTitle('${book}')">✏️ Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteBook('${book}')">❌ Delete</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteBook('${book}')">⌫ Delete</button>
                     </td>
                 `;
                 tbody.appendChild(row);
