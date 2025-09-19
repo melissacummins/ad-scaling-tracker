@@ -675,7 +675,7 @@
                     Sign in with your Google account to get started.
                 </p>
                 <button id="loginButton" class="btn btn-primary" style="font-size: 18px; padding: 15px 30px;">
-                    🔑 Sign in with Google
+                    🔒 Sign in with Google
                 </button>
                 <div id="loginStatus" style="margin-top: 20px; color: #666;"></div>
             </div>
@@ -1216,10 +1216,8 @@
             ];
             
             milestones.forEach(milestone => {
-                // If we just crossed this threshold and haven't recorded it yet
-                if (previousSpend < milestone.threshold && 
-                    newSpend >= milestone.threshold && 
-                    hook[milestone.field] === 0) {
+                // FIXED: Removed the "=== 0" check to allow milestone updates
+                if (previousSpend < milestone.threshold && newSpend >= milestone.threshold) {
                     
                     // Calculate what the ROAS was at the exact threshold crossing point
                     // If we went from $80 to $120, and threshold is $100, we need ROAS at exactly $100
@@ -1238,7 +1236,7 @@
                     
                     hook[milestone.field] = roasAtThreshold;
                     
-                    console.log(`🎯 Recorded milestone: ${milestone.field} = ${roasAtThreshold.toFixed(2)} (spend went from ${previousSpend.toFixed(2)} to ${newSpend.toFixed(2)})`);
+                    console.log(`🎯 Updated milestone: ${milestone.field} = ${roasAtThreshold.toFixed(2)} (spend went from ${previousSpend.toFixed(2)} to ${newSpend.toFixed(2)})`);
                 }
             });
         }
