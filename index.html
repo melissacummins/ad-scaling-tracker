@@ -447,6 +447,7 @@
         .action-phase-out { background: #fd7e14; color: white; }
         .action-kill { background: #dc3545; color: white; }
         .action-scale-optimize { background: #6f42c1; color: white; }
+        .action-na { background: #e9ecef; color: #6c757d; }
 
         .milestone-display {
             text-align: center;
@@ -710,6 +711,48 @@
 
         <!-- Hooks Tab -->
         <div id="hooksTab" class="tab-content active">
+            <!-- Filter Controls -->
+            <div class="controls" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 15px;">
+                <div class="form-group">
+                    <label for="bookFilter">Filter by Book</label>
+                    <select id="bookFilter" onchange="applyHooksFilters()">
+                        <option value="">All Books</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="performanceFilter">Filter by Performance</label>
+                    <select id="performanceFilter" onchange="applyHooksFilters()">
+                        <option value="">All Levels</option>
+                        <option value="not-tested">Not Tested Yet</option>
+                        <option value="testing-incomplete">Testing Not Complete</option>
+                        <option value="testing">Testing</option>
+                        <option value="validated">Validated</option>
+                        <option value="early-scale">Early Scale</option>
+                        <option value="proven-scale">Proven Scale</option>
+                        <option value="mature-scale">Mature Scale</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="actionFilter">Filter by Next Action</label>
+                    <select id="actionFilter" onchange="applyHooksFilters()">
+                        <option value="">All Actions</option>
+                        <option value="action-scale-now">🟢 Scale NOW</option>
+                        <option value="action-continue">🔵 Continue to $300</option>
+                        <option value="action-test-creative">🟡 Test New Creative</option>
+                        <option value="action-scale-further">🔵 Scale Further</option>
+                        <option value="action-cap-here">⚪ Cap Here</option>
+                        <option value="action-phase-out">🟠 Phase Out</option>
+                        <option value="action-kill">🔴 Kill</option>
+                        <option value="action-scale-optimize">🟣 Scale + Optimize</option>
+                        <option value="action-na">N/A</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-secondary" onclick="clearHooksFilters()">🔄 Clear Filters</button>
+                </div>
+            </div>
+
             <!-- Import/Export Controls -->
             <div class="import-export">
                 <button class="btn btn-secondary" onclick="exportData()">📥 Export CSV</button>
@@ -1107,10 +1150,19 @@
             
             if (hookIndex >= 0) {
                 const existingHook = hooks[hookIndex];
+                
+                // Store the current ROAS as milestone before updating totals
+                const currentSpend = existingHook.totalSpend;
+                const currentROAS = existingHook.overallROAS;
+                
+                // Update totals
                 existingHook.totalSpend += additionalSpend;
                 existingHook.totalRevenue += additionalRevenue;
                 existingHook.purchases += additionalPurchases;
                 existingHook.overallROAS = existingHook.totalSpend > 0 ? existingHook.totalRevenue / existingHook.totalSpend : 0;
+                
+                // FIXED MILESTONE TRACKING: Record ROAS at the exact moment we cross thresholds
+                recordMilestoneROAS(existingHook, currentSpend, currentROAS);
                 
                 // Update test date to the latest date (compare all dates properly)
                 const existingTestDate = new Date(existingHook.testDate.split('/').reverse().join('-') + '-01');
@@ -1123,9 +1175,6 @@
                 
                 // Format the new test date properly
                 formatDateInput({value: newTestDate, dispatchEvent: () => {}});
-                
-                // Calculate milestone ROAS
-                calculateMilestoneROAS();
                 
                 // Save data
                 saveToLocalAndCloud();
@@ -1151,6 +1200,34 @@
             } else {
                 alert('Error: Could not find the selected hook to update.');
             }
+        }
+
+        // NEW FUNCTION: Record milestone ROAS at the exact moment thresholds are crossed
+        function recordMilestoneROAS(hook, previousSpend, previousROAS) {
+            const newSpend = hook.totalSpend;
+            const currentROAS = hook.overallROAS;
+            
+            // Check each milestone threshold
+            const milestones = [
+                { threshold: 100, field: 'roasAt100' },
+                { threshold: 300, field: 'roasAt300' },
+                { threshold: 1000, field: 'roasAt1000' },
+                { threshold: 3000, field: 'roasAt3000' }
+            ];
+            
+            milestones.forEach(milestone => {
+                // If we just crossed this threshold and haven't recorded it yet
+                if (previousSpend < milestone.threshold && 
+                    newSpend >= milestone.threshold && 
+                    hook[milestone.field] === 0) {
+                    
+                    // Record the ROAS from when we first hit this spend level
+                    // Use previous ROAS since that was the performance at threshold crossing
+                    hook[milestone.field] = previousROAS;
+                    
+                    console.log(`📊 Recorded milestone: ${milestone.field} = ${previousROAS.toFixed(2)} (was ${previousSpend.toFixed(2)}, now ${newSpend.toFixed(2)})`);
+                }
+            });
         }
 
         function clearAdditionalFields() {
@@ -1759,6 +1836,11 @@
             if (existingIndex >= 0) {
                 // Update existing hook by adding new spend/revenue
                 const existing = hooks[existingIndex];
+                
+                // Store previous values for milestone tracking
+                const previousSpend = existing.totalSpend;
+                const previousROAS = existing.overallROAS;
+                
                 hookData.totalSpend = existing.totalSpend + totalSpend;
                 hookData.totalRevenue = existing.totalRevenue + totalRevenue;
                 hookData.purchases = existing.purchases + purchases;
@@ -1777,13 +1859,25 @@
                     hookData.creativeId = existing.creativeId;
                 }
                 
+                // Preserve existing milestones
+                hookData.roasAt100 = existing.roasAt100;
+                hookData.roasAt300 = existing.roasAt300;
+                hookData.roasAt1000 = existing.roasAt1000;
+                hookData.roasAt3000 = existing.roasAt3000;
+                
+                // Record new milestones if thresholds are crossed
+                recordMilestoneROAS(hookData, previousSpend, previousROAS);
+                
                 hooks[existingIndex] = hookData;
             } else {
+                // New hook - set initial milestones based on current spend
+                if (hookData.totalSpend >= 3000) hookData.roasAt3000 = hookData.overallROAS;
+                if (hookData.totalSpend >= 1000) hookData.roasAt1000 = hookData.overallROAS;
+                if (hookData.totalSpend >= 300) hookData.roasAt300 = hookData.overallROAS;
+                if (hookData.totalSpend >= 100) hookData.roasAt100 = hookData.overallROAS;
+                
                 hooks.push(hookData);
             }
-
-            // Calculate milestone ROAS
-            calculateMilestoneROAS();
 
             // Save data
             saveToLocalAndCloud();
@@ -1798,30 +1892,6 @@
             document.getElementById('hooksTable').scrollIntoView({ 
                 behavior: 'smooth', 
                 block: 'nearest' 
-            });
-        }
-
-        function calculateMilestoneROAS() {
-            hooks.forEach(hook => {
-                // Reset milestone ROAS
-                hook.roasAt100 = 0;
-                hook.roasAt300 = 0;
-                hook.roasAt1000 = 0;
-                hook.roasAt3000 = 0;
-
-                // Calculate milestone ROAS based on cumulative spend
-                if (hook.totalSpend >= 100) {
-                    hook.roasAt100 = hook.overallROAS;
-                }
-                if (hook.totalSpend >= 300) {
-                    hook.roasAt300 = hook.overallROAS;
-                }
-                if (hook.totalSpend >= 1000) {
-                    hook.roasAt1000 = hook.overallROAS;
-                }
-                if (hook.totalSpend >= 3000) {
-                    hook.roasAt3000 = hook.overallROAS;
-                }
             });
         }
 
@@ -1910,6 +1980,7 @@
 
         function saveEdit() {
             const index = parseInt(document.getElementById('editIndex').value);
+            const originalHook = hooks[index];
             
             const hookData = {
                 book: document.getElementById('editBookSelect').value,
@@ -1921,10 +1992,11 @@
                 creativesCount: parseInt(document.getElementById('editCreativesCount').value) || 0,
                 creativeId: document.getElementById('editCreativeId').value.trim(),
                 overallROAS: 0,
-                roasAt100: 0,
-                roasAt300: 0,
-                roasAt1000: 0,
-                roasAt3000: 0
+                // Preserve existing milestones
+                roasAt100: originalHook.roasAt100 || 0,
+                roasAt300: originalHook.roasAt300 || 0,
+                roasAt1000: originalHook.roasAt1000 || 0,
+                roasAt3000: originalHook.roasAt3000 || 0
             };
 
             hookData.overallROAS = hookData.totalSpend > 0 ? hookData.totalRevenue / hookData.totalSpend : 0;
@@ -1935,9 +2007,6 @@
             }
 
             hooks[index] = hookData;
-            
-            // Recalculate milestone ROAS
-            calculateMilestoneROAS();
             
             saveToLocalAndCloud();
             renderHooks();
@@ -2018,8 +2087,13 @@
             }
         }
 
-        // NEW SOPHISTICATED NEXT ACTION LOGIC
-        function getNextAction(roas, spend, lastTestDate, creativeGroup) {
+        // FIXED NEXT ACTION LOGIC WITH TESTING NOT COMPLETE N/A
+        function getNextAction(roas, spend, lastTestDate, creativeGroup, performanceLevel) {
+            // FIXED: If Testing Not Complete, show N/A
+            if (performanceLevel && performanceLevel.class === 'testing-incomplete') {
+                return { text: 'N/A', class: 'action-na' };
+            }
+            
             // Parse MM/YYYY format and compare with 6 months ago
             const sixMonthsAgo = new Date();
             sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -2091,6 +2165,76 @@
             return { text: '🔵 Continue', class: 'action-continue' };
         }
 
+        // FILTER FUNCTIONS FOR HOOKS TRACKER
+        function populateBookFilter() {
+            const bookFilter = document.getElementById('bookFilter');
+            if (!bookFilter) return;
+            
+            const currentValue = bookFilter.value;
+            bookFilter.innerHTML = '<option value="">All Books</option>';
+            
+            books.forEach(book => {
+                const option = document.createElement('option');
+                option.value = book;
+                option.textContent = book;
+                bookFilter.appendChild(option);
+            });
+            
+            // Restore selection
+            if (currentValue && books.includes(currentValue)) {
+                bookFilter.value = currentValue;
+            }
+        }
+
+        function applyHooksFilters() {
+            const bookFilter = document.getElementById('bookFilter')?.value || '';
+            const performanceFilter = document.getElementById('performanceFilter')?.value || '';
+            const actionFilter = document.getElementById('actionFilter')?.value || '';
+            
+            const tableRows = document.querySelectorAll('#hooksTableBody tr.hook-group');
+            
+            tableRows.forEach(row => {
+                const bookCell = row.children[0]?.textContent?.trim() || '';
+                const performanceCell = row.querySelector('.performance-badge')?.className || '';
+                const actionCell = row.querySelector('.next-action')?.className || '';
+                
+                let showRow = true;
+                
+                // Filter by book
+                if (bookFilter && !bookCell.includes(bookFilter)) {
+                    showRow = false;
+                }
+                
+                // Filter by performance level
+                if (performanceFilter && !performanceCell.includes(performanceFilter)) {
+                    showRow = false;
+                }
+                
+                // Filter by next action
+                if (actionFilter && !actionCell.includes(actionFilter)) {
+                    showRow = false;
+                }
+                
+                row.style.display = showRow ? 'table-row' : 'none';
+                
+                // Also hide/show related creative detail rows
+                const groupIndex = row.querySelector('.expand-toggle')?.id?.replace('toggle-', '');
+                if (groupIndex !== undefined) {
+                    const creativeRows = document.querySelectorAll(`[id^="creative-${groupIndex}-"]`);
+                    creativeRows.forEach(creativeRow => {
+                        creativeRow.style.display = showRow ? 'none' : 'none'; // Keep details hidden by default
+                    });
+                }
+            });
+        }
+
+        function clearHooksFilters() {
+            document.getElementById('bookFilter').value = '';
+            document.getElementById('performanceFilter').value = '';
+            document.getElementById('actionFilter').value = '';
+            applyHooksFilters();
+        }
+
         function renderHooks() {
             const tbody = document.getElementById('hooksTableBody');
             if (!tbody) {
@@ -2144,19 +2288,19 @@
                 const totalPurchases = group.creatives.reduce((sum, c) => sum + c.purchases, 0);
                 const overallROAS = totalSpend > 0 ? totalRevenue / totalSpend : 0;
                 
-                // Calculate milestone ROAS for aggregated data
+                // Calculate milestone ROAS for aggregated data (use highest milestone from any creative)
                 const aggregatedHook = {
                     totalSpend,
                     overallROAS,
-                    roasAt100: totalSpend >= 100 ? overallROAS : 0,
-                    roasAt300: totalSpend >= 300 ? overallROAS : 0,
-                    roasAt1000: totalSpend >= 1000 ? overallROAS : 0,
-                    roasAt3000: totalSpend >= 3000 ? overallROAS : 0
+                    roasAt100: Math.max(...group.creatives.map(c => c.roasAt100 || 0)),
+                    roasAt300: Math.max(...group.creatives.map(c => c.roasAt300 || 0)),
+                    roasAt1000: Math.max(...group.creatives.map(c => c.roasAt1000 || 0)),
+                    roasAt3000: Math.max(...group.creatives.map(c => c.roasAt3000 || 0))
                 };
 
                 const performance = getPerformanceLevel(totalSpend, group.testDate);
                 const dynamicEff = getDynamicEfficiency(aggregatedHook);
-                const nextAction = getNextAction(overallROAS, totalSpend, group.testDate, group);
+                const nextAction = getNextAction(overallROAS, totalSpend, group.testDate, group, performance);
                 const milestoneData = getMilestoneDisplay(aggregatedHook);
 
                 // Find best performing creative
@@ -2237,6 +2381,9 @@
                     tbody.appendChild(detailRow);
                 });
             });
+            
+            // Populate book filter after rendering
+            populateBookFilter();
         }
 
         function renderBooks() {
@@ -2431,7 +2578,6 @@
                         }
                     }
                     
-                    calculateMilestoneROAS();
                     localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
                     localStorage.setItem('adScalingBooks', JSON.stringify(books));
                     
