@@ -1140,6 +1140,15 @@
                 alert('Please enter the date in MM/YYYY format (e.g., 03/2024).');
                 return;
             }
+
+            // Calculate PREVIOUS group totals BEFORE updating hook
+            const groupHooks = hooks.filter(h => 
+                h.book === selectedExistingHook.book && 
+                h.hookName === selectedExistingHook.hookName
+            );
+            const previousGroupSpend = groupHooks.reduce((sum, h) => sum + h.totalSpend, 0);
+            const previousGroupRevenue = groupHooks.reduce((sum, h) => sum + h.totalRevenue, 0);
+            const previousGroupROAS = previousGroupSpend > 0 ? previousGroupRevenue / previousGroupSpend : 0;
             
             // Find the hook in the array and update it
             const hookIndex = hooks.findIndex(h => 
@@ -1151,12 +1160,9 @@
             if (hookIndex >= 0) {
                 const existingHook = hooks[hookIndex];
                 
-                // Store the current spend and ROAS before updating
-                const currentSpend = existingHook.totalSpend;
-                const currentROAS = existingHook.overallROAS;
-                
                 console.log(`🔍 ADD TO EXISTING DEBUG:`);
-                console.log(`  Before update - Spend: ${currentSpend.toFixed(2)}, ROAS: ${currentROAS.toFixed(2)}`);
+                console.log(`  Before update - Individual Hook Spend: ${existingHook.totalSpend.toFixed(2)}, ROAS: ${existingHook.overallROAS.toFixed(2)}`);
+                console.log(`  Before update - Group Spend: ${previousGroupSpend.toFixed(2)}, ROAS: ${previousGroupROAS.toFixed(2)}`);
                 console.log(`  Adding - Spend: ${additionalSpend.toFixed(2)}, Revenue: ${additionalRevenue.toFixed(2)}`);
                 
                 // Update totals
@@ -1165,10 +1171,7 @@
                 existingHook.purchases += additionalPurchases;
                 existingHook.overallROAS = existingHook.totalSpend > 0 ? existingHook.totalRevenue / existingHook.totalSpend : 0;
                 
-                console.log(`  After update - Spend: ${existingHook.totalSpend.toFixed(2)}, ROAS: ${existingHook.overallROAS.toFixed(2)}`);
-                
-                // FIXED MILESTONE TRACKING: Record ROAS at the exact moment we cross thresholds
-                recordMilestoneROAS(existingHook, currentSpend, currentROAS);
+                console.log(`  After update - Individual Hook Spend: ${existingHook.totalSpend.toFixed(2)}, ROAS: ${existingHook.overallROAS.toFixed(2)}`);
                 
                 // Update test date to the latest date (compare all dates properly)
                 const existingTestDate = new Date(existingHook.testDate.split('/').reverse().join('-') + '-01');
@@ -1181,6 +1184,25 @@
                 
                 // Format the new test date properly
                 formatDateInput({value: newTestDate, dispatchEvent: () => {}});
+
+                // Calculate NEW group totals AFTER updating hook
+                const newGroupHooks = hooks.filter(h => 
+                    h.book === selectedExistingHook.book && 
+                    h.hookName === selectedExistingHook.hookName
+                );
+                const newGroupSpend = newGroupHooks.reduce((sum, h) => sum + h.totalSpend, 0);
+                const newGroupRevenue = newGroupHooks.reduce((sum, h) => sum + h.totalRevenue, 0);
+                const newGroupROAS = newGroupSpend > 0 ? newGroupRevenue / newGroupSpend : 0;
+
+                console.log(`  After update - New Group Spend: ${newGroupSpend.toFixed(2)}, ROAS: ${newGroupROAS.toFixed(2)}`);
+
+                // Trigger group-level milestone tracking with accurate before/after totals
+                const group = { 
+                    book: selectedExistingHook.book, 
+                    hookName: selectedExistingHook.hookName, 
+                    creatives: newGroupHooks 
+                };
+                recordGroupMilestones(group, previousGroupSpend, previousGroupROAS, newGroupSpend, newGroupROAS);
                 
                 // Save data
                 saveToLocalAndCloud();
@@ -1206,6 +1228,131 @@
             } else {
                 alert('Error: Could not find the selected hook to update.');
             }
+        }
+
+
+
+        // NEW: Group-level milestone tracking - records ROAS when GROUP totals cross thresholds
+        function recordGroupMilestones(group, previousGroupSpend, previousGroupROAS, newGroupSpend, newGroupROAS) {
+            console.log(`🏆 GROUP MILESTONE TRACKING START:`);
+            console.log(`  Group: ${group.book} -> ${group.hookName}`);
+            console.log(`  Previous Group Spend: ${previousGroupSpend.toFixed(2)}, ROAS: ${previousGroupROAS.toFixed(2)}`);
+            console.log(`  New Group Spend: ${newGroupSpend.toFixed(2)}, ROAS: ${newGroupROAS.toFixed(2)}`);
+            
+            // Get or create a group milestone storage object
+            let groupMilestones = getGroupMilestoneStorage(group);
+            
+            console.log(`  Current group milestones:`, groupMilestones);
+            
+            // Check each milestone threshold for the GROUP
+            const milestones = [
+                { threshold: 100, field: 'roasAt100' },
+                { threshold: 300, field: 'roasAt300' },
+                { threshold: 1000, field: 'roasAt1000' },
+                { threshold: 3000, field: 'roasAt3000' }
+            ];
+            
+            milestones.forEach(milestone => {
+                const currentValue = groupMilestones[milestone.field] || 0;
+                const crossingThreshold = newGroupSpend >= milestone.threshold && previousGroupSpend < milestone.threshold;
+                const needsValue = currentValue === 0;
+                
+                console.log(`    Checking GROUP ${milestone.field} (threshold: ${milestone.threshold})`);
+                console.log(`      Crossing threshold? ${crossingThreshold}, Needs value? ${needsValue}`);
+                
+                if (crossingThreshold && needsValue) {
+                    let roasAtThreshold;
+                    
+                    if (previousGroupSpend === 0) {
+                        // First entry that crosses threshold - use current ROAS
+                        roasAtThreshold = newGroupROAS;
+                        console.log(`      ✅ First GROUP entry crossing ${milestone.threshold}: Using current ROAS ${roasAtThreshold.toFixed(2)}`);
+                    } else {
+                        // Interpolate ROAS at the exact threshold point for the GROUP
+                        const spendDiff = newGroupSpend - previousGroupSpend;
+                        const roasDiff = newGroupROAS - previousGroupROAS;
+                        
+                        if (spendDiff > 0) {
+                            const thresholdProgress = (milestone.threshold - previousGroupSpend) / spendDiff;
+                            roasAtThreshold = previousGroupROAS + (roasDiff * thresholdProgress);
+                            console.log(`      ✅ Interpolating GROUP ${milestone.threshold}: ${roasAtThreshold.toFixed(2)} (progress: ${thresholdProgress.toFixed(2)})`);
+                        } else {
+                            roasAtThreshold = newGroupROAS;
+                            console.log(`      ✅ No spend difference, using current GROUP ROAS: ${roasAtThreshold.toFixed(2)}`);
+                        }
+                    }
+                    
+                    groupMilestones[milestone.field] = roasAtThreshold;
+                    console.log(`      🎯 SET GROUP ${milestone.field} = ${roasAtThreshold.toFixed(2)} (HISTORICAL VALUE LOCKED)`);
+                    
+                    // Save the group milestone back to storage
+                    saveGroupMilestoneStorage(group, groupMilestones);
+                } else if (currentValue > 0) {
+                    console.log(`      🔒 PRESERVING existing GROUP ${milestone.field} = ${currentValue.toFixed(2)} (historical value)`);
+                } else {
+                    console.log(`      ❌ Not crossing threshold or already have value, skipping`);
+                }
+            });
+            
+            console.log(`🏆 GROUP MILESTONE TRACKING END - Final group milestones:`, groupMilestones);
+            return groupMilestones;
+        }
+
+        // Helper function to get group milestone storage (using localStorage with group key)
+        function getGroupMilestoneStorage(group) {
+            const groupKey = `${group.book}||${group.hookName}`;
+            const groupMilestones = JSON.parse(localStorage.getItem('groupMilestones') || '{}');
+            return groupMilestones[groupKey] || {
+                roasAt100: 0,
+                roasAt300: 0,
+                roasAt1000: 0,
+                roasAt3000: 0
+            };
+        }
+
+        // Helper function to save group milestone storage
+        function saveGroupMilestoneStorage(group, milestones) {
+            const groupKey = `${group.book}||${group.hookName}`;
+            const allGroupMilestones = JSON.parse(localStorage.getItem('groupMilestones') || '{}');
+            allGroupMilestones[groupKey] = milestones;
+            localStorage.setItem('groupMilestones', JSON.stringify(allGroupMilestones));
+            
+            // Also sync to cloud if signed in
+            if (isSignedIn) {
+                saveDataToFirebase();
+            }
+        }
+
+        // UPDATED: calculateGroupMilestones now uses stored group milestones
+        function calculateGroupMilestones(group, totalSpend, overallROAS) {
+            console.log(`🎯 GROUP MILESTONE CALCULATION START:`);
+            console.log(`  Group: ${group.book} -> ${group.hookName}`);
+            console.log(`  Total Group Spend: ${totalSpend.toFixed(2)}`);
+            console.log(`  Total Group ROAS: ${overallROAS.toFixed(2)}`);
+            
+            // Get stored group milestones
+            const storedMilestones = getGroupMilestoneStorage(group);
+            
+            console.log(`  📊 Using stored group milestones:`, storedMilestones);
+            
+            // Return group milestones object
+            const groupMilestones = {
+                totalSpend,
+                overallROAS,
+                roasAt100: storedMilestones.roasAt100,
+                roasAt300: storedMilestones.roasAt300,
+                roasAt1000: storedMilestones.roasAt1000,
+                roasAt3000: storedMilestones.roasAt3000
+            };
+            
+            console.log(`🎯 GROUP MILESTONE CALCULATION END - Using stored historical values:`, {
+                roasAt100: groupMilestones.roasAt100,
+                roasAt300: groupMilestones.roasAt300,
+                roasAt1000: groupMilestones.roasAt1000,
+                roasAt3000: groupMilestones.roasAt3000
+            });
+            
+            return groupMilestones;
         }
 
         // FIXED FUNCTION: Record milestone ROAS ONLY when crossing thresholds for the first time
@@ -1292,56 +1439,6 @@
                 roasAt1000: hook.roasAt1000,
                 roasAt3000: hook.roasAt3000
             });
-        }
-
-        // FIXED: New function to calculate group-level milestones - PRESERVES EXISTING VALUES
-        function calculateGroupMilestones(group, totalSpend, overallROAS) {
-            console.log(`🎯 GROUP MILESTONE CALCULATION START:`);
-            console.log(`  Group: ${group.book} -> ${group.hookName}`);
-            console.log(`  Total Group Spend: ${totalSpend.toFixed(2)}`);
-            console.log(`  Total Group ROAS: ${overallROAS.toFixed(2)}`);
-            
-            // Find the best milestone values from all creatives in this group
-            let bestRoasAt100 = 0, bestRoasAt300 = 0, bestRoasAt1000 = 0, bestRoasAt3000 = 0;
-            
-            group.creatives.forEach(creative => {
-                // Ensure milestone fields exist
-                if (!creative.hasOwnProperty('roasAt100')) creative.roasAt100 = 0;
-                if (!creative.hasOwnProperty('roasAt300')) creative.roasAt300 = 0;
-                if (!creative.hasOwnProperty('roasAt1000')) creative.roasAt1000 = 0;
-                if (!creative.hasOwnProperty('roasAt3000')) creative.roasAt3000 = 0;
-                
-                if (creative.roasAt100 > bestRoasAt100) bestRoasAt100 = creative.roasAt100;
-                if (creative.roasAt300 > bestRoasAt300) bestRoasAt300 = creative.roasAt300;
-                if (creative.roasAt1000 > bestRoasAt1000) bestRoasAt1000 = creative.roasAt1000;
-                if (creative.roasAt3000 > bestRoasAt3000) bestRoasAt3000 = creative.roasAt3000;
-            });
-            
-            console.log(`  📊 Best milestones from group creatives:`, {
-                roasAt100: bestRoasAt100,
-                roasAt300: bestRoasAt300, 
-                roasAt1000: bestRoasAt1000,
-                roasAt3000: bestRoasAt3000
-            });
-            
-            // Initialize group milestones object with preserved values
-            const groupMilestones = {
-                totalSpend,
-                overallROAS,
-                roasAt100: bestRoasAt100,  // Use best from group, not current ROAS
-                roasAt300: bestRoasAt300,  // Use best from group, not current ROAS
-                roasAt1000: bestRoasAt1000, // Use best from group, not current ROAS
-                roasAt3000: bestRoasAt3000  // Use best from group, not current ROAS
-            };
-            
-            console.log(`🎯 GROUP MILESTONE CALCULATION END - Preserved historical values:`, {
-                roasAt100: groupMilestones.roasAt100,
-                roasAt300: groupMilestones.roasAt300,
-                roasAt1000: groupMilestones.roasAt1000,
-                roasAt3000: groupMilestones.roasAt3000
-            });
-            
-            return groupMilestones;
         }
 
         function clearAdditionalFields() {
@@ -1529,6 +1626,7 @@
                     hooks: hooks,
                     books: books,
                     creativeNotes: creativeNotes,
+                    groupMilestones: JSON.parse(localStorage.getItem('groupMilestones') || '{}'),
                     lastUpdated: new Date().toISOString(),
                     version: 1
                 };
@@ -1565,6 +1663,11 @@
                         hooks = userData.hooks || [];
                         books = userData.books || [];
                         creativeNotes = userData.creativeNotes || {};
+                        
+                        // Load group milestones if they exist
+                        if (userData.groupMilestones) {
+                            localStorage.setItem('groupMilestones', JSON.stringify(userData.groupMilestones));
+                        }
                         
                         // Update local storage
                         localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
@@ -1959,6 +2062,12 @@
                 return;
             }
 
+            // Calculate PREVIOUS group totals BEFORE adding new hook
+            const groupHooks = hooks.filter(h => h.book === bookSelect && h.hookName === hookName);
+            const previousGroupSpend = groupHooks.reduce((sum, h) => sum + h.totalSpend, 0);
+            const previousGroupRevenue = groupHooks.reduce((sum, h) => sum + h.totalRevenue, 0);
+            const previousGroupROAS = previousGroupSpend > 0 ? previousGroupRevenue / previousGroupSpend : 0;
+
             // Find existing hook with same book, hookName, and creativeId
             const existingIndex = hooks.findIndex(h => 
                 h.book === bookSelect && h.hookName === hookName && h.creativeId === creativeId
@@ -1984,13 +2093,9 @@
                 // Update existing hook by adding new spend/revenue
                 const existing = hooks[existingIndex];
                 
-                // Store previous values for milestone tracking
-                const previousSpend = existing.totalSpend;
-                const previousROAS = existing.overallROAS;
-                
                 console.log(`🔍 ADD NEW HOOK DEBUG (existing found):`);
                 console.log(`  Hook: ${hookName}`);
-                console.log(`  Previous Spend: ${previousSpend.toFixed(2)}, Adding: ${totalSpend.toFixed(2)}`);
+                console.log(`  Previous Hook Spend: ${existing.totalSpend.toFixed(2)}, Adding: ${totalSpend.toFixed(2)}`);
                 
                 hookData.totalSpend = existing.totalSpend + totalSpend;
                 hookData.totalRevenue = existing.totalRevenue + totalRevenue;
@@ -2016,21 +2121,29 @@
                 hookData.roasAt1000 = existing.roasAt1000 || 0;
                 hookData.roasAt3000 = existing.roasAt3000 || 0;
                 
-                // Record new milestones if thresholds are crossed
-                recordMilestoneROAS(hookData, previousSpend, previousROAS);
-                
                 hooks[existingIndex] = hookData;
             } else {
-                // New hook - set initial milestones based on current spend
+                // New hook - add to array
                 console.log(`🔍 ADD NEW HOOK DEBUG (completely new):`);
                 console.log(`  Hook: ${hookName}`);
                 console.log(`  Initial Spend: ${hookData.totalSpend.toFixed(2)}, ROAS: ${hookData.overallROAS.toFixed(2)}`);
                 
-                // For new hooks, set milestones at the initial spend level
-                recordMilestoneROAS(hookData, 0, 0);
-                
                 hooks.push(hookData);
             }
+
+            // Calculate NEW group totals AFTER adding/updating hook
+            const newGroupHooks = hooks.filter(h => h.book === bookSelect && h.hookName === hookName);
+            const newGroupSpend = newGroupHooks.reduce((sum, h) => sum + h.totalSpend, 0);
+            const newGroupRevenue = newGroupHooks.reduce((sum, h) => sum + h.totalRevenue, 0);
+            const newGroupROAS = newGroupSpend > 0 ? newGroupRevenue / newGroupSpend : 0;
+
+            console.log(`🏆 GROUP MILESTONE CHECK:`);
+            console.log(`  Previous Group Spend: ${previousGroupSpend.toFixed(2)}, ROAS: ${previousGroupROAS.toFixed(2)}`);
+            console.log(`  New Group Spend: ${newGroupSpend.toFixed(2)}, ROAS: ${newGroupROAS.toFixed(2)}`);
+
+            // Trigger group-level milestone tracking with accurate before/after totals
+            const group = { book: bookSelect, hookName: hookName, creatives: newGroupHooks };
+            recordGroupMilestones(group, previousGroupSpend, previousGroupROAS, newGroupSpend, newGroupROAS);
 
             // Save data
             saveToLocalAndCloud();
@@ -2136,9 +2249,11 @@
             const index = parseInt(document.getElementById('editIndex').value);
             const originalHook = hooks[index];
             
-            // Store previous values for milestone tracking
-            const previousSpend = originalHook.totalSpend;
-            const previousROAS = originalHook.overallROAS;
+            // Calculate PREVIOUS group totals BEFORE editing
+            const groupHooks = hooks.filter(h => h.book === originalHook.book && h.hookName === originalHook.hookName);
+            const previousGroupSpend = groupHooks.reduce((sum, h) => sum + h.totalSpend, 0);
+            const previousGroupRevenue = groupHooks.reduce((sum, h) => sum + h.totalRevenue, 0);
+            const previousGroupROAS = previousGroupSpend > 0 ? previousGroupRevenue / previousGroupSpend : 0;
             
             const hookData = {
                 book: document.getElementById('editBookSelect').value,
@@ -2166,13 +2281,21 @@
 
             console.log(`🔍 EDIT FUNCTION DEBUG:`);
             console.log(`  Hook: ${hookData.hookName}`);
-            console.log(`  Previous Spend: ${previousSpend.toFixed(2)}, New Spend: ${hookData.totalSpend.toFixed(2)}`);
-            console.log(`  Previous ROAS: ${previousROAS.toFixed(2)}, New ROAS: ${hookData.overallROAS.toFixed(2)}`);
-
-            // Record milestone ROAS based on the spend change
-            recordMilestoneROAS(hookData, previousSpend, previousROAS);
+            console.log(`  Previous Group Spend: ${previousGroupSpend.toFixed(2)}, ROAS: ${previousGroupROAS.toFixed(2)}`);
 
             hooks[index] = hookData;
+
+            // Calculate NEW group totals AFTER editing
+            const newGroupHooks = hooks.filter(h => h.book === hookData.book && h.hookName === hookData.hookName);
+            const newGroupSpend = newGroupHooks.reduce((sum, h) => sum + h.totalSpend, 0);
+            const newGroupRevenue = newGroupHooks.reduce((sum, h) => sum + h.totalRevenue, 0);
+            const newGroupROAS = newGroupSpend > 0 ? newGroupRevenue / newGroupSpend : 0;
+
+            console.log(`  New Group Spend: ${newGroupSpend.toFixed(2)}, ROAS: ${newGroupROAS.toFixed(2)}`);
+
+            // Trigger group-level milestone tracking
+            const group = { book: hookData.book, hookName: hookData.hookName, creatives: newGroupHooks };
+            recordGroupMilestones(group, previousGroupSpend, previousGroupROAS, newGroupSpend, newGroupROAS);
             
             saveToLocalAndCloud();
             renderHooks();
@@ -2761,6 +2884,7 @@
                 localStorage.removeItem('adScalingHooks');
                 localStorage.removeItem('adScalingBooks');
                 localStorage.removeItem('adScalingCreativeNotes');
+                localStorage.removeItem('groupMilestones');
                 localStorage.removeItem('lastUpdated');
                 
                 // Clear cloud data too if signed in
