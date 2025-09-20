@@ -308,7 +308,7 @@
             white-space: normal; /* Allow wrapping for book and hook names */
         }
 
-        /* Set specific column widths - optimized for better spacing (removed one column) */
+        /* Set specific column widths - optimized for better spacing (removed Next Action column) */
         .data-table th:nth-child(1),
         .data-table td:nth-child(1) { width: 6%; }   /* Book */
         .data-table th:nth-child(2),
@@ -326,23 +326,21 @@
         /* Allow text wrapping in Performance Level column */
         .data-table th:nth-child(8),
         .data-table td:nth-child(8) { 
-            width: 7%; 
+            width: 8%; 
             white-space: normal !important; /* Allow wrapping for performance badges */
         }
         .data-table th:nth-child(9),
-        .data-table td:nth-child(9) { width: 10%; }  /* ROAS Milestones */
+        .data-table td:nth-child(9) { width: 12%; }  /* ROAS Milestones */
         .data-table th:nth-child(10),
-        .data-table td:nth-child(10) { width: 7%; }  /* Dynamic Efficiency */
+        .data-table td:nth-child(10) { width: 8%; }  /* Momentum Score */
         .data-table th:nth-child(11),
-        .data-table td:nth-child(11) { width: 8%; }  /* Next Action (increased width) */
-        .data-table th:nth-child(12),
-        .data-table td:nth-child(12) { 
-            width: 10%; 
+        .data-table td:nth-child(11) { 
+            width: 12%; 
             white-space: normal !important;
             word-break: break-all;
         } /* Creative ID */
-        .data-table th:nth-child(13),
-        .data-table td:nth-child(13) { width: 10%; } /* Actions */
+        .data-table th:nth-child(12),
+        .data-table td:nth-child(12) { width: 10%; } /* Actions */
 
         /* Creative ID Tracker table specific column widths */
         .creatives-table th:nth-child(1),
@@ -412,6 +410,20 @@
         .early-scale { background: #007bff; color: white; }
         .proven-scale { background: #6f42c1; color: white; }
         .mature-scale { background: #fd7e14; color: white; }
+
+        .momentum-score {
+            padding: 4px 8px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .momentum-accelerating { background: #4caf50; color: white; } /* 🚀 >105% */
+        .momentum-stable { background: #28a745; color: white; } /* 🟢 95-105% */
+        .momentum-declining { background: #ffc107; color: #212529; } /* 🟡 85-95% */
+        .momentum-degrading { background: #dc3545; color: white; } /* 🔴 <85% */
+        .momentum-na { background: #6c757d; color: white; } /* ⚫ N/A */
 
         .scale-efficiency {
             padding: 4px 8px;
@@ -711,48 +723,6 @@
 
         <!-- Hooks Tab -->
         <div id="hooksTab" class="tab-content active">
-            <!-- Filter Controls -->
-            <div class="controls" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 15px;">
-                <div class="form-group">
-                    <label for="bookFilter">Filter by Book</label>
-                    <select id="bookFilter" onchange="applyHooksFilters()">
-                        <option value="">All Books</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="performanceFilter">Filter by Performance</label>
-                    <select id="performanceFilter" onchange="applyHooksFilters()">
-                        <option value="">All Levels</option>
-                        <option value="not-tested">Not Tested Yet</option>
-                        <option value="testing-incomplete">Testing Not Complete</option>
-                        <option value="testing">Testing</option>
-                        <option value="validated">Validated</option>
-                        <option value="early-scale">Early Scale</option>
-                        <option value="proven-scale">Proven Scale</option>
-                        <option value="mature-scale">Mature Scale</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="actionFilter">Filter by Next Action</label>
-                    <select id="actionFilter" onchange="applyHooksFilters()">
-                        <option value="">All Actions</option>
-                        <option value="action-scale-now">🟢 Scale NOW</option>
-                        <option value="action-continue">🔵 Continue to $300</option>
-                        <option value="action-test-creative">🟡 Test New Creative</option>
-                        <option value="action-scale-further">🔵 Scale Further</option>
-                        <option value="action-cap-here">⚪ Cap Here</option>
-                        <option value="action-phase-out">🟠 Phase Out</option>
-                        <option value="action-kill">🔴 Kill</option>
-                        <option value="action-scale-optimize">🟣 Scale + Optimize</option>
-                        <option value="action-na">N/A</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>&nbsp;</label>
-                    <button class="btn btn-secondary" onclick="clearHooksFilters()">🔄 Clear Filters</button>
-                </div>
-            </div>
-
             <!-- Import/Export Controls -->
             <div class="import-export">
                 <button class="btn btn-secondary" onclick="exportData()">📥 Export CSV</button>
@@ -925,6 +895,33 @@
                 </div>
             </div>
 
+            <!-- Filter Controls (moved to be right above table) -->
+            <div class="controls" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 15px;">
+                <div class="form-group">
+                    <label for="bookFilter">Filter by Book</label>
+                    <select id="bookFilter" onchange="applyHooksFilters()">
+                        <option value="">All Books</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="performanceFilter">Filter by Performance</label>
+                    <select id="performanceFilter" onchange="applyHooksFilters()">
+                        <option value="">All Levels</option>
+                        <option value="not-tested">Not Tested Yet</option>
+                        <option value="testing-incomplete">Testing Not Complete</option>
+                        <option value="testing">Testing</option>
+                        <option value="validated">Validated</option>
+                        <option value="early-scale">Early Scale</option>
+                        <option value="proven-scale">Proven Scale</option>
+                        <option value="mature-scale">Mature Scale</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>&nbsp;</label>
+                    <button class="btn btn-secondary" onclick="clearHooksFilters()">🔄 Clear Filters</button>
+                </div>
+            </div>
+
             <!-- Hooks Table with Sticky Headers -->
             <div class="table-wrapper">
                 <table class="data-table" id="hooksTable">
@@ -939,8 +936,7 @@
                             <th>ROAS</th>
                             <th>Performance<br>Level</th>
                             <th>ROAS Milestones</th>
-                            <th>Dynamic<br>Efficiency</th>
-                            <th>Next<br>Action</th>
+                            <th>Momentum<br>Score</th>
                             <th>Creative ID</th>
                             <th>Actions</th>
                         </tr>
@@ -2347,30 +2343,59 @@
             return { text: 'Mature Scale', class: 'mature-scale' };
         }
 
-        function getDynamicEfficiency(hook) {
-            const { totalSpend, roasAt100, roasAt300, roasAt1000 } = hook;
+        function getMomentumScore(hook) {
+            const { totalSpend, overallROAS, roasAt100, roasAt300, roasAt1000, roasAt3000 } = hook;
             
-            if (totalSpend >= 1000 && roasAt100 > 0 && roasAt1000 > 0) {
-                const efficiency = roasAt1000 / roasAt100;
+            let momentumScore = 0;
+            let trajectoryText = '';
+            let benchmarkROAS = 0;
+            
+            // Find the appropriate milestone to compare against
+            if (totalSpend >= 3000 && roasAt3000 > 0) {
+                benchmarkROAS = roasAt3000;
+                trajectoryText = 'Recent vs $3000';
+            } else if (totalSpend >= 1000 && roasAt1000 > 0) {
+                benchmarkROAS = roasAt1000;
+                trajectoryText = 'Recent vs $1000';
+            } else if (totalSpend >= 300 && roasAt300 > 0) {
+                benchmarkROAS = roasAt300;
+                trajectoryText = 'Recent vs $300';
+            } else if (totalSpend >= 100 && roasAt100 > 0) {
+                benchmarkROAS = roasAt100;
+                trajectoryText = 'Recent vs $100';
+            }
+            
+            if (benchmarkROAS > 0) {
+                momentumScore = overallROAS / benchmarkROAS;
+                const percentage = (momentumScore * 100).toFixed(0);
+                
+                // Determine class and icon based on momentum
+                let momentumClass, icon;
+                if (momentumScore > 1.05) {
+                    momentumClass = 'momentum-accelerating';
+                    icon = '🚀';
+                } else if (momentumScore >= 0.95) {
+                    momentumClass = 'momentum-stable';
+                    icon = '🟢';
+                } else if (momentumScore >= 0.85) {
+                    momentumClass = 'momentum-declining';
+                    icon = '🟡';
+                } else {
+                    momentumClass = 'momentum-degrading';
+                    icon = '🔴';
+                }
+                
                 return {
-                    text: `${(efficiency * 100).toFixed(0)}%`,
-                    class: efficiency > 0.8 ? 'scales-well' : efficiency >= 0.6 ? 'scales-ok' : 'doesnt-scale',
-                    benchmark: '($1000 vs $100)',
-                    value: efficiency
-                };
-            } else if (totalSpend >= 300 && roasAt100 > 0 && roasAt300 > 0) {
-                const efficiency = roasAt300 / roasAt100;
-                return {
-                    text: `${(efficiency * 100).toFixed(0)}%`,
-                    class: efficiency > 0.8 ? 'scales-well' : efficiency >= 0.6 ? 'scales-ok' : 'doesnt-scale',
-                    benchmark: '($300 vs $100)',
-                    value: efficiency
+                    text: `${icon} ${percentage}%`,
+                    class: momentumClass,
+                    benchmark: trajectoryText,
+                    value: momentumScore
                 };
             } else {
                 return {
-                    text: 'N/A',
-                    class: 'scales-ok',
-                    benchmark: 'Needs $300+',
+                    text: '⚫ N/A',
+                    class: 'momentum-na',
+                    benchmark: 'Insufficient data',
                     value: 0
                 };
             }
@@ -2478,14 +2503,12 @@
         function applyHooksFilters() {
             const bookFilter = document.getElementById('bookFilter')?.value || '';
             const performanceFilter = document.getElementById('performanceFilter')?.value || '';
-            const actionFilter = document.getElementById('actionFilter')?.value || '';
             
             const tableRows = document.querySelectorAll('#hooksTableBody tr.hook-group');
             
             tableRows.forEach(row => {
                 const bookCell = row.children[0]?.textContent?.trim() || '';
                 const performanceCell = row.querySelector('.performance-badge')?.className || '';
-                const actionCell = row.querySelector('.next-action')?.className || '';
                 
                 let showRow = true;
                 
@@ -2496,11 +2519,6 @@
                 
                 // Filter by performance level
                 if (performanceFilter && !performanceCell.includes(performanceFilter)) {
-                    showRow = false;
-                }
-                
-                // Filter by next action
-                if (actionFilter && !actionCell.includes(actionFilter)) {
                     showRow = false;
                 }
                 
@@ -2520,7 +2538,6 @@
         function clearHooksFilters() {
             document.getElementById('bookFilter').value = '';
             document.getElementById('performanceFilter').value = '';
-            document.getElementById('actionFilter').value = '';
             applyHooksFilters();
         }
 
@@ -2582,8 +2599,7 @@
                 const aggregatedHook = calculateGroupMilestones(group, totalSpend, overallROAS);
 
                 const performance = getPerformanceLevel(totalSpend, group.testDate);
-                const dynamicEff = getDynamicEfficiency(aggregatedHook);
-                const nextAction = getNextAction(overallROAS, totalSpend, group.testDate, group, performance);
+                const momentumScore = getMomentumScore(aggregatedHook);
                 const milestoneData = getMilestoneDisplay(aggregatedHook);
 
                 // Find best performing creative
@@ -2617,11 +2633,10 @@
                         ` : ''}
                     </td>
                     <td>
-                        <span class="scale-efficiency ${dynamicEff.class}" title="${dynamicEff.benchmark}">
-                            ${dynamicEff.text}
+                        <span class="momentum-score ${momentumScore.class}" title="${momentumScore.benchmark}">
+                            ${momentumScore.text}
                         </span>
                     </td>
-                    <td><span class="next-action ${nextAction.class}">${nextAction.text}</span></td>
                     <td style="font-family: monospace; font-size: 12px;">
                         ${group.creatives.length} creative${group.creatives.length !== 1 ? 's' : ''}
                         <div class="creative-count" style="font-size: 11px; color: #666; margin-top: 2px;">
@@ -2652,7 +2667,7 @@
                         <td>$${creative.totalRevenue.toFixed(2)}</td>
                         <td>${creative.purchases}</td>
                         <td><strong>${creative.overallROAS.toFixed(2)}</strong></td>
-                        <td colspan="4" style="font-size: 12px; color: #666;">
+                        <td colspan="3" style="font-size: 12px; color: #666;">
                             Creative performance details
                         </td>
                         <td style="font-family: monospace; font-size: 11px; word-break: break-all; white-space: normal;">${creative.creativeId}</td>
@@ -2803,13 +2818,12 @@
 
         function exportData() {
             const csvContent = "data:text/csv;charset=utf-8," + 
-                "Book,Hook Name,Test Month/Year,Total Spend,Total Revenue,Purchases,Overall ROAS,Performance Level,ROAS @$100,ROAS @$300,ROAS @$1000,ROAS @$3000,Scale Efficiency,Next Action,Creatives Count,Creative ID\n" +
+                "Book,Hook Name,Test Month/Year,Total Spend,Total Revenue,Purchases,Overall ROAS,Performance Level,ROAS @$100,ROAS @$300,ROAS @$1000,ROAS @$3000,Momentum Score,Creatives Count,Creative ID\n" +
                 hooks.map(hook => {
                     const performance = getPerformanceLevel(hook.totalSpend, hook.testDate);
-                    const scaleEff = getDynamicEfficiency(hook);
-                    const nextAction = getNextAction(hook.overallROAS, hook.totalSpend, hook.testDate);
+                    const momentumScore = getMomentumScore(hook);
                     
-                    return `"${hook.book}","${hook.hookName.replace(/"/g, '""')}","${hook.testDate}",${hook.totalSpend},${hook.totalRevenue},${hook.purchases},${hook.overallROAS.toFixed(2)},"${performance.text}",${hook.roasAt100 > 0 ? hook.roasAt100.toFixed(2) : 'N/A'},${hook.roasAt300 > 0 ? hook.roasAt300.toFixed(2) : 'N/A'},${hook.roasAt1000 > 0 ? hook.roasAt1000.toFixed(2) : 'N/A'},${hook.roasAt3000 > 0 ? hook.roasAt3000.toFixed(2) : 'N/A'},"${scaleEff.text}","${nextAction.text}",${hook.creativesCount},"${hook.creativeId || ''}"`;
+                    return `"${hook.book}","${hook.hookName.replace(/"/g, '""')}","${hook.testDate}",${hook.totalSpend},${hook.totalRevenue},${hook.purchases},${hook.overallROAS.toFixed(2)},"${performance.text}",${hook.roasAt100 > 0 ? hook.roasAt100.toFixed(2) : 'N/A'},${hook.roasAt300 > 0 ? hook.roasAt300.toFixed(2) : 'N/A'},${hook.roasAt1000 > 0 ? hook.roasAt1000.toFixed(2) : 'N/A'},${hook.roasAt3000 > 0 ? hook.roasAt3000.toFixed(2) : 'N/A'},"${momentumScore.text}",${hook.creativesCount},"${hook.creativeId || ''}"`;
                 }).join("\n");
 
             const encodedUri = encodeURI(csvContent);
