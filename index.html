@@ -2344,62 +2344,72 @@
         }
 
         function getMomentumScore(hook) {
-            const { totalSpend, overallROAS, roasAt100, roasAt300, roasAt1000, roasAt3000 } = hook;
-            
-            let momentumScore = 0;
-            let trajectoryText = '';
-            let benchmarkROAS = 0;
-            
-            // Find the appropriate milestone to compare against
-            if (totalSpend >= 3000 && roasAt3000 > 0) {
-                benchmarkROAS = roasAt3000;
-                trajectoryText = 'Recent vs $3000';
-            } else if (totalSpend >= 1000 && roasAt1000 > 0) {
-                benchmarkROAS = roasAt1000;
-                trajectoryText = 'Recent vs $1000';
-            } else if (totalSpend >= 300 && roasAt300 > 0) {
-                benchmarkROAS = roasAt300;
-                trajectoryText = 'Recent vs $300';
-            } else if (totalSpend >= 100 && roasAt100 > 0) {
-                benchmarkROAS = roasAt100;
-                trajectoryText = 'Recent vs $100';
-            }
-            
-            if (benchmarkROAS > 0) {
-                momentumScore = overallROAS / benchmarkROAS;
-                const percentage = (momentumScore * 100).toFixed(0);
-                
-                // Determine class and icon based on momentum
-                let momentumClass, icon;
-                if (momentumScore > 1.05) {
-                    momentumClass = 'momentum-accelerating';
-                    icon = '🚀';
-                } else if (momentumScore >= 0.95) {
-                    momentumClass = 'momentum-stable';
-                    icon = '🟢';
-                } else if (momentumScore >= 0.85) {
-                    momentumClass = 'momentum-declining';
-                    icon = '🟡';
-                } else {
-                    momentumClass = 'momentum-degrading';
-                    icon = '🔴';
-                }
-                
-                return {
-                    text: `${icon} ${percentage}%`,
-                    class: momentumClass,
-                    benchmark: trajectoryText,
-                    value: momentumScore
-                };
-            } else {
-                return {
-                    text: '⚫ N/A',
-                    class: 'momentum-na',
-                    benchmark: 'Insufficient data',
-                    value: 0
-                };
-            }
+    const { totalSpend, overallROAS, roasAt100, roasAt300, roasAt1000, roasAt3000 } = hook;
+    
+    let momentumScore = 0;
+    let trajectoryText = '';
+    let benchmarkROAS = 0;
+    
+    // Find the appropriate milestone to compare against
+    if (totalSpend >= 3000 && roasAt3000 > 0) {
+        benchmarkROAS = roasAt3000;
+        trajectoryText = 'Recent vs $3000';
+    } else if (totalSpend >= 1000 && roasAt1000 > 0) {
+        benchmarkROAS = roasAt1000;
+        trajectoryText = 'Recent vs $1000';
+    } else if (totalSpend >= 300 && roasAt300 > 0) {
+        benchmarkROAS = roasAt300;
+        trajectoryText = 'Recent vs $300';
+    } else if (totalSpend >= 100 && roasAt100 > 0) {
+        benchmarkROAS = roasAt100;
+        trajectoryText = 'Recent vs $100';
+    }
+    
+    if (benchmarkROAS > 0) {
+        momentumScore = overallROAS / benchmarkROAS;
+        const percentage = (momentumScore * 100).toFixed(0);
+        
+        // **NEW: Force red if current ROAS is unprofitable**
+        if (overallROAS < 1.0) {
+            return {
+                text: `🔴 ${percentage}%`,
+                class: 'momentum-degrading',
+                benchmark: trajectoryText + ' (Unprofitable)',
+                value: momentumScore
+            };
         }
+        
+        // Determine class and icon based on momentum
+        let momentumClass, icon;
+        if (momentumScore > 1.05) {
+            momentumClass = 'momentum-accelerating';
+            icon = '🚀';
+        } else if (momentumScore >= 0.95) {
+            momentumClass = 'momentum-stable';
+            icon = '🟢';
+        } else if (momentumScore >= 0.85) {
+            momentumClass = 'momentum-declining';
+            icon = '🟡';
+        } else {
+            momentumClass = 'momentum-degrading';
+            icon = '🔴';
+        }
+        
+        return {
+            text: `${icon} ${percentage}%`,
+            class: momentumClass,
+            benchmark: trajectoryText,
+            value: momentumScore
+        };
+    } else {
+        return {
+            text: '⚫ N/A',
+            class: 'momentum-na',
+            benchmark: 'Insufficient data',
+            value: 0
+        };
+    }
+}
 
         // FIXED NEXT ACTION LOGIC WITH TESTING NOT COMPLETE N/A
         function getNextAction(roas, spend, lastTestDate, creativeGroup, performanceLevel) {
@@ -2817,78 +2827,138 @@
         }
 
         function exportData() {
-            const csvContent = "data:text/csv;charset=utf-8," + 
-                "Book,Hook Name,Test Month/Year,Total Spend,Total Revenue,Purchases,Overall ROAS,Performance Level,ROAS @$100,ROAS @$300,ROAS @$1000,ROAS @$3000,Momentum Score,Creatives Count,Creative ID\n" +
-                hooks.map(hook => {
-                    const performance = getPerformanceLevel(hook.totalSpend, hook.testDate);
-                    const momentumScore = getMomentumScore(hook);
-                    
-                    return `"${hook.book}","${hook.hookName.replace(/"/g, '""')}","${hook.testDate}",${hook.totalSpend},${hook.totalRevenue},${hook.purchases},${hook.overallROAS.toFixed(2)},"${performance.text}",${hook.roasAt100 > 0 ? hook.roasAt100.toFixed(2) : 'N/A'},${hook.roasAt300 > 0 ? hook.roasAt300.toFixed(2) : 'N/A'},${hook.roasAt1000 > 0 ? hook.roasAt1000.toFixed(2) : 'N/A'},${hook.roasAt3000 > 0 ? hook.roasAt3000.toFixed(2) : 'N/A'},"${momentumScore.text}",${hook.creativesCount},"${hook.creativeId || ''}"`;
-                }).join("\n");
+    // Get group milestones from localStorage
+    const groupMilestones = JSON.parse(localStorage.getItem('groupMilestones') || '{}');
+    
+    const csvContent = "data:text/csv;charset=utf-8," + 
+        "Book,Hook Name,Test Month/Year,Total Spend,Total Revenue,Purchases,Overall ROAS,Performance Level,ROAS @$100,ROAS @$300,ROAS @$1000,ROAS @$3000,Momentum Score,Creatives Count,Creative ID,Group ROAS @$100,Group ROAS @$300,Group ROAS @$1000,Group ROAS @$3000\n" +
+        hooks.map(hook => {
+            const performance = getPerformanceLevel(hook.totalSpend, hook.testDate);
+            const momentumScore = getMomentumScore(hook);
+            
+            // Get group-level milestones for this hook
+            const groupKey = `${hook.book}||${hook.hookName}`;
+            const groupMilestone = groupMilestones[groupKey] || {
+                roasAt100: 0,
+                roasAt300: 0,
+                roasAt1000: 0,
+                roasAt3000: 0
+            };
+            
+            return `"${hook.book}","${hook.hookName.replace(/"/g, '""')}","${hook.testDate}",${hook.totalSpend},${hook.totalRevenue},${hook.purchases},${hook.overallROAS.toFixed(2)},"${performance.text}",${hook.roasAt100 > 0 ? hook.roasAt100.toFixed(2) : 'N/A'},${hook.roasAt300 > 0 ? hook.roasAt300.toFixed(2) : 'N/A'},${hook.roasAt1000 > 0 ? hook.roasAt1000.toFixed(2) : 'N/A'},${hook.roasAt3000 > 0 ? hook.roasAt3000.toFixed(2) : 'N/A'},"${momentumScore.text}",${hook.creativesCount},"${hook.creativeId || ''}",${groupMilestone.roasAt100 > 0 ? groupMilestone.roasAt100.toFixed(2) : 'N/A'},${groupMilestone.roasAt300 > 0 ? groupMilestone.roasAt300.toFixed(2) : 'N/A'},${groupMilestone.roasAt1000 > 0 ? groupMilestone.roasAt1000.toFixed(2) : 'N/A'},${groupMilestone.roasAt3000 > 0 ? groupMilestone.roasAt3000.toFixed(2) : 'N/A'}`;
+        }).join("\n");
 
-            const encodedUri = encodeURI(csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `ad_scaling_tracker_${new Date().toISOString().split('T')[0]}.csv`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `ad_scaling_tracker_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
 
         function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+    const file = event.target.files[0];
+    if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const text = e.target.result;
-                    const lines = text.split('\n');
-                    const headers = lines[0].split(',');
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const text = e.target.result;
+            const lines = text.split('\n');
+            const headers = lines[0].split(',');
+            
+            // Check if we have group milestone columns (new format)
+            const hasGroupMilestones = headers.length >= 19;
+            
+            // Load or initialize group milestones
+            let groupMilestones = JSON.parse(localStorage.getItem('groupMilestones') || '{}');
+            
+            for (let i = 1; i < lines.length; i++) {
+                if (lines[i].trim() === '') continue;
+                
+                const values = lines[i].split(',');
+                if (values.length >= 8) {
+                    const hookData = {
+                        book: values[0].replace(/"/g, ''),
+                        hookName: values[1].replace(/"/g, ''),
+                        testDate: values[2].replace(/"/g, ''),
+                        totalSpend: parseFloat(values[3]) || 0,
+                        totalRevenue: parseFloat(values[4]) || 0,
+                        purchases: parseInt(values[5]) || 0,
+                        overallROAS: parseFloat(values[6]) || 0,
+                        creativesCount: parseInt(values[13]) || 0,
+                        creativeId: values[14] ? values[14].replace(/"/g, '') : '',
+                        roasAt100: 0,
+                        roasAt300: 0,
+                        roasAt1000: 0,
+                        roasAt3000: 0
+                    };
                     
-                    for (let i = 1; i < lines.length; i++) {
-                        if (lines[i].trim() === '') continue;
-                        
-                        const values = lines[i].split(',');
-                        if (values.length >= 8) {
-                            const hookData = {
-                                book: values[0].replace(/"/g, ''),
-                                hookName: values[1].replace(/"/g, ''),
-                                testDate: values[2].replace(/"/g, ''),
-                                totalSpend: parseFloat(values[3]) || 0,
-                                totalRevenue: parseFloat(values[4]) || 0,
-                                purchases: parseInt(values[5]) || 0,
-                                overallROAS: parseFloat(values[6]) || 0,
-                                creativesCount: parseInt(values[14]) || 0,
-                                creativeId: values[15] ? values[15].replace(/"/g, '') : '',
+                    // Import individual hook milestones if present
+                    if (values[8] && values[8] !== 'N/A') {
+                        hookData.roasAt100 = parseFloat(values[8]) || 0;
+                    }
+                    if (values[9] && values[9] !== 'N/A') {
+                        hookData.roasAt300 = parseFloat(values[9]) || 0;
+                    }
+                    if (values[10] && values[10] !== 'N/A') {
+                        hookData.roasAt1000 = parseFloat(values[10]) || 0;
+                    }
+                    if (values[11] && values[11] !== 'N/A') {
+                        hookData.roasAt3000 = parseFloat(values[11]) || 0;
+                    }
+                    
+                    // Import group milestones if present (new format)
+                    if (hasGroupMilestones && values.length >= 19) {
+                        const groupKey = `${hookData.book}||${hookData.hookName}`;
+                        if (!groupMilestones[groupKey]) {
+                            groupMilestones[groupKey] = {
                                 roasAt100: 0,
                                 roasAt300: 0,
                                 roasAt1000: 0,
                                 roasAt3000: 0
                             };
-                            
-                            if (!books.includes(hookData.book)) {
-                                books.push(hookData.book);
-                            }
-                            
-                            hooks.push(hookData);
+                        }
+                        
+                        if (values[15] && values[15] !== 'N/A') {
+                            groupMilestones[groupKey].roasAt100 = parseFloat(values[15]) || 0;
+                        }
+                        if (values[16] && values[16] !== 'N/A') {
+                            groupMilestones[groupKey].roasAt300 = parseFloat(values[16]) || 0;
+                        }
+                        if (values[17] && values[17] !== 'N/A') {
+                            groupMilestones[groupKey].roasAt1000 = parseFloat(values[17]) || 0;
+                        }
+                        if (values[18] && values[18] !== 'N/A') {
+                            groupMilestones[groupKey].roasAt3000 = parseFloat(values[18]) || 0;
                         }
                     }
                     
-                    localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
-                    localStorage.setItem('adScalingBooks', JSON.stringify(books));
+                    if (!books.includes(hookData.book)) {
+                        books.push(hookData.book);
+                    }
                     
-                    updateBookOptions();
-                    renderHooks();
-                    renderBooks();
-                    
-                    alert('Data imported successfully!');
-                } catch (error) {
-                    alert('Error importing file. Please check the format.');
+                    hooks.push(hookData);
                 }
-            };
-            reader.readAsText(file);
+            }
+            
+            localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
+            localStorage.setItem('adScalingBooks', JSON.stringify(books));
+            localStorage.setItem('groupMilestones', JSON.stringify(groupMilestones));
+            
+            updateBookOptions();
+            renderHooks();
+            renderBooks();
+            
+            alert('Data imported successfully!');
+        } catch (error) {
+            console.error('Import error:', error);
+            alert('Error importing file. Please check the format.');
         }
+    };
+    reader.readAsText(file);
+}
 
         function clearAllData() {
             if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
