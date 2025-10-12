@@ -9,6 +9,18 @@
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-compat.js"></script>
     
     <style>
+        .book-header-row {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.book-header-row:hover {
+    background: linear-gradient(135deg, #5a67d8 0%, #6a3f8f 100%);
+}
+
+.book-group-content {
+    transition: all 0.3s;
+}
+        
         * {
             margin: 0;
             padding: 0;
@@ -2643,147 +2655,199 @@ function initializeMissingMilestones() {
 
         // FIXED: Updated renderHooks function to use the new calculateGroupMilestones function
         function renderHooks() {
-            const tbody = document.getElementById('hooksTableBody');
-            if (!tbody) {
-                console.error('Could not find hooksTableBody element');
-                return;
-            }
-            tbody.innerHTML = '';
+    const tbody = document.getElementById('hooksTableBody');
+    if (!tbody) {
+        console.error('Could not find hooksTableBody element');
+        return;
+    }
+    tbody.innerHTML = '';
 
-            // Group hooks by book + hookName
-            const hookGroups = {};
-            hooks.forEach(hook => {
-                const key = `${hook.book}||${hook.hookName}`;
-                if (!hookGroups[key]) {
-                    hookGroups[key] = {
-                        book: hook.book,
-                        hookName: hook.hookName,
-                        testDate: hook.testDate,
-                        creatives: []
-                    };
-                }
-                hookGroups[key].creatives.push(hook);
-                
-                // Update to latest test date using proper date comparison
-                const currentGroupDate = new Date(hookGroups[key].testDate.split('/').reverse().join('-') + '-01');
-                const hookDate = new Date(hook.testDate.split('/').reverse().join('-') + '-01');
-                if (hookDate > currentGroupDate) {
-                    hookGroups[key].testDate = hook.testDate;
-                }
-            });
+    // Group hooks by book first, then by hookName
+    const bookGroups = {};
+    hooks.forEach(hook => {
+        if (!bookGroups[hook.book]) {
+            bookGroups[hook.book] = {};
+        }
+        
+        const hookKey = hook.hookName;
+        if (!bookGroups[hook.book][hookKey]) {
+            bookGroups[hook.book][hookKey] = {
+                book: hook.book,
+                hookName: hook.hookName,
+                testDate: hook.testDate,
+                creatives: []
+            };
+        }
+        bookGroups[hook.book][hookKey].creatives.push(hook);
+        
+        // Update to latest test date
+        const currentGroupDate = new Date(bookGroups[hook.book][hookKey].testDate.split('/').reverse().join('-') + '-01');
+        const hookDate = new Date(hook.testDate.split('/').reverse().join('-') + '-01');
+        if (hookDate > currentGroupDate) {
+            bookGroups[hook.book][hookKey].testDate = hook.testDate;
+        }
+    });
 
-            // Render each hook group
-            const sortedKeys = Object.keys(hookGroups).sort((a, b) => {
-                const groupA = hookGroups[a];
-                const groupB = hookGroups[b];
-                
-                // First sort by book name alphabetically
-                if (groupA.book !== groupB.book) {
-                    return groupA.book.localeCompare(groupB.book);
-                }
-                
-                // Then sort by hook name alphabetically
-                return groupA.hookName.localeCompare(groupB.hookName);
-            });
+    // Sort books alphabetically
+    const sortedBooks = Object.keys(bookGroups).sort();
+    
+    let globalGroupIndex = 0;
 
-            sortedKeys.forEach((key, groupIndex) => {
-                const group = hookGroups[key];
-                
-                // Calculate aggregated totals
-                const totalSpend = group.creatives.reduce((sum, c) => sum + c.totalSpend, 0);
-                const totalRevenue = group.creatives.reduce((sum, c) => sum + c.totalRevenue, 0);
-                const totalPurchases = group.creatives.reduce((sum, c) => sum + c.purchases, 0);
-                const overallROAS = totalSpend > 0 ? totalRevenue / totalSpend : 0;
-                
-                // FIXED: Calculate group-level milestones based on aggregated spend/ROAS
-                const aggregatedHook = calculateGroupMilestones(group, totalSpend, overallROAS);
+    sortedBooks.forEach((bookName, bookIndex) => {
+        const hooksInBook = bookGroups[bookName];
+        
+        // Calculate book-level totals
+        const allHooksInBook = Object.values(hooksInBook);
+        const bookTotalSpend = allHooksInBook.reduce((sum, group) => 
+            sum + group.creatives.reduce((s, c) => s + c.totalSpend, 0), 0);
+        const bookTotalRevenue = allHooksInBook.reduce((sum, group) => 
+            sum + group.creatives.reduce((s, c) => s + c.totalRevenue, 0), 0);
+        const bookAvgROAS = bookTotalSpend > 0 ? bookTotalRevenue / bookTotalSpend : 0;
+        const bookHookCount = allHooksInBook.length;
+        
+        // Book header row
+        const bookRow = document.createElement('tr');
+        bookRow.className = 'book-header-row';
+        bookRow.innerHTML = `
+            <td colspan="12" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: bold; padding: 12px 20px; cursor: pointer;" onclick="toggleBookGroup(${bookIndex})">
+                <span id="book-toggle-${bookIndex}" style="display: inline-block; width: 20px;">▼</span>
+                📚 ${bookName} 
+                <span style="margin-left: 20px; font-size: 0.9em; opacity: 0.95;">
+                    ${bookHookCount} hooks | $${bookTotalSpend.toFixed(2)} spend | $${bookTotalRevenue.toFixed(2)} revenue | ${bookAvgROAS.toFixed(2)} avg ROAS
+                </span>
+            </td>
+        `;
+        tbody.appendChild(bookRow);
 
-                const performance = getPerformanceLevel(totalSpend, group.testDate);
-                const momentumScore = getMomentumScore(aggregatedHook);
-                const milestoneData = getMilestoneDisplay(aggregatedHook);
+        // Sort hooks within this book by ROAS (descending)
+        const sortedHooks = allHooksInBook.sort((a, b) => {
+            const roasA = a.creatives.reduce((sum, c) => sum + c.totalSpend, 0) > 0 
+                ? a.creatives.reduce((sum, c) => sum + c.totalRevenue, 0) / a.creatives.reduce((sum, c) => sum + c.totalSpend, 0) 
+                : 0;
+            const roasB = b.creatives.reduce((sum, c) => sum + c.totalSpend, 0) > 0 
+                ? b.creatives.reduce((sum, c) => sum + c.totalRevenue, 0) / b.creatives.reduce((sum, c) => sum + c.totalSpend, 0) 
+                : 0;
+            return roasB - roasA; // Descending order
+        });
 
-                // Find best performing creative
-                const bestCreative = group.creatives.reduce((best, creative) => 
-                    creative.overallROAS > (best?.overallROAS || 0) ? creative : best, null);
+        sortedHooks.forEach((group, hookIndexInBook) => {
+            const groupIndex = globalGroupIndex++;
+            
+            // Calculate aggregated totals for this hook
+            const totalSpend = group.creatives.reduce((sum, c) => sum + c.totalSpend, 0);
+            const totalRevenue = group.creatives.reduce((sum, c) => sum + c.totalRevenue, 0);
+            const totalPurchases = group.creatives.reduce((sum, c) => sum + c.purchases, 0);
+            const overallROAS = totalSpend > 0 ? totalRevenue / totalSpend : 0;
+            
+            // Calculate group-level milestones
+            const aggregatedHook = calculateGroupMilestones(group, totalSpend, overallROAS);
 
-                // Main hook row
-                const row = document.createElement('tr');
-                row.className = 'hook-group';
-                row.innerHTML = `
-                    <td>
-                        <button class="expand-toggle" onclick="toggleCreativeDetails(${groupIndex})" id="toggle-${groupIndex}">▶</button>
-                        ${group.book}
-                    </td>
-                    <td>${group.hookName}</td>
-                    <td>${group.testDate}</td>
-                    <td>$${totalSpend.toFixed(2)}</td>
-                    <td>$${totalRevenue.toFixed(2)}</td>
-                    <td>${totalPurchases}</td>
-                    <td>${overallROAS.toFixed(2)}</td>
-                    <td><span class="performance-badge ${performance.class}">${performance.text}</span></td>
-                    <td class="milestone-display">
-                        <div class="current-milestone">${milestoneData.display}</div>
-                        ${milestoneData.hasHistory ? `
-                            <button id="milestone-toggle-${groupIndex}" class="milestone-toggle" onclick="toggleMilestoneHistory(${groupIndex})">Show History</button>
-                            <div id="milestone-history-${groupIndex}" class="milestone-history">
-                                ${milestoneData.history.map(m => `
-                                    <div class="milestone-item">ROAS @ ${m.label}: ${m.value.toFixed(2)}</div>
-                                `).join('')}
-                            </div>
-                        ` : ''}
-                    </td>
-                    <td>
-                        <span class="momentum-score ${momentumScore.class}" title="${momentumScore.benchmark}">
-                            ${momentumScore.text}
-                        </span>
-                    </td>
-                    <td style="font-family: monospace; font-size: 12px;">
-                        ${group.creatives.length} creative${group.creatives.length !== 1 ? 's' : ''}
-                        <div class="creative-count" style="font-size: 11px; color: #666; margin-top: 2px;">
-                            Best ROAS: ${bestCreative ? bestCreative.overallROAS.toFixed(2) : 'N/A'}
+            const performance = getPerformanceLevel(totalSpend, group.testDate);
+            const momentumScore = getMomentumScore(aggregatedHook);
+            const milestoneData = getMilestoneDisplay(aggregatedHook);
+
+            // Find best performing creative
+            const bestCreative = group.creatives.reduce((best, creative) => 
+                creative.overallROAS > (best?.overallROAS || 0) ? creative : best, null);
+
+            // Rank medal for top 3 hooks in book
+            let rankMedal = '';
+            if (hookIndexInBook === 0) rankMedal = '🥇 ';
+            else if (hookIndexInBook === 1) rankMedal = '🥈 ';
+            else if (hookIndexInBook === 2) rankMedal = '🥉 ';
+
+            // Main hook row
+            const row = document.createElement('tr');
+            row.className = 'hook-group book-group-content book-group-' + bookIndex;
+            row.innerHTML = `
+                <td style="padding-left: 40px;">
+                    <button class="expand-toggle" onclick="toggleCreativeDetails(${groupIndex})" id="toggle-${groupIndex}">▶</button>
+                    ${rankMedal}${group.book}
+                </td>
+                <td>${group.hookName}</td>
+                <td>${group.testDate}</td>
+                <td>$${totalSpend.toFixed(2)}</td>
+                <td>$${totalRevenue.toFixed(2)}</td>
+                <td>${totalPurchases}</td>
+                <td><span class="${getRoasColorClass(overallROAS)}">${overallROAS.toFixed(2)}</span></td>
+                <td><span class="performance-badge ${performance.class}">${performance.text}</span></td>
+                <td class="milestone-display">
+                    <div class="current-milestone">${milestoneData.display}</div>
+                    ${milestoneData.hasHistory ? `
+                        <button id="milestone-toggle-${groupIndex}" class="milestone-toggle" onclick="toggleMilestoneHistory(${groupIndex})">Show History</button>
+                        <div id="milestone-history-${groupIndex}" class="milestone-history">
+                            ${milestoneData.history.map(m => `
+                                <div class="milestone-item">ROAS @ ${m.label}: ${m.value.toFixed(2)}</div>
+                            `).join('')}
                         </div>
+                    ` : ''}
+                </td>
+                <td>
+                    <span class="momentum-score ${momentumScore.class}" title="${momentumScore.benchmark}">
+                        ${momentumScore.text}
+                    </span>
+                </td>
+                <td style="font-family: monospace; font-size: 12px;">
+                    ${group.creatives.length} creative${group.creatives.length !== 1 ? 's' : ''}
+                    <div class="creative-count" style="font-size: 11px; color: #666; margin-top: 2px;">
+                        Best ROAS: ${bestCreative ? bestCreative.overallROAS.toFixed(2) : 'N/A'}
+                    </div>
+                </td>
+                <td>
+                    <button class="btn btn-info btn-sm" onclick="editHookGroup('${group.book}||${group.hookName}')">✏️ Edit</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${group.book}||${group.hookName}')">⌫ Delete</button>
+                </td>
+            `;
+            tbody.appendChild(row);
+
+            // Creative detail rows (hidden by default)
+            group.creatives.sort((a, b) => b.overallROAS - a.overallROAS);
+            group.creatives.forEach((creative, creativeIndex) => {
+                const isBest = creative === bestCreative;
+                const detailRow = document.createElement('tr');
+                detailRow.className = `creative-details book-group-content book-group-${bookIndex} ${isBest ? 'best-creative' : ''}`;
+                detailRow.id = `creative-${groupIndex}-${creativeIndex}`;
+                detailRow.innerHTML = `
+                    <td style="padding-left: 70px;">
+                        ${isBest ? '👑 ' : ''}Creative ${creativeIndex + 1}
                     </td>
+                    <td style="font-size: 12px; color: #666;">${creative.hookName}</td>
+                    <td>${creative.testDate}</td>
+                    <td>$${creative.totalSpend.toFixed(2)}</td>
+                    <td>$${creative.totalRevenue.toFixed(2)}</td>
+                    <td>${creative.purchases}</td>
+                    <td><strong>${creative.overallROAS.toFixed(2)}</strong></td>
+                    <td colspan="3" style="font-size: 12px; color: #666;">
+                        Creative performance details
+                    </td>
+                    <td style="font-family: monospace; font-size: 11px; word-break: break-all; white-space: normal;">${creative.creativeId}</td>
                     <td>
-                        <button class="btn btn-info btn-sm" onclick="editHookGroup('${key}')">✏️ Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">⌫ Delete</button>
+                        <button class="btn btn-info btn-xs" onclick="editHook(${hooks.indexOf(creative)})">✏️</button>
+                        <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">⌫</button>
                     </td>
                 `;
-                tbody.appendChild(row);
-
-                // Creative detail rows (hidden by default)
-                group.creatives.sort((a, b) => b.overallROAS - a.overallROAS); // Sort by ROAS descending
-                group.creatives.forEach((creative, creativeIndex) => {
-                    const isBest = creative === bestCreative;
-                    const detailRow = document.createElement('tr');
-                    detailRow.className = `creative-details ${isBest ? 'best-creative' : ''}`;
-                    detailRow.id = `creative-${groupIndex}-${creativeIndex}`;
-                    detailRow.innerHTML = `
-                        <td style="padding-left: 30px;">
-                            ${isBest ? '👑 ' : ''}Creative ${creativeIndex + 1}
-                        </td>
-                        <td style="font-size: 12px; color: #666;">${creative.hookName}</td>
-                        <td>${creative.testDate}</td>
-                        <td>$${creative.totalSpend.toFixed(2)}</td>
-                        <td>$${creative.totalRevenue.toFixed(2)}</td>
-                        <td>${creative.purchases}</td>
-                        <td><strong>${creative.overallROAS.toFixed(2)}</strong></td>
-                        <td colspan="3" style="font-size: 12px; color: #666;">
-                            Creative performance details
-                        </td>
-                        <td style="font-family: monospace; font-size: 11px; word-break: break-all; white-space: normal;">${creative.creativeId}</td>
-                        <td>
-                            <button class="btn btn-info btn-xs" onclick="editHook(${hooks.indexOf(creative)})">✏️</button>
-                            <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">⌫</button>
-                        </td>
-                    `;
-                    tbody.appendChild(detailRow);
-                });
+                tbody.appendChild(detailRow);
             });
-            
-            // Populate book filter after rendering
-            populateBookFilter();
-        }
+        });
+    });
+    
+    // Populate book filter after rendering
+    populateBookFilter();
+}
 
+        function toggleBookGroup(bookIndex) {
+    const bookContent = document.querySelectorAll('.book-group-' + bookIndex);
+    const toggle = document.getElementById('book-toggle-' + bookIndex);
+    
+    if (toggle.textContent === '▼') {
+        toggle.textContent = '▶';
+        bookContent.forEach(row => row.style.display = 'none');
+    } else {
+        toggle.textContent = '▼';
+        bookContent.forEach(row => row.style.display = 'table-row');
+    }
+}
+        
         function renderBooks() {
             const tbody = document.getElementById('booksTableBody');
             tbody.innerHTML = '';
