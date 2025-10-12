@@ -725,13 +725,14 @@
         <div id="hooksTab" class="tab-content active">
             <!-- Import/Export Controls -->
             <div class="import-export">
-                <button class="btn btn-secondary" onclick="exportData()">📥 Export CSV</button>
-                <div class="file-upload">
-                    <input type="file" id="csvImport" accept=".csv,.xlsx,.xls" onchange="importData(event)">
-                    <label for="csvImport" class="file-upload-label">📤 Import CSV/Excel</label>
-                </div>
-                <button class="btn btn-warning" onclick="clearAllData()">⌫ Clear All Data</button>
-            </div>
+    <button class="btn btn-secondary" onclick="exportData()">📥 Export CSV</button>
+    <div class="file-upload">
+        <input type="file" id="csvImport" accept=".csv,.xlsx,.xls" onchange="importData(event)">
+        <label for="csvImport" class="file-upload-label">📤 Import CSV/Excel</label>
+    </div>
+    <button class="btn btn-warning" onclick="clearAllData()">⌫ Clear All Data</button>
+    <button class="btn btn-info" onclick="runMilestoneMigration()">🔧 Fix Missing Milestones</button>
+</div>
 
             <!-- Edit Form (Hidden by default) -->
             <div id="editForm" class="edit-form">
@@ -1318,6 +1319,95 @@
                 saveDataToFirebase();
             }
         }
+
+        // NEW FUNCTION: Initialize missing milestones for backfilled data
+function initializeMissingMilestones() {
+    let updatedCount = 0;
+    const groupMilestonesData = JSON.parse(localStorage.getItem('groupMilestones') || '{}');
+    
+    // Group hooks by book + hookName
+    const hookGroups = {};
+    hooks.forEach(hook => {
+        const key = `${hook.book}||${hook.hookName}`;
+        if (!hookGroups[key]) {
+            hookGroups[key] = {
+                book: hook.book,
+                hookName: hook.hookName,
+                creatives: []
+            };
+        }
+        hookGroups[key].creatives.push(hook);
+    });
+    
+    // Check each group for missing milestones
+    Object.keys(hookGroups).forEach(groupKey => {
+        const group = hookGroups[groupKey];
+        const totalSpend = group.creatives.reduce((sum, c) => sum + c.totalSpend, 0);
+        const totalRevenue = group.creatives.reduce((sum, c) => sum + c.totalRevenue, 0);
+        const currentROAS = totalSpend > 0 ? totalRevenue / totalSpend : 0;
+        
+        // Get or create group milestones
+        if (!groupMilestonesData[groupKey]) {
+            groupMilestonesData[groupKey] = {
+                roasAt100: 0,
+                roasAt300: 0,
+                roasAt1000: 0,
+                roasAt3000: 0
+            };
+        }
+        
+        const milestones = groupMilestonesData[groupKey];
+        let groupUpdated = false;
+        
+        // Initialize any missing milestones based on current spend
+        if (totalSpend >= 100 && milestones.roasAt100 === 0) {
+            milestones.roasAt100 = currentROAS;
+            groupUpdated = true;
+            console.log(`✅ Initialized $100 milestone for ${group.hookName}: ${currentROAS.toFixed(2)}`);
+        }
+        if (totalSpend >= 300 && milestones.roasAt300 === 0) {
+            milestones.roasAt300 = currentROAS;
+            groupUpdated = true;
+            console.log(`✅ Initialized $300 milestone for ${group.hookName}: ${currentROAS.toFixed(2)}`);
+        }
+        if (totalSpend >= 1000 && milestones.roasAt1000 === 0) {
+            milestones.roasAt1000 = currentROAS;
+            groupUpdated = true;
+            console.log(`✅ Initialized $1000 milestone for ${group.hookName}: ${currentROAS.toFixed(2)}`);
+        }
+        if (totalSpend >= 3000 && milestones.roasAt3000 === 0) {
+            milestones.roasAt3000 = currentROAS;
+            groupUpdated = true;
+            console.log(`✅ Initialized $3000 milestone for ${group.hookName}: ${currentROAS.toFixed(2)}`);
+        }
+        
+        if (groupUpdated) {
+            updatedCount++;
+        }
+    });
+    
+    // Save updated milestones
+    if (updatedCount > 0) {
+        localStorage.setItem('groupMilestones', JSON.stringify(groupMilestonesData));
+        console.log(`🎯 Initialized milestones for ${updatedCount} hook groups`);
+        return updatedCount;
+    }
+    
+    return 0;
+}
+
+        function runMilestoneMigration() {
+    if (confirm('This will initialize missing ROAS milestones for backfilled data. This is safe and won\'t overwrite existing milestones. Continue?')) {
+        const count = initializeMissingMilestones();
+        if (count > 0) {
+            saveToLocalAndCloud();
+            renderHooks();
+            alert(`✅ Fixed ${count} hooks with missing milestones!`);
+        } else {
+            alert('✅ All milestones are already set - nothing to fix!');
+        }
+    }
+}
 
         // UPDATED: calculateGroupMilestones now uses stored group milestones
         function calculateGroupMilestones(group, totalSpend, overallROAS) {
