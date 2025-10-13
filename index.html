@@ -2876,34 +2876,10 @@ function initializeMissingMilestones() {
 }
         
         function renderBooks() {
-            const tbody = document.getElementById('booksTableBody');
-            tbody.innerHTML = '';
-
-            books.forEach(book => {
-                const bookHooks = hooks.filter(h => h.book === book);
-                const totalHooks = bookHooks.length;
-                const totalSpend = bookHooks.reduce((sum, hook) => sum + hook.totalSpend, 0);
-                const totalRevenue = bookHooks.reduce((sum, hook) => sum + hook.totalRevenue, 0);
-                const averageROAS = totalSpend > 0 ? totalRevenue / totalSpend : 0;
-                const bestHook = bookHooks.reduce((best, hook) => 
-                    hook.overallROAS > (best?.overallROAS || 0) ? hook : best, null);
-
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${book}</td>
-                    <td>${totalHooks}</td>
-                    <td>$${totalSpend.toFixed(2)}</td>
-                    <td>$${totalRevenue.toFixed(2)}</td>
-                    <td>${averageROAS.toFixed(2)}</td>
-                    <td>${bestHook ? `${bestHook.hookName.substring(0, 50)}... (ROAS: ${bestHook.overallROAS.toFixed(2)})` : 'None'}</td>
-                    <td>
-                        <button class="btn btn-info btn-sm" onclick="editBookTitle('${book}')">✏️ Edit</button>
-                        <button class="btn btn-danger btn-sm" onclick="deleteBook('${book}')">⌫ Delete</button>
-                    </td>
-                `;
-                tbody.appendChild(row);
-            });
-        }
+       // Books are now rendered through renderBooksAnalysis() instead
+       // This function is kept for backward compatibility but does nothing
+       renderBooksAnalysis();
+   }
 
         function renderBooksAnalysis() {
     const container = document.getElementById('booksAnalysisView');
