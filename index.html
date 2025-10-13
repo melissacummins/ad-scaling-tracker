@@ -2713,8 +2713,8 @@ function initializeMissingMilestones() {
                 <span id="book-toggle-${bookIndex}" style="display: inline-block; width: 20px;">▼</span>
                 📚 ${bookName} 
                 <span style="margin-left: 20px; font-size: 0.9em; opacity: 0.95;">
-                    ${bookHookCount} hooks | $${bookTotalSpend.toFixed(2)} spend | $${bookTotalRevenue.toFixed(2)} revenue | ${bookAvgROAS.toFixed(2)} avg ROAS
-                </span>
+    ${bookHookCount} hooks | ${bookAvgROAS.toFixed(2)} avg ROAS
+</span>
             </td>
         `;
         tbody.appendChild(bookRow);
@@ -2761,10 +2761,10 @@ function initializeMissingMilestones() {
             row.className = 'hook-group book-group-content book-group-' + bookIndex;
             row.innerHTML = `
                 <td style="padding-left: 40px;">
-                    <button class="expand-toggle" onclick="toggleCreativeDetails(${groupIndex})" id="toggle-${groupIndex}">▶</button>
-                    ${rankMedal}${group.book}
-                </td>
-                <td>${group.hookName}</td>
+    <button class="expand-toggle" onclick="toggleCreativeDetails(${groupIndex})" id="toggle-${groupIndex}">▶</button>
+    ${group.book}
+</td>
+                <td>${rankMedal}${group.hookName}</td>
                 <td>${group.testDate}</td>
                 <td>$${totalSpend.toFixed(2)}</td>
                 <td>$${totalRevenue.toFixed(2)}</td>
@@ -3142,17 +3142,17 @@ function initializeMissingMilestones() {
 
         // NEW FUNCTIONS FOR EXPANDABLE CREATIVE DETAILS
         function toggleCreativeDetails(groupIndex) {
-            const toggle = document.getElementById(`toggle-${groupIndex}`);
-            const creativeRows = document.querySelectorAll(`[id^="creative-${groupIndex}-"]`);
-            
-            if (toggle.textContent === '▶') {
-                toggle.textContent = '▼';
-                creativeRows.forEach(row => row.style.display = 'table-row');
-            } else {
-                toggle.textContent = '▶';
-                creativeRows.forEach(row => row.style.display = 'none');
-            }
-        }
+    const toggle = document.getElementById(`toggle-${groupIndex}`);
+    const creativeRows = document.querySelectorAll(`[id^="creative-${groupIndex}-"]`);
+    
+    if (toggle.textContent === '▶') {
+        toggle.textContent = '▼';
+        creativeRows.forEach(row => row.style.display = 'table-row');
+    } else {
+        toggle.textContent = '▶';
+        creativeRows.forEach(row => row.style.display = 'none');
+    }
+}
 
         function editHookGroup(key) {
             const [book, hookName] = key.split('||');
