@@ -810,10 +810,11 @@
         </div>
 
         <div class="tabs">
-            <button class="tab active" onclick="switchTab('hooks')">🎯 Hooks Tracker</button>
-            <button class="tab" onclick="switchTab('books')">📚 Books Management</button>
-            <button class="tab" onclick="switchTab('creatives')">🎨 Creative ID Tracker</button>
-        </div>
+    <button class="tab active" onclick="switchTab('hooks')">🎯 Hooks Tracker</button>
+    <button class="tab" onclick="switchTab('books')">📚 Books Management</button>
+    <button class="tab" onclick="switchTab('creatives')">🎨 Creative ID Tracker</button>
+    <button class="tab" onclick="switchTab('archive')">📦 Archive</button>
+</div>
 
         <!-- Hooks Tab -->
         <div id="hooksTab" class="tab-content active">
@@ -944,13 +945,20 @@
 
             <!-- Existing Hook Selection (Hidden by default) -->
             <div id="existingHookSelection" style="display: none; margin-bottom: 20px; padding: 20px; background: #e3f2fd; border-radius: 10px; border-left: 4px solid #2196f3;">
-                <h4 style="margin-bottom: 15px; color: #1976d2;">Select Existing Hook + Creative</h4>
-                <div class="form-group">
-                    <label for="existingHookSelect">Choose existing combination:</label>
-                    <select id="existingHookSelect" onchange="loadExistingHookData()" style="font-family: monospace;">
-                        <option value="">Select existing hook+creative...</option>
-                    </select>
-                </div>
+    <h4 style="margin-bottom: 15px; color: #1976d2;">Select Existing Hook + Creative</h4>
+    <div class="form-group">
+        <label for="existingHookSearch">🔍 Search hooks:</label>
+        <input type="text" id="existingHookSearch" placeholder="Type to filter by book, hook name, or creative ID..." 
+               oninput="filterExistingHooks(this.value)" 
+               style="margin-bottom: 10px; padding: 10px; border: 2px solid #2196f3; border-radius: 8px; width: 100%;">
+        <span id="hookCountDisplay" style="font-size: 12px; color: #666; display: block; margin-bottom: 10px;"></span>
+    </div>
+    <div class="form-group">
+        <label for="existingHookSelect">Choose existing combination:</label>
+        <select id="existingHookSelect" onchange="loadExistingHookData()" style="font-family: monospace;">
+            <option value="">Select existing hook+creative...</option>
+        </select>
+    </div>
                 <div id="existingHookInfo" style="margin-top: 15px; padding: 10px; background: white; border-radius: 6px; font-size: 13px; display: none;">
                     <!-- Existing hook info will be populated here -->
                 </div>
@@ -1064,6 +1072,33 @@
         <!-- Books will be rendered here by renderBooksAnalysis() -->
     </div>
 </div>
+
+            <!-- Archive Tab -->
+        <div id="archiveTab" class="tab-content">
+            <div style="margin-bottom: 30px;">
+                <h2>📦 Archived Hooks</h2>
+                <p>Hooks and creatives you've archived. You can restore them or permanently delete them.</p>
+            </div>
+
+            <div class="table-wrapper">
+                <table class="data-table" id="archiveTable">
+                    <thead>
+                        <tr>
+                            <th>Book</th>
+                            <th>Hook</th>
+                            <th>Archived Date</th>
+                            <th>Total Spend</th>
+                            <th>Total Revenue</th>
+                            <th>ROAS</th>
+                            <th>Creative ID</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="archiveTableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
             
         <!-- Creative ID Tracker Tab -->
         <div id="creativesTab" class="tab-content">
@@ -1158,6 +1193,7 @@
         let hooks = JSON.parse(localStorage.getItem('adScalingHooks') || '[]');
         let books = JSON.parse(localStorage.getItem('adScalingBooks') || '[]');
         let creativeNotes = JSON.parse(localStorage.getItem('adScalingCreativeNotes') || '{}');
+        let archivedHooks = JSON.parse(localStorage.getItem('adScalingArchivedHooks') || '[]');
 
         // Add to existing mode variables
         let isAddToExistingMode = false;
@@ -1187,6 +1223,12 @@
                 existingSelection.style.display = 'none';
                 selectedExistingHook = null;
                 clearForm();
+                // Clear search
+const searchInput = document.getElementById('existingHookSearch');
+if (searchInput) {
+    searchInput.value = '';
+    filterExistingHooks('');
+}
             }
         }
 
@@ -1616,9 +1658,9 @@ function initializeMissingMilestones() {
 
         function populateExistingHooks() {
             const select = document.getElementById('existingHookSelect');
-            select.innerHTML = '<option value="">Select existing hook+creative...</option>';
+            const searchInput = document.getElementById('existingHookSearch');
             
-            // Group hooks by book + hookName + creativeId for unique combinations
+            // Store all combinations for filtering
             const combinations = {};
             hooks.forEach((hook, index) => {
                 const key = `${hook.book}||${hook.hookName}||${hook.creativeId}`;
@@ -1626,7 +1668,8 @@ function initializeMissingMilestones() {
                     combinations[key] = {
                         index: index,
                         hook: hook,
-                        display: `${hook.book} → ${hook.hookName.substring(0, 40)}${hook.hookName.length > 40 ? '...' : ''} → ${hook.creativeId}`
+                        display: `${hook.book} → ${hook.hookName.substring(0, 40)}${hook.hookName.length > 40 ? '...' : ''} → ${hook.creativeId}`,
+                        searchText: `${hook.book} ${hook.hookName} ${hook.creativeId}`.toLowerCase()
                     };
                 }
             });
@@ -1639,12 +1682,38 @@ function initializeMissingMilestones() {
                 return a.hook.hookName.localeCompare(b.hook.hookName);
             });
             
-            sortedCombinations.forEach(combo => {
+            // Store for filtering
+            window.allHookCombinations = sortedCombinations;
+            
+            // Initial render
+            filterExistingHooks('');
+        }
+
+        function filterExistingHooks(searchTerm) {
+            const select = document.getElementById('existingHookSelect');
+            select.innerHTML = '<option value="">Select existing hook+creative...</option>';
+            
+            const filtered = window.allHookCombinations.filter(combo => 
+                combo.searchText.includes(searchTerm.toLowerCase())
+            );
+            
+            if (filtered.length === 0) {
+                select.innerHTML = '<option value="">No matches found...</option>';
+                return;
+            }
+            
+            filtered.forEach(combo => {
                 const option = document.createElement('option');
                 option.value = combo.index;
                 option.textContent = combo.display;
                 select.appendChild(option);
             });
+            
+            // Update count display
+            const countDisplay = document.getElementById('hookCountDisplay');
+            if (countDisplay) {
+                countDisplay.textContent = `Showing ${filtered.length} of ${window.allHookCombinations.length} hooks`;
+            }
         }
 
         function loadExistingHookData() {
@@ -1792,6 +1861,7 @@ function initializeMissingMilestones() {
                     hooks: hooks,
                     books: books,
                     creativeNotes: creativeNotes,
+                    archivedHooks: archivedHooks,
                     groupMilestones: JSON.parse(localStorage.getItem('groupMilestones') || '{}'),
                     lastUpdated: new Date().toISOString(),
                     version: 1
@@ -1829,6 +1899,7 @@ function initializeMissingMilestones() {
                         hooks = userData.hooks || [];
                         books = userData.books || [];
                         creativeNotes = userData.creativeNotes || {};
+                        archivedHooks = userData.archivedHooks || [];
                         
                         // Load group milestones if they exist
                         if (userData.groupMilestones) {
@@ -1839,6 +1910,7 @@ function initializeMissingMilestones() {
                         localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
                         localStorage.setItem('adScalingBooks', JSON.stringify(books));
                         localStorage.setItem('adScalingCreativeNotes', JSON.stringify(creativeNotes));
+                        localStorage.setItem('adScalingArchivedHooks', JSON.stringify(archivedHooks));
                         localStorage.setItem('lastUpdated', userData.lastUpdated);
                         
                         // Run migration after loading data
@@ -1953,6 +2025,7 @@ function initializeMissingMilestones() {
             localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
             localStorage.setItem('adScalingBooks', JSON.stringify(books));
             localStorage.setItem('adScalingCreativeNotes', JSON.stringify(creativeNotes));
+            localStorage.setItem('adScalingArchivedHooks', JSON.stringify(archivedHooks));
             localStorage.setItem('lastUpdated', new Date().toISOString());
             
             // Save to Firebase if signed in
@@ -2086,6 +2159,7 @@ function initializeMissingMilestones() {
             
             renderHooks();
             renderBooks();
+            renderArchive();
             
             // Set today's month/year as default
             const testDateInput = document.getElementById('testDate');
@@ -2822,9 +2896,10 @@ function initializeMissingMilestones() {
                 </div>
             </td>
             <td>
-                <button class="btn btn-info btn-sm" onclick="editHookGroup('${key}')">✏️ Edit</button>
-                <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">⌫ Delete</button>
-            </td>
+    <button class="btn btn-info btn-sm" onclick="editHookGroup('${key}')">✏️ Edit</button>
+    <button class="btn btn-warning btn-sm" onclick="archiveHookGroup('${key}')">📦 Archive</button>
+    <button class="btn btn-danger btn-sm" onclick="deleteHookGroup('${key}')">⌫ Delete</button>
+</td>
         `;
         tbody.appendChild(row);
 
@@ -2851,7 +2926,8 @@ function initializeMissingMilestones() {
                 <td style="font-family: monospace; font-size: 11px; word-break: break-all; white-space: normal;">${creative.creativeId}</td>
                 <td>
                     <button class="btn btn-info btn-xs" onclick="editHook(${hooks.indexOf(creative)})">✏️</button>
-                    <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">⌫</button>
+<button class="btn btn-warning btn-xs" onclick="archiveHook(${hooks.indexOf(creative)})">📦</button>
+<button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">⌫</button>
                 </td>
             `;
             tbody.appendChild(detailRow);
@@ -3372,6 +3448,95 @@ function filterCreativeById(creativeId) {
             }
         }
 
+        function archiveHook(index) {
+            if (confirm('Archive this hook? You can restore it later from the Archive view.')) {
+                const hook = hooks[index];
+                archivedHooks.push({
+                    ...hook,
+                    archivedDate: new Date().toISOString()
+                });
+                hooks.splice(index, 1);
+                saveToLocalAndCloud();
+                renderHooks();
+                renderCreatives();
+            }
+        }
+
+        function archiveHookGroup(key) {
+            const [book, hookName] = key.split('||');
+            const groupHooks = hooks.filter(h => h.book === book && h.hookName === hookName);
+            
+            if (confirm(`Archive the hook "${hookName}" and all ${groupHooks.length} creative tests? You can restore them later.`)) {
+                // Move all hooks in this group to archive
+                groupHooks.forEach(hook => {
+                    archivedHooks.push({
+                        ...hook,
+                        archivedDate: new Date().toISOString()
+                    });
+                });
+                
+                // Remove from active hooks
+                hooks = hooks.filter(h => !(h.book === book && h.hookName === hookName));
+                saveToLocalAndCloud();
+                renderHooks();
+                renderCreatives();
+            }
+        }
+
+        function restoreHook(index) {
+            if (confirm('Restore this hook from archive?')) {
+                const hook = archivedHooks[index];
+                delete hook.archivedDate;
+                hooks.push(hook);
+                archivedHooks.splice(index, 1);
+                saveToLocalAndCloud();
+                renderHooks();
+                renderArchive();
+                renderCreatives();
+            }
+        }
+
+        function permanentlyDeleteHook(index) {
+            if (confirm('PERMANENTLY delete this hook? This cannot be undone!')) {
+                archivedHooks.splice(index, 1);
+                saveToLocalAndCloud();
+                renderArchive();
+            }
+        }
+
+        function renderArchive() {
+            const tbody = document.getElementById('archiveTableBody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+
+            if (archivedHooks.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #666;">No archived hooks yet</td></tr>';
+                return;
+            }
+
+            archivedHooks.forEach((hook, index) => {
+                const archivedDate = new Date(hook.archivedDate);
+                const formattedDate = archivedDate.toLocaleDateString() + ' ' + archivedDate.toLocaleTimeString();
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${hook.book}</td>
+                    <td>${hook.hookName}</td>
+                    <td>${formattedDate}</td>
+                    <td>$${hook.totalSpend.toFixed(2)}</td>
+                    <td>$${hook.totalRevenue.toFixed(2)}</td>
+                    <td><span class="${getRoasColorClass(hook.overallROAS)}">${hook.overallROAS.toFixed(2)}</span></td>
+                    <td style="font-family: monospace; font-size: 11px;">${hook.creativeId}</td>
+                    <td>
+                        <button class="btn btn-success btn-sm" onclick="restoreHook(${index})">↩️ Restore</button>
+                        <button class="btn btn-danger btn-sm" onclick="permanentlyDeleteHook(${index})">🗑️ Delete Forever</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
         // CREATIVE ID TRACKER FUNCTIONS
         function renderCreatives() {
             const tbody = document.getElementById('creativesTableBody');
@@ -3490,11 +3655,13 @@ function filterCreativeById(creativeId) {
     event.target.classList.add('active');
     
     // Refresh data when switching tabs
-    if (tabName === 'books') {
-        renderBooksAnalysis();
-    } else if (tabName === 'creatives') {
-        renderCreatives();
-    }
+if (tabName === 'books') {
+    renderBooksAnalysis();
+} else if (tabName === 'creatives') {
+    renderCreatives();
+} else if (tabName === 'archive') {
+    renderArchive();
+}
 }
     </script>
         </div>
