@@ -1073,30 +1073,68 @@
     </div>
 </div>
 
-            <!-- Archive Tab -->
+           <!-- Archive Tab -->
         <div id="archiveTab" class="tab-content">
             <div style="margin-bottom: 30px;">
-                <h2>📦 Archived Hooks</h2>
-                <p>Hooks and creatives you've archived. You can restore them or permanently delete them.</p>
+                <h2>📦 Archive</h2>
+                <p>Archived hooks and creatives. You can restore them or permanently delete them.</p>
             </div>
 
-            <div class="table-wrapper">
-                <table class="data-table" id="archiveTable">
-                    <thead>
-                        <tr>
-                            <th>Book</th>
-                            <th>Hook</th>
-                            <th>Archived Date</th>
-                            <th>Total Spend</th>
-                            <th>Total Revenue</th>
-                            <th>ROAS</th>
-                            <th>Creative ID</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="archiveTableBody">
-                    </tbody>
-                </table>
+            <!-- Archive Type Toggle -->
+            <div style="margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                <label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer;">
+                    <input type="radio" name="archiveView" value="hooks" checked onchange="toggleArchiveView(this.value)" style="transform: scale(1.2);">
+                    <span>📋 Archived Hooks (complete hook groups)</span>
+                </label>
+                <label style="display: flex; align-items: center; gap: 10px; font-weight: 600; cursor: pointer; margin-top: 10px;">
+                    <input type="radio" name="archiveView" value="creatives" onchange="toggleArchiveView(this.value)" style="transform: scale(1.2);">
+                    <span>🎨 Archived Creatives (by Creative ID)</span>
+                </label>
+            </div>
+
+            <!-- Hooks Archive View -->
+            <div id="hooksArchiveView" class="archive-view">
+                <h3 style="margin-bottom: 15px;">Archived Hooks</h3>
+                <div class="table-wrapper">
+                    <table class="data-table" id="archiveTable">
+                        <thead>
+                            <tr>
+                                <th>Book</th>
+                                <th>Hook</th>
+                                <th>Archived Date</th>
+                                <th>Total Spend</th>
+                                <th>Total Revenue</th>
+                                <th>ROAS</th>
+                                <th>Creative ID</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="archiveTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Creatives Archive View -->
+            <div id="creativesArchiveView" class="archive-view" style="display: none;">
+                <h3 style="margin-bottom: 15px;">Archived Creatives</h3>
+                <div class="table-wrapper">
+                    <table class="data-table" id="creativesArchiveTable">
+                        <thead>
+                            <tr>
+                                <th>Creative ID</th>
+                                <th>Hooks Count</th>
+                                <th>Total Spend</th>
+                                <th>Total Revenue</th>
+                                <th>Overall ROAS</th>
+                                <th>Archived Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="creativesArchiveTableBody">
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
             
@@ -1194,6 +1232,7 @@
         let books = JSON.parse(localStorage.getItem('adScalingBooks') || '[]');
         let creativeNotes = JSON.parse(localStorage.getItem('adScalingCreativeNotes') || '{}');
         let archivedHooks = JSON.parse(localStorage.getItem('adScalingArchivedHooks') || '[]');
+        let archivedCreatives = JSON.parse(localStorage.getItem('adScalingArchivedCreatives') || '[]');
 
         // Add to existing mode variables
         let isAddToExistingMode = false;
@@ -1662,7 +1701,7 @@ function initializeMissingMilestones() {
             
             // Store all combinations for filtering
             const combinations = {};
-            hooks.forEach((hook, index) => {
+            hooks.filter(hook => !archivedCreatives.some(ac => ac.creativeId === hook.creativeId)).forEach((hook, index) => {
                 const key = `${hook.book}||${hook.hookName}||${hook.creativeId}`;
                 if (!combinations[key]) {
                     combinations[key] = {
@@ -1862,6 +1901,7 @@ function initializeMissingMilestones() {
                     books: books,
                     creativeNotes: creativeNotes,
                     archivedHooks: archivedHooks,
+                    archivedCreatives: archivedCreatives,
                     groupMilestones: JSON.parse(localStorage.getItem('groupMilestones') || '{}'),
                     lastUpdated: new Date().toISOString(),
                     version: 1
@@ -1900,6 +1940,7 @@ function initializeMissingMilestones() {
                         books = userData.books || [];
                         creativeNotes = userData.creativeNotes || {};
                         archivedHooks = userData.archivedHooks || [];
+                        archivedCreatives = userData.archivedCreatives || [];
                         
                         // Load group milestones if they exist
                         if (userData.groupMilestones) {
@@ -1911,6 +1952,7 @@ function initializeMissingMilestones() {
                         localStorage.setItem('adScalingBooks', JSON.stringify(books));
                         localStorage.setItem('adScalingCreativeNotes', JSON.stringify(creativeNotes));
                         localStorage.setItem('adScalingArchivedHooks', JSON.stringify(archivedHooks));
+                        localStorage.setItem('adScalingArchivedCreatives', JSON.stringify(archivedCreatives));
                         localStorage.setItem('lastUpdated', userData.lastUpdated);
                         
                         // Run migration after loading data
@@ -2026,6 +2068,7 @@ function initializeMissingMilestones() {
             localStorage.setItem('adScalingBooks', JSON.stringify(books));
             localStorage.setItem('adScalingCreativeNotes', JSON.stringify(creativeNotes));
             localStorage.setItem('adScalingArchivedHooks', JSON.stringify(archivedHooks));
+            localStorage.setItem('adScalingArchivedCreatives', JSON.stringify(archivedCreatives));
             localStorage.setItem('lastUpdated', new Date().toISOString());
             
             // Save to Firebase if signed in
@@ -3504,6 +3547,72 @@ function filterCreativeById(creativeId) {
             }
         }
 
+        function archiveCreative(creativeId) {
+            if (confirm('Archive this creative? You can restore it later from the Archive view.')) {
+                // Find all hooks using this creative
+                const creativesToArchive = hooks.filter(h => h.creativeId === creativeId);
+                
+                creativesToArchive.forEach(hook => {
+                    archivedCreatives.push({
+                        ...hook,
+                        archivedDate: new Date().toISOString()
+                    });
+                });
+                
+                // Remove from active hooks
+                hooks = hooks.filter(h => h.creativeId !== creativeId);
+                
+                saveToLocalAndCloud();
+                renderHooks();
+                renderCreatives();
+                alert(`Archived ${creativesToArchive.length} hook(s) using creative ${creativeId}`);
+            }
+        }
+
+        function restoreCreative(creativeId) {
+            if (confirm('Restore this creative from archive?')) {
+                // Find all archived hooks using this creative
+                const creativesToRestore = archivedCreatives.filter(c => c.creativeId === creativeId);
+                
+                creativesToRestore.forEach(creative => {
+                    delete creative.archivedDate;
+                    hooks.push(creative);
+                });
+                
+                // Remove from archived
+                archivedCreatives = archivedCreatives.filter(c => c.creativeId !== creativeId);
+                
+                saveToLocalAndCloud();
+                renderHooks();
+                renderCreatives();
+                renderArchive();
+                alert(`Restored ${creativesToRestore.length} hook(s) using creative ${creativeId}`);
+            }
+        }
+
+        function permanentlyDeleteCreative(creativeId) {
+            if (confirm('PERMANENTLY delete this creative and all its hooks? This cannot be undone!')) {
+                archivedCreatives = archivedCreatives.filter(c => c.creativeId !== creativeId);
+                saveToLocalAndCloud();
+                renderArchive();
+            }
+        }
+
+        function toggleArchiveView(viewType) {
+            const hooksView = document.getElementById('hooksArchiveView');
+            const creativesView = document.getElementById('creativesArchiveView');
+            
+            if (viewType === 'hooks') {
+                hooksView.style.display = 'block';
+                creativesView.style.display = 'none';
+                renderArchive();
+            } else {
+                hooksView.style.display = 'none';
+                creativesView.style.display = 'block';
+                renderCreativesArchive();
+            }
+        }
+        
         function renderArchive() {
             const tbody = document.getElementById('archiveTableBody');
             if (!tbody) return;
@@ -3536,6 +3645,62 @@ function filterCreativeById(creativeId) {
                 tbody.appendChild(row);
             });
         }
+
+        function renderCreativesArchive() {
+            const tbody = document.getElementById('creativesArchiveTableBody');
+            if (!tbody) return;
+            
+            tbody.innerHTML = '';
+
+            if (archivedCreatives.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #666;">No archived creatives yet</td></tr>';
+                return;
+            }
+
+            // Group archived creatives by Creative ID
+            const creativeGroups = {};
+            archivedCreatives.forEach(hook => {
+                if (!creativeGroups[hook.creativeId]) {
+                    creativeGroups[hook.creativeId] = {
+                        creativeId: hook.creativeId,
+                        hooks: [],
+                        firstArchivedDate: hook.archivedDate
+                    };
+                }
+                creativeGroups[hook.creativeId].hooks.push(hook);
+                
+                // Keep track of earliest archived date
+                if (new Date(hook.archivedDate) < new Date(creativeGroups[hook.creativeId].firstArchivedDate)) {
+                    creativeGroups[hook.creativeId].firstArchivedDate = hook.archivedDate;
+                }
+            });
+
+            Object.keys(creativeGroups).forEach(creativeId => {
+                const group = creativeGroups[creativeId];
+                const totalSpend = group.hooks.reduce((sum, h) => sum + h.totalSpend, 0);
+                const totalRevenue = group.hooks.reduce((sum, h) => sum + h.totalRevenue, 0);
+                const overallROAS = totalSpend > 0 ? totalRevenue / totalSpend : 0;
+                
+                const archivedDate = new Date(group.firstArchivedDate);
+                const formattedDate = archivedDate.toLocaleDateString() + ' ' + archivedDate.toLocaleTimeString();
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="font-family: monospace; font-size: 12px; word-break: break-all; white-space: normal;">${creativeId}</td>
+                    <td>${group.hooks.length}</td>
+                    <td>$${totalSpend.toFixed(2)}</td>
+                    <td>$${totalRevenue.toFixed(2)}</td>
+                    <td><span class="${getRoasColorClass(overallROAS)}">${overallROAS.toFixed(2)}</span></td>
+                    <td>${formattedDate}</td>
+                    <td>
+                        <button class="btn btn-info btn-sm" onclick="viewCreativeDetails('${creativeId}')">👁️ View</button>
+                        <button class="btn btn-success btn-sm" onclick="restoreCreative('${creativeId}')">↩️ Restore</button>
+                        <button class="btn btn-danger btn-sm" onclick="permanentlyDeleteCreative('${creativeId}')">🗑️ Delete Forever</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
         
         // CREATIVE ID TRACKER FUNCTIONS
         function renderCreatives() {
@@ -3544,18 +3709,40 @@ function filterCreativeById(creativeId) {
             
             tbody.innerHTML = '';
 
-            // Group hooks by Creative ID
+            // Group BOTH active and archived hooks by Creative ID
             const creativeGroups = {};
+            
+            // Add active hooks
             hooks.forEach(hook => {
                 if (!hook.creativeId) return;
                 
                 if (!creativeGroups[hook.creativeId]) {
                     creativeGroups[hook.creativeId] = {
                         creativeId: hook.creativeId,
-                        hooks: []
+                        hooks: [],
+                        isArchived: false
                     };
                 }
                 creativeGroups[hook.creativeId].hooks.push(hook);
+            });
+            
+            // Add archived hooks
+            archivedCreatives.forEach(hook => {
+                if (!hook.creativeId) return;
+                
+                if (!creativeGroups[hook.creativeId]) {
+                    creativeGroups[hook.creativeId] = {
+                        creativeId: hook.creativeId,
+                        hooks: [],
+                        isArchived: true
+                    };
+                }
+                creativeGroups[hook.creativeId].hooks.push({...hook, archived: true});
+                
+                // Mark as having archived content
+                if (!creativeGroups[hook.creativeId].isArchived) {
+                    creativeGroups[hook.creativeId].hasArchivedContent = true;
+                }
             });
 
             // Apply filters
@@ -3566,11 +3753,13 @@ function filterCreativeById(creativeId) {
             Object.keys(creativeGroups).forEach(creativeId => {
                 const group = creativeGroups[creativeId];
                 
-                // Calculate totals
+                // Calculate totals (including archived for complete picture)
                 const totalSpend = group.hooks.reduce((sum, h) => sum + h.totalSpend, 0);
                 const totalRevenue = group.hooks.reduce((sum, h) => sum + h.totalRevenue, 0);
                 const overallROAS = totalSpend > 0 ? totalRevenue / totalSpend : 0;
                 const hooksCount = group.hooks.length;
+                const activeCount = group.hooks.filter(h => !h.archived).length;
+                const archivedCount = group.hooks.filter(h => h.archived).length;
                 
                 // Apply filters
                 if (searchTerm && !creativeId.toLowerCase().includes(searchTerm)) return;
@@ -3582,12 +3771,29 @@ function filterCreativeById(creativeId) {
                     hook.overallROAS > (best?.overallROAS || 0) ? hook : best, null);
 
                 const row = document.createElement('tr');
+                
+                // Different styling if completely archived vs has some archived content
+                let rowStyle = '';
+                let statusBadge = '';
+                if (group.isArchived) {
+                    rowStyle = 'background: #f5f5f5; opacity: 0.8;';
+                    statusBadge = '<span style="background: #9e9e9e; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 8px;">📦 ARCHIVED</span>';
+                } else if (group.hasArchivedContent) {
+                    statusBadge = '<span style="background: #ffc107; color: #000; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 8px;">⚠️ Has Archived</span>';
+                }
+                
+                row.style.cssText = rowStyle;
                 row.innerHTML = `
-                    <td style="font-family: monospace; font-size: 12px; word-break: break-all; white-space: normal;">${creativeId}</td>
+                    <td style="font-family: monospace; font-size: 12px; word-break: break-all; white-space: normal;">
+                        ${creativeId}${statusBadge}
+                    </td>
                     <td>$${totalSpend.toFixed(2)}</td>
                     <td>$${totalRevenue.toFixed(2)}</td>
                     <td><strong class="${getRoasColorClass(overallROAS)}">${overallROAS.toFixed(2)}</strong></td>
-                    <td>${hooksCount}</td>
+                    <td>
+                        ${activeCount > 0 ? `<span style="color: #28a745;">✓ ${activeCount} active</span>` : ''}
+                        ${archivedCount > 0 ? `<br><span style="color: #666;">📦 ${archivedCount} archived</span>` : ''}
+                    </td>
                     <td>${bestHook ? `${bestHook.hookName.substring(0, 30)}... (${bestHook.overallROAS.toFixed(2)})` : 'N/A'}</td>
                     <td>
                         <textarea class="creative-notes" placeholder="Add notes..." 
@@ -3596,6 +3802,8 @@ function filterCreativeById(creativeId) {
                     </td>
                     <td>
                         <button class="btn btn-info btn-sm" onclick="viewCreativeDetails('${creativeId}')">👁️ View</button>
+                        ${!group.isArchived ? `<button class="btn btn-warning btn-sm" onclick="archiveCreative('${creativeId}')">📦 Archive</button>` : ''}
+                        ${group.isArchived ? `<button class="btn btn-success btn-sm" onclick="restoreCreative('${creativeId}')">↩️ Restore</button>` : ''}
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -3625,13 +3833,33 @@ function filterCreativeById(creativeId) {
         }
 
         function viewCreativeDetails(creativeId) {
-            const creativeHooks = hooks.filter(h => h.creativeId === creativeId);
+            // Get both active and archived hooks for this creative
+            const activeHooks = hooks.filter(h => h.creativeId === creativeId);
+            const archivedHooks = archivedCreatives.filter(h => h.creativeId === creativeId);
+            const allHooks = [...activeHooks, ...archivedHooks];
+            
             let details = `Creative ID: ${creativeId}\n\n`;
-            details += `Hooks using this creative:\n`;
-            creativeHooks.forEach(hook => {
-                details += `• ${hook.book} - ${hook.hookName}\n`;
-                details += `  Spend: $${hook.totalSpend.toFixed(2)}, Revenue: $${hook.totalRevenue.toFixed(2)}, ROAS: ${hook.overallROAS.toFixed(2)}\n\n`;
-            });
+            details += `Total hooks using this creative: ${allHooks.length}\n`;
+            details += `├─ Active: ${activeHooks.length}\n`;
+            details += `└─ Archived: ${archivedHooks.length}\n\n`;
+            
+            if (activeHooks.length > 0) {
+                details += `ACTIVE HOOKS:\n`;
+                details += `${'─'.repeat(50)}\n`;
+                activeHooks.forEach(hook => {
+                    details += `• ${hook.book} - ${hook.hookName}\n`;
+                    details += `  Spend: $${hook.totalSpend.toFixed(2)}, Revenue: $${hook.totalRevenue.toFixed(2)}, ROAS: ${hook.overallROAS.toFixed(2)}\n\n`;
+                });
+            }
+            
+            if (archivedHooks.length > 0) {
+                details += `\nARCHIVED HOOKS:\n`;
+                details += `${'─'.repeat(50)}\n`;
+                archivedHooks.forEach(hook => {
+                    details += `📦 ${hook.book} - ${hook.hookName}\n`;
+                    details += `  Spend: $${hook.totalSpend.toFixed(2)}, Revenue: $${hook.totalRevenue.toFixed(2)}, ROAS: ${hook.overallROAS.toFixed(2)}\n\n`;
+                });
+            }
             
             alert(details);
         }
