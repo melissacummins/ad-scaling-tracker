@@ -2907,9 +2907,9 @@ const archivedMigrationCount = migrateArchivedData();
     }
     tbody.innerHTML = '';
 
-    // Group hooks by book + hookName (exclude archived)
+    /// Group hooks by book + hookName (include all for accurate stats)
 const hookGroups = {};
-hooks.filter(hook => !hook.archived).forEach(hook => {
+hooks.forEach(hook => {
         const key = `${hook.book}||${hook.hookName}`;
         if (!hookGroups[key]) {
             hookGroups[key] = {
@@ -2943,6 +2943,12 @@ hooks.filter(hook => !hook.archived).forEach(hook => {
 
     sortedKeys.forEach((key, groupIndex) => {
         const group = hookGroups[key];
+
+        // Check if this group should be hidden (all creatives archived)
+const allCreativesArchived = group.creatives.every(c => c.archived);
+if (allCreativesArchived) {
+    return; // Skip rendering this group entirely
+}
         
         // Calculate aggregated totals
         const totalSpend = group.creatives.reduce((sum, c) => sum + c.totalSpend, 0);
