@@ -2246,19 +2246,19 @@ function initializeMissingMilestones() {
             updateBookOptions();
 
             // Migrate old archived data
-const migratedCount = migrateArchivedData();
-if (migratedCount > 0) {
-    console.log(`🔄 Migration complete: Converted ${migratedCount} archived items`);
-}
+const archivedMigrationCount = migrateArchivedData();
+    if (archivedMigrationCount > 0) {
+        console.log(`🔄 Migration complete: Converted ${archivedMigrationCount} archived items`);
+    }
             
             // Initialize milestone fields for existing data
             initializeMilestoneFields();
             
             // Run migration for existing data
-            const migratedCount = migrateExistingCreativeIds();
-            if (migratedCount > 0) {
-                console.log(`🔧 Auto-migration completed: Fixed ${migratedCount} Creative IDs`);
-            }
+    const creativeIdMigrationCount = migrateExistingCreativeIds();
+    if (creativeIdMigrationCount > 0) {
+        console.log(`🔧 Auto-migration completed: Fixed ${creativeIdMigrationCount} Creative IDs`);
+    }
             
             renderHooks();
             renderBooks();
