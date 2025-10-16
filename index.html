@@ -3362,138 +3362,194 @@ function filterCreativeById(creativeId) {
         }
 
         function exportData() {
-    // Get group milestones from localStorage
-    const groupMilestones = JSON.parse(localStorage.getItem('groupMilestones') || '{}');
-    
-    const csvContent = "data:text/csv;charset=utf-8," + 
-        "Book,Hook Name,Test Month/Year,Total Spend,Total Revenue,Purchases,Overall ROAS,Performance Level,ROAS @$100,ROAS @$300,ROAS @$1000,ROAS @$3000,Momentum Score,Creatives Count,Creative ID,Group ROAS @$100,Group ROAS @$300,Group ROAS @$1000,Group ROAS @$3000\n" +
-        hooks.map(hook => {
-            const performance = getPerformanceLevel(hook.totalSpend, hook.testDate);
-            const momentumScore = getMomentumScore(hook);
+            // Get group milestones from localStorage
+            const groupMilestones = JSON.parse(localStorage.getItem('groupMilestones') || '{}');
             
-            // Get group-level milestones for this hook
-            const groupKey = `${hook.book}||${hook.hookName}`;
-            const groupMilestone = groupMilestones[groupKey] || {
-                roasAt100: 0,
-                roasAt300: 0,
-                roasAt1000: 0,
-                roasAt3000: 0
-            };
-            
-            return `"${hook.book}","${hook.hookName.replace(/"/g, '""')}","${hook.testDate}",${hook.totalSpend},${hook.totalRevenue},${hook.purchases},${hook.overallROAS.toFixed(2)},"${performance.text}",${hook.roasAt100 > 0 ? hook.roasAt100.toFixed(2) : 'N/A'},${hook.roasAt300 > 0 ? hook.roasAt300.toFixed(2) : 'N/A'},${hook.roasAt1000 > 0 ? hook.roasAt1000.toFixed(2) : 'N/A'},${hook.roasAt3000 > 0 ? hook.roasAt3000.toFixed(2) : 'N/A'},"${momentumScore.text}",${hook.creativesCount},"${hook.creativeId || ''}",${groupMilestone.roasAt100 > 0 ? groupMilestone.roasAt100.toFixed(2) : 'N/A'},${groupMilestone.roasAt300 > 0 ? groupMilestone.roasAt300.toFixed(2) : 'N/A'},${groupMilestone.roasAt1000 > 0 ? groupMilestone.roasAt1000.toFixed(2) : 'N/A'},${groupMilestone.roasAt3000 > 0 ? groupMilestone.roasAt3000.toFixed(2) : 'N/A'}`;
-        }).join("\n");
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `ad_scaling_tracker_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-        function importData(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        try {
-            const text = e.target.result;
-            const lines = text.split('\n');
-            const headers = lines[0].split(',');
-            
-            // Check if we have group milestone columns (new format)
-            const hasGroupMilestones = headers.length >= 19;
-            
-            // Load or initialize group milestones
-            let groupMilestones = JSON.parse(localStorage.getItem('groupMilestones') || '{}');
-            
-            for (let i = 1; i < lines.length; i++) {
-                if (lines[i].trim() === '') continue;
-                
-                const values = lines[i].split(',');
-                if (values.length >= 8) {
-                    const hookData = {
-                        book: values[0].replace(/"/g, ''),
-                        hookName: values[1].replace(/"/g, ''),
-                        testDate: values[2].replace(/"/g, ''),
-                        totalSpend: parseFloat(values[3]) || 0,
-                        totalRevenue: parseFloat(values[4]) || 0,
-                        purchases: parseInt(values[5]) || 0,
-                        overallROAS: parseFloat(values[6]) || 0,
-                        creativesCount: parseInt(values[13]) || 0,
-                        creativeId: values[14] ? values[14].replace(/"/g, '') : '',
+            const csvContent = "data:text/csv;charset=utf-8," + 
+                "Book,Hook Name,Test Month/Year,Total Spend,Total Revenue,Purchases,Creatives Count,Creative ID,Overall ROAS,Performance Level,ROAS @$100,ROAS @$300,ROAS @$1000,ROAS @$3000,Momentum Score,Group ROAS @$100,Group ROAS @$300,Group ROAS @$1000,Group ROAS @$3000,Archived\n" +
+                hooks.map(hook => {
+                    const performance = getPerformanceLevel(hook.totalSpend, hook.testDate);
+                    const momentumScore = getMomentumScore(hook);
+                    
+                    // Get group-level milestones for this hook
+                    const groupKey = `${hook.book}||${hook.hookName}`;
+                    const groupMilestone = groupMilestones[groupKey] || {
                         roasAt100: 0,
                         roasAt300: 0,
                         roasAt1000: 0,
                         roasAt3000: 0
                     };
                     
-                    // Import individual hook milestones if present
-                    if (values[8] && values[8] !== 'N/A') {
-                        hookData.roasAt100 = parseFloat(values[8]) || 0;
-                    }
-                    if (values[9] && values[9] !== 'N/A') {
-                        hookData.roasAt300 = parseFloat(values[9]) || 0;
-                    }
-                    if (values[10] && values[10] !== 'N/A') {
-                        hookData.roasAt1000 = parseFloat(values[10]) || 0;
-                    }
-                    if (values[11] && values[11] !== 'N/A') {
-                        hookData.roasAt3000 = parseFloat(values[11]) || 0;
+                    return `"${hook.book}","${hook.hookName.replace(/"/g, '""')}","${hook.testDate}",${hook.totalSpend},${hook.totalRevenue},${hook.purchases},${hook.creativesCount},"${hook.creativeId || ''}",${hook.overallROAS.toFixed(2)},"${performance.text}",${hook.roasAt100 > 0 ? hook.roasAt100.toFixed(2) : ''},${hook.roasAt300 > 0 ? hook.roasAt300.toFixed(2) : ''},${hook.roasAt1000 > 0 ? hook.roasAt1000.toFixed(2) : ''},${hook.roasAt3000 > 0 ? hook.roasAt3000.toFixed(2) : ''},"${momentumScore.text}",${groupMilestone.roasAt100 > 0 ? groupMilestone.roasAt100.toFixed(2) : ''},${groupMilestone.roasAt300 > 0 ? groupMilestone.roasAt300.toFixed(2) : ''},${groupMilestone.roasAt1000 > 0 ? groupMilestone.roasAt1000.toFixed(2) : ''},${groupMilestone.roasAt3000 > 0 ? groupMilestone.roasAt3000.toFixed(2) : ''},${hook.archived ? 'Yes' : 'No'}`;
+                }).join("\n");
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `ad_scaling_tracker_${new Date().toISOString().split('T')[0]}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const text = e.target.result;
+                    const lines = text.split('\n');
+                    
+                    if (lines.length < 2) {
+                        alert('File appears to be empty or has no data rows.');
+                        return;
                     }
                     
-                    // Import group milestones if present (new format)
-                    if (hasGroupMilestones && values.length >= 19) {
-                        const groupKey = `${hookData.book}||${hookData.hookName}`;
-                        if (!groupMilestones[groupKey]) {
-                            groupMilestones[groupKey] = {
-                                roasAt100: 0,
-                                roasAt300: 0,
-                                roasAt1000: 0,
-                                roasAt3000: 0
-                            };
+                    // Parse header row to find column positions
+                    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, '').toLowerCase());
+                    
+                    console.log('📋 Found headers:', headers);
+                    
+                    // Map column names to indices (flexible - any order works!)
+                    const columnMap = {
+                        book: headers.findIndex(h => h.includes('book')),
+                        hookName: headers.findIndex(h => h.includes('hook') && h.includes('name')),
+                        testDate: headers.findIndex(h => h.includes('test') || h.includes('month') || h.includes('date')),
+                        totalSpend: headers.findIndex(h => h.includes('spend')),
+                        totalRevenue: headers.findIndex(h => h.includes('revenue')),
+                        purchases: headers.findIndex(h => h.includes('purchase')),
+                        creativesCount: headers.findIndex(h => h.includes('creative') && h.includes('count')),
+                        creativeId: headers.findIndex(h => h.includes('creative') && h.includes('id'))
+                    };
+                    
+                    // Validate required columns
+                    const required = ['book', 'hookName', 'totalSpend', 'totalRevenue'];
+                    const missing = required.filter(col => columnMap[col] === -1);
+                    
+                    if (missing.length > 0) {
+                        alert(`Missing required columns: ${missing.join(', ')}\n\nRequired columns:\n- Book\n- Hook Name\n- Total Spend\n- Total Revenue`);
+                        return;
+                    }
+                    
+                    let importedCount = 0;
+                    let skippedCount = 0;
+                    
+                    // Process each data row
+                    for (let i = 1; i < lines.length; i++) {
+                        if (lines[i].trim() === '') continue;
+                        
+                        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                        
+                        // Extract values using the column map
+                        const book = values[columnMap.book] || '';
+                        const hookName = values[columnMap.hookName] || '';
+                        const testDate = values[columnMap.testDate] || '';
+                        const totalSpend = parseFloat(values[columnMap.totalSpend]) || 0;
+                        const totalRevenue = parseFloat(values[columnMap.totalRevenue]) || 0;
+                        const purchases = parseInt(values[columnMap.purchases]) || 0;
+                        const creativesCount = parseInt(values[columnMap.creativesCount]) || 1;
+                        let creativeId = columnMap.creativeId !== -1 ? values[columnMap.creativeId] : '';
+                        
+                        // Skip if missing critical data
+                        if (!book || !hookName || totalSpend === 0) {
+                            console.log(`⚠️ Skipping row ${i + 1}: Missing book, hook name, or spend`);
+                            skippedCount++;
+                            continue;
                         }
                         
-                        if (values[15] && values[15] !== 'N/A') {
-                            groupMilestones[groupKey].roasAt100 = parseFloat(values[15]) || 0;
+                        // Auto-generate Creative ID if not provided
+                        if (!creativeId) {
+                            creativeId = generateCreativeId(book, testDate);
+                            console.log(`🔧 Generated Creative ID: ${creativeId} for ${book} - ${hookName}`);
                         }
-                        if (values[16] && values[16] !== 'N/A') {
-                            groupMilestones[groupKey].roasAt300 = parseFloat(values[16]) || 0;
+                        
+                        // Add book if it doesn't exist
+                        if (!books.includes(book)) {
+                            books.push(book);
+                            console.log(`✅ Added new book: ${book}`);
                         }
-                        if (values[17] && values[17] !== 'N/A') {
-                            groupMilestones[groupKey].roasAt1000 = parseFloat(values[17]) || 0;
+                        
+                        // Calculate PREVIOUS group totals for milestone tracking
+                        const groupHooks = hooks.filter(h => h.book === book && h.hookName === hookName);
+                        const previousGroupSpend = groupHooks.reduce((sum, h) => sum + h.totalSpend, 0);
+                        const previousGroupRevenue = groupHooks.reduce((sum, h) => sum + h.totalRevenue, 0);
+                        const previousGroupROAS = previousGroupSpend > 0 ? previousGroupRevenue / previousGroupSpend : 0;
+                        
+                        // Check if this exact hook already exists
+                        const existingIndex = hooks.findIndex(h => 
+                            h.book === book && 
+                            h.hookName === hookName && 
+                            h.creativeId === creativeId &&
+                            h.testDate === testDate
+                        );
+                        
+                        // Create hook data with calculated ROAS
+                        const hookData = {
+                            book: book,
+                            hookName: hookName,
+                            testDate: testDate,
+                            totalSpend: totalSpend,
+                            totalRevenue: totalRevenue,
+                            purchases: purchases,
+                            creativesCount: creativesCount,
+                            creativeId: creativeId,
+                            overallROAS: totalSpend > 0 ? totalRevenue / totalSpend : 0,
+                            roasAt100: 0,
+                            roasAt300: 0,
+                            roasAt1000: 0,
+                            roasAt3000: 0
+                        };
+                        
+                        if (existingIndex >= 0) {
+                            // Update existing hook
+                            console.log(`🔄 Updating existing hook: ${book} - ${hookName}`);
+                            hooks[existingIndex] = hookData;
+                        } else {
+                            // Add new hook
+                            console.log(`✅ Adding new hook: ${book} - ${hookName}`);
+                            hooks.push(hookData);
                         }
-                        if (values[18] && values[18] !== 'N/A') {
-                            groupMilestones[groupKey].roasAt3000 = parseFloat(values[18]) || 0;
-                        }
+                        
+                        importedCount++;
+                        
+                        // Calculate NEW group totals after import
+                        const newGroupHooks = hooks.filter(h => h.book === book && h.hookName === hookName);
+                        const newGroupSpend = newGroupHooks.reduce((sum, h) => sum + h.totalSpend, 0);
+                        const newGroupRevenue = newGroupHooks.reduce((sum, h) => sum + h.totalRevenue, 0);
+                        const newGroupROAS = newGroupSpend > 0 ? newGroupRevenue / newGroupSpend : 0;
+                        
+                        // Trigger group milestone tracking
+                        const group = { book: book, hookName: hookName, creatives: newGroupHooks };
+                        recordGroupMilestones(group, previousGroupSpend, previousGroupROAS, newGroupSpend, newGroupROAS);
                     }
                     
-                    if (!books.includes(hookData.book)) {
-                        books.push(hookData.book);
-                    }
+                    // Save everything
+                    saveToLocalAndCloud();
                     
-                    hooks.push(hookData);
+                    // Refresh all views
+                    updateBookOptions();
+                    renderHooks();
+                    renderBooks();
+                    renderBooksAnalysis();
+                    renderCreatives();
+                    
+                    // Show summary
+                    alert(`Import Complete!\n\n✅ Imported: ${importedCount} hooks\n${skippedCount > 0 ? `⚠️ Skipped: ${skippedCount} rows (missing data)\n` : ''}\n📊 Total hooks now: ${hooks.length}`);
+                    
+                    console.log(`✅ Import summary: ${importedCount} imported, ${skippedCount} skipped`);
+                    
+                } catch (error) {
+                    console.error('Import error:', error);
+                    alert('Error importing file. Please check the format and try again.\n\nError: ' + error.message);
                 }
-            }
+            };
+            reader.readAsText(file);
             
-            localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
-            localStorage.setItem('adScalingBooks', JSON.stringify(books));
-            localStorage.setItem('groupMilestones', JSON.stringify(groupMilestones));
-            
-            updateBookOptions();
-            renderHooks();
-            renderBooks();
-            
-            alert('Data imported successfully!');
-        } catch (error) {
-            console.error('Import error:', error);
-            alert('Error importing file. Please check the format.');
+            // Clear the file input so the same file can be imported again
+            event.target.value = '';
         }
-    };
-    reader.readAsText(file);
-}
 
         function clearAllData() {
             if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
