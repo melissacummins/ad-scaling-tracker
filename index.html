@@ -1231,8 +1231,7 @@
         let hooks = JSON.parse(localStorage.getItem('adScalingHooks') || '[]');
         let books = JSON.parse(localStorage.getItem('adScalingBooks') || '[]');
         let creativeNotes = JSON.parse(localStorage.getItem('adScalingCreativeNotes') || '{}');
-        let archivedHooks = JSON.parse(localStorage.getItem('adScalingArchivedHooks') || '[]');
-        let archivedCreatives = JSON.parse(localStorage.getItem('adScalingArchivedCreatives') || '[]');
+        
 
         // Add to existing mode variables
         let isAddToExistingMode = false;
@@ -1701,7 +1700,7 @@ function initializeMissingMilestones() {
             
             // Store all combinations for filtering
             const combinations = {};
-            hooks.filter(hook => !archivedCreatives.some(ac => ac.creativeId === hook.creativeId)).forEach((hook, index) => {
+            hooks.filter(hook => !hook.archived).forEach((hook, index) => {
                 const key = `${hook.book}||${hook.hookName}||${hook.creativeId}`;
                 if (!combinations[key]) {
                     combinations[key] = {
@@ -1900,8 +1899,6 @@ function initializeMissingMilestones() {
                     hooks: hooks,
                     books: books,
                     creativeNotes: creativeNotes,
-                    archivedHooks: archivedHooks,
-                    archivedCreatives: archivedCreatives,
                     groupMilestones: JSON.parse(localStorage.getItem('groupMilestones') || '{}'),
                     lastUpdated: new Date().toISOString(),
                     version: 1
@@ -1939,8 +1936,6 @@ function initializeMissingMilestones() {
                         hooks = userData.hooks || [];
                         books = userData.books || [];
                         creativeNotes = userData.creativeNotes || {};
-                        archivedHooks = userData.archivedHooks || [];
-                        archivedCreatives = userData.archivedCreatives || [];
                         
                         // Load group milestones if they exist
                         if (userData.groupMilestones) {
@@ -1951,8 +1946,6 @@ function initializeMissingMilestones() {
                         localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
                         localStorage.setItem('adScalingBooks', JSON.stringify(books));
                         localStorage.setItem('adScalingCreativeNotes', JSON.stringify(creativeNotes));
-                        localStorage.setItem('adScalingArchivedHooks', JSON.stringify(archivedHooks));
-                        localStorage.setItem('adScalingArchivedCreatives', JSON.stringify(archivedCreatives));
                         localStorage.setItem('lastUpdated', userData.lastUpdated);
                         
                         // Run migration after loading data
@@ -1983,6 +1976,69 @@ function initializeMissingMilestones() {
                 console.error('Error loading from Firebase:', error);
                 // Silently handle errors - user doesn't need to worry about this
             }
+        }
+
+        // NEW FUNCTION: Migrate old archived data to new soft-delete system
+        function migrateArchivedData() {
+            // Load old archived arrays
+            const oldArchivedHooks = JSON.parse(localStorage.getItem('adScalingArchivedHooks') || '[]');
+            const oldArchivedCreatives = JSON.parse(localStorage.getItem('adScalingArchivedCreatives') || '[]');
+            
+            let migrationCount = 0;
+            
+            // Migrate archived hooks
+            oldArchivedHooks.forEach(archivedHook => {
+                // Check if this hook isn't already in the hooks array
+                const exists = hooks.find(h => 
+                    h.book === archivedHook.book && 
+                    h.hookName === archivedHook.hookName && 
+                    h.creativeId === archivedHook.creativeId &&
+                    h.testDate === archivedHook.testDate
+                );
+                
+                if (!exists) {
+                    // Add it back with archived flag
+                    hooks.push({
+                        ...archivedHook,
+                        archived: true
+                    });
+                    migrationCount++;
+                }
+            });
+            
+            // Migrate archived creatives (if they used a different structure)
+            oldArchivedCreatives.forEach(archivedCreative => {
+                const exists = hooks.find(h => 
+                    h.book === archivedCreative.book && 
+                    h.hookName === archivedCreative.hookName && 
+                    h.creativeId === archivedCreative.creativeId &&
+                    h.testDate === archivedCreative.testDate
+                );
+                
+                if (!exists) {
+                    hooks.push({
+                        ...archivedCreative,
+                        archived: true,
+                        archivedAsCreative: true
+                    });
+                    migrationCount++;
+                }
+            });
+            
+            if (migrationCount > 0) {
+                console.log(`✅ Migrated ${migrationCount} archived items to new system`);
+                
+                // Clear old archive storage
+                localStorage.removeItem('adScalingArchivedHooks');
+                localStorage.removeItem('adScalingArchivedCreatives');
+                
+                // Save updated hooks array
+                saveToLocalAndCloud();
+                
+                return migrationCount;
+            }
+            
+            return 0;
         }
 
         // NEW FUNCTION: Initialize milestone fields for existing hooks
@@ -2067,8 +2123,6 @@ function initializeMissingMilestones() {
             localStorage.setItem('adScalingHooks', JSON.stringify(hooks));
             localStorage.setItem('adScalingBooks', JSON.stringify(books));
             localStorage.setItem('adScalingCreativeNotes', JSON.stringify(creativeNotes));
-            localStorage.setItem('adScalingArchivedHooks', JSON.stringify(archivedHooks));
-            localStorage.setItem('adScalingArchivedCreatives', JSON.stringify(archivedCreatives));
             localStorage.setItem('lastUpdated', new Date().toISOString());
             
             // Save to Firebase if signed in
@@ -2190,6 +2244,12 @@ function initializeMissingMilestones() {
             }
             
             updateBookOptions();
+
+            // Migrate old archived data
+const migratedCount = migrateArchivedData();
+if (migratedCount > 0) {
+    console.log(`🔄 Migration complete: Converted ${migratedCount} archived items`);
+}
             
             // Initialize milestone fields for existing data
             initializeMilestoneFields();
@@ -2847,9 +2907,9 @@ function initializeMissingMilestones() {
     }
     tbody.innerHTML = '';
 
-    // Group hooks by book + hookName
-    const hookGroups = {};
-    hooks.forEach(hook => {
+    // Group hooks by book + hookName (exclude archived)
+const hookGroups = {};
+hooks.filter(hook => !hook.archived).forEach(hook => {
         const key = `${hook.book}||${hook.hookName}`;
         if (!hookGroups[key]) {
             hookGroups[key] = {
@@ -3492,13 +3552,9 @@ function filterCreativeById(creativeId) {
         }
 
         function archiveHook(index) {
-            if (confirm('Archive this hook? You can restore it later from the Archive view.')) {
-                const hook = hooks[index];
-                archivedHooks.push({
-                    ...hook,
-                    archivedDate: new Date().toISOString()
-                });
-                hooks.splice(index, 1);
+            if (confirm('Archive this hook? It will be hidden but still count in statistics.')) {
+                hooks[index].archived = true;
+                hooks[index].archivedDate = new Date().toISOString();
                 saveToLocalAndCloud();
                 renderHooks();
                 renderCreatives();
@@ -3507,97 +3563,101 @@ function filterCreativeById(creativeId) {
 
         function archiveHookGroup(key) {
             const [book, hookName] = key.split('||');
-            const groupHooks = hooks.filter(h => h.book === book && h.hookName === hookName);
+            const groupHooks = hooks.filter(h => h.book === book && h.hookName === hookName && !h.archived);
             
-            if (confirm(`Archive the hook "${hookName}" and all ${groupHooks.length} creative tests? You can restore them later.`)) {
-                // Move all hooks in this group to archive
-                groupHooks.forEach(hook => {
-                    archivedHooks.push({
-                        ...hook,
-                        archivedDate: new Date().toISOString()
-                    });
+            if (confirm(`Archive the hook "${hookName}" and all ${groupHooks.length} creative tests? They'll be hidden but still count in statistics.`)) {
+                // Mark all hooks in this group as archived
+                hooks.forEach(hook => {
+                    if (hook.book === book && hook.hookName === hookName) {
+                        hook.archived = true;
+                        hook.archivedDate = new Date().toISOString();
+                    }
                 });
                 
-                // Remove from active hooks
-                hooks = hooks.filter(h => !(h.book === book && h.hookName === hookName));
                 saveToLocalAndCloud();
                 renderHooks();
                 renderCreatives();
             }
         }
 
-        function restoreHook(index) {
+        function restoreHook(hookId) {
             if (confirm('Restore this hook from archive?')) {
-                const hook = archivedHooks[index];
-                delete hook.archivedDate;
-                hooks.push(hook);
-                archivedHooks.splice(index, 1);
-                saveToLocalAndCloud();
-                renderHooks();
-                renderArchive();
-                renderCreatives();
+                const hook = hooks.find(h => h.book === hookId.book && h.hookName === hookId.hookName && h.creativeId === hookId.creativeId);
+                if (hook) {
+                    delete hook.archived;
+                    delete hook.archivedDate;
+                    delete hook.archivedAsCreative;
+                    saveToLocalAndCloud();
+                    renderHooks();
+                    renderArchive();
+                    renderCreatives();
+                }
             }
         }
 
-        function permanentlyDeleteHook(index) {
-            if (confirm('PERMANENTLY delete this hook? This cannot be undone!')) {
-                archivedHooks.splice(index, 1);
-                saveToLocalAndCloud();
-                renderArchive();
+        function permanentlyDeleteHook(hookId) {
+            if (confirm('PERMANENTLY delete this hook? This cannot be undone and will affect all statistics!')) {
+                const hookIndex = hooks.findIndex(h => 
+                    h.book === hookId.book && 
+                    h.hookName === hookId.hookName && 
+                    h.creativeId === hookId.creativeId
+                );
+                if (hookIndex >= 0) {
+                    hooks.splice(hookIndex, 1);
+                    saveToLocalAndCloud();
+                    renderArchive();
+                    renderHooks();
+                    renderCreatives();
+                }
             }
         }
 
         function archiveCreative(creativeId) {
-            if (confirm('Archive this creative? You can restore it later from the Archive view.')) {
-                // Find all hooks using this creative
-                const creativesToArchive = hooks.filter(h => h.creativeId === creativeId);
-                
-                creativesToArchive.forEach(hook => {
-                    archivedCreatives.push({
-                        ...hook,
-                        archivedDate: new Date().toISOString()
-                    });
+            if (confirm('Archive this creative? All hooks using it will be hidden but still count in statistics.')) {
+                // Mark all hooks using this creative as archived
+                hooks.forEach(hook => {
+                    if (hook.creativeId === creativeId) {
+                        hook.archived = true;
+                        hook.archivedAsCreative = true;
+                        hook.archivedDate = new Date().toISOString();
+                    }
                 });
-                
-                // Remove from active hooks
-                hooks = hooks.filter(h => h.creativeId !== creativeId);
                 
                 saveToLocalAndCloud();
                 renderHooks();
                 renderCreatives();
-                alert(`Archived ${creativesToArchive.length} hook(s) using creative ${creativeId}`);
             }
         }
 
         function restoreCreative(creativeId) {
             if (confirm('Restore this creative from archive?')) {
-                // Find all archived hooks using this creative
-                const creativesToRestore = archivedCreatives.filter(c => c.creativeId === creativeId);
-                
-                creativesToRestore.forEach(creative => {
-                    delete creative.archivedDate;
-                    hooks.push(creative);
+                // Unmark all hooks using this creative
+                hooks.forEach(hook => {
+                    if (hook.creativeId === creativeId && hook.archivedAsCreative) {
+                        delete hook.archived;
+                        delete hook.archivedDate;
+                        delete hook.archivedAsCreative;
+                    }
                 });
-                
-                // Remove from archived
-                archivedCreatives = archivedCreatives.filter(c => c.creativeId !== creativeId);
                 
                 saveToLocalAndCloud();
                 renderHooks();
                 renderCreatives();
                 renderArchive();
-                alert(`Restored ${creativesToRestore.length} hook(s) using creative ${creativeId}`);
             }
         }
 
         function permanentlyDeleteCreative(creativeId) {
-            if (confirm('PERMANENTLY delete this creative and all its hooks? This cannot be undone!')) {
-                archivedCreatives = archivedCreatives.filter(c => c.creativeId !== creativeId);
+            if (confirm('PERMANENTLY delete this creative and all its hooks? This cannot be undone and will affect all statistics!')) {
+                // Remove all hooks using this creative
+                hooks = hooks.filter(h => h.creativeId !== creativeId);
                 saveToLocalAndCloud();
                 renderArchive();
+                renderHooks();
+                renderCreatives();
             }
         }
-
+        
         function toggleArchiveView(viewType) {
             const hooksView = document.getElementById('hooksArchiveView');
             const creativesView = document.getElementById('creativesArchiveView');
@@ -3619,6 +3679,8 @@ function filterCreativeById(creativeId) {
             
             tbody.innerHTML = '';
 
+            const archivedHooks = hooks.filter(h => h.archived && !h.archivedAsCreative);
+
             if (archivedHooks.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #666;">No archived hooks yet</td></tr>';
                 return;
@@ -3638,8 +3700,8 @@ function filterCreativeById(creativeId) {
                     <td><span class="${getRoasColorClass(hook.overallROAS)}">${hook.overallROAS.toFixed(2)}</span></td>
                     <td style="font-family: monospace; font-size: 11px;">${hook.creativeId}</td>
                     <td>
-                        <button class="btn btn-success btn-sm" onclick="restoreHook(${index})">↩️ Restore</button>
-                        <button class="btn btn-danger btn-sm" onclick="permanentlyDeleteHook(${index})">🗑️ Delete Forever</button>
+                        <button class="btn btn-success btn-sm" onclick="restoreHook(${JSON.stringify({book: hook.book, hookName: hook.hookName, creativeId: hook.creativeId}).replace(/"/g, '&quot;')})">↩️ Restore</button>
+                        <button class="btn btn-danger btn-sm" onclick="permanentlyDeleteHook(${JSON.stringify({book: hook.book, hookName: hook.hookName, creativeId: hook.creativeId}).replace(/"/g, '&quot;')})">🗑️ Delete Forever</button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -3652,14 +3714,16 @@ function filterCreativeById(creativeId) {
             
             tbody.innerHTML = '';
 
-            if (archivedCreatives.length === 0) {
+            const archivedCreativeHooks = hooks.filter(h => h.archived && h.archivedAsCreative);
+
+            if (archivedCreativeHooks.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #666;">No archived creatives yet</td></tr>';
                 return;
             }
 
-            // Group archived creatives by Creative ID
+            // Group by Creative ID
             const creativeGroups = {};
-            archivedCreatives.forEach(hook => {
+            archivedCreativeHooks.forEach(hook => {
                 if (!creativeGroups[hook.creativeId]) {
                     creativeGroups[hook.creativeId] = {
                         creativeId: hook.creativeId,
@@ -3669,7 +3733,6 @@ function filterCreativeById(creativeId) {
                 }
                 creativeGroups[hook.creativeId].hooks.push(hook);
                 
-                // Keep track of earliest archived date
                 if (new Date(hook.archivedDate) < new Date(creativeGroups[hook.creativeId].firstArchivedDate)) {
                     creativeGroups[hook.creativeId].firstArchivedDate = hook.archivedDate;
                 }
@@ -3709,42 +3772,30 @@ function filterCreativeById(creativeId) {
             
             tbody.innerHTML = '';
 
-            // Group BOTH active and archived hooks by Creative ID
-            const creativeGroups = {};
-            
-            // Add active hooks
-            hooks.forEach(hook => {
-                if (!hook.creativeId) return;
-                
-                if (!creativeGroups[hook.creativeId]) {
-                    creativeGroups[hook.creativeId] = {
-                        creativeId: hook.creativeId,
-                        hooks: [],
-                        isArchived: false
-                    };
-                }
-                creativeGroups[hook.creativeId].hooks.push(hook);
-            });
-            
-            // Add archived hooks
-            archivedCreatives.forEach(hook => {
-                if (!hook.creativeId) return;
-                
-                if (!creativeGroups[hook.creativeId]) {
-                    creativeGroups[hook.creativeId] = {
-                        creativeId: hook.creativeId,
-                        hooks: [],
-                        isArchived: true
-                    };
-                }
-                creativeGroups[hook.creativeId].hooks.push({...hook, archived: true});
-                
-                // Mark as having archived content
-                if (!creativeGroups[hook.creativeId].isArchived) {
-                    creativeGroups[hook.creativeId].hasArchivedContent = true;
-                }
-            });
+            // Group ALL hooks by Creative ID (archived flag is just visual)
+const creativeGroups = {};
 
+hooks.forEach(hook => {
+    if (!hook.creativeId) return;
+    
+    if (!creativeGroups[hook.creativeId]) {
+        creativeGroups[hook.creativeId] = {
+            creativeId: hook.creativeId,
+            hooks: [],
+            hasArchivedContent: false,
+            allArchived: true
+        };
+    }
+    
+    creativeGroups[hook.creativeId].hooks.push(hook);
+    
+    if (hook.archived) {
+        creativeGroups[hook.creativeId].hasArchivedContent = true;
+    } else {
+        creativeGroups[hook.creativeId].allArchived = false;
+    }
+});
+            
             // Apply filters
             const searchTerm = document.getElementById('creativeSearch')?.value.toLowerCase() || '';
             const minRoas = parseFloat(document.getElementById('minRoasFilter')?.value) || 0;
@@ -3773,9 +3824,9 @@ function filterCreativeById(creativeId) {
                 const row = document.createElement('tr');
                 
                 // Different styling if completely archived vs has some archived content
-                let rowStyle = '';
-                let statusBadge = '';
-                if (group.isArchived) {
+let rowStyle = '';
+let statusBadge = '';
+if (group.allArchived) {
                     rowStyle = 'background: #f5f5f5; opacity: 0.8;';
                     statusBadge = '<span style="background: #9e9e9e; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin-left: 8px;">📦 ARCHIVED</span>';
                 } else if (group.hasArchivedContent) {
@@ -3802,8 +3853,8 @@ function filterCreativeById(creativeId) {
                     </td>
                     <td>
                         <button class="btn btn-info btn-sm" onclick="viewCreativeDetails('${creativeId}')">👁️ View</button>
-                        ${!group.isArchived ? `<button class="btn btn-warning btn-sm" onclick="archiveCreative('${creativeId}')">📦 Archive</button>` : ''}
-                        ${group.isArchived ? `<button class="btn btn-success btn-sm" onclick="restoreCreative('${creativeId}')">↩️ Restore</button>` : ''}
+                        ${!group.allArchived ? `<button class="btn btn-warning btn-sm" onclick="archiveCreative('${creativeId}')">📦 Archive</button>` : ''}
+${group.allArchived ? `<button class="btn btn-success btn-sm" onclick="restoreCreative('${creativeId}')">↩️ Restore</button>` : ''}
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -3833,10 +3884,10 @@ function filterCreativeById(creativeId) {
         }
 
         function viewCreativeDetails(creativeId) {
-            // Get both active and archived hooks for this creative
-            const activeHooks = hooks.filter(h => h.creativeId === creativeId);
-            const archivedHooks = archivedCreatives.filter(h => h.creativeId === creativeId);
-            const allHooks = [...activeHooks, ...archivedHooks];
+            // Get all hooks for this creative (active and archived)
+            const allHooks = hooks.filter(h => h.creativeId === creativeId);
+            const activeHooks = allHooks.filter(h => !h.archived);
+            const archivedHooks = allHooks.filter(h => h.archived);
             
             let details = `Creative ID: ${creativeId}\n\n`;
             details += `Total hooks using this creative: ${allHooks.length}\n`;
