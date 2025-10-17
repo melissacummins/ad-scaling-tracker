@@ -3515,17 +3515,25 @@ let creativeId = columnMap.creativeId !== -1 ? values[columnMap.creativeId] : ''
     
     // Auto-generate Creative ID if not provided
 if (!creativeId) {
-    try {
-        creativeId = generateCreativeId(book, testDate);
-        console.log(`🔧 Generated Creative ID: ${creativeId} for ${book} - ${hookName}`);
-    } catch (error) {
-        console.error(`❌ Error generating Creative ID for ${book} - ${hookName} with date ${testDate}:`, error);
-        // Use a simple fallback if date is invalid
-        const cleanBook = book.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
-        const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-        creativeId = `${cleanBook}-ERROR-${randomNum}`;
-        console.log(`🔧 Using fallback Creative ID: ${creativeId}`);
-        console.log(`   Please fix the date format: "${testDate}" is not valid MM/YYYY format`);
+    // Check if this book+hook combination already exists
+    const existingHook = hooks.find(h => h.book === book && h.hookName === hookName);
+    
+    if (existingHook && existingHook.creativeId) {
+        // Use the existing hook's Creative ID
+        creativeId = existingHook.creativeId;
+        console.log(`🔗 Reusing existing Creative ID: ${creativeId} for ${book} - ${hookName}`);
+    } else {
+        // Generate new Creative ID using the test date
+        try {
+            creativeId = generateCreativeId(book, testDate);
+            console.log(`🔧 Generated Creative ID: ${creativeId} for ${book} - ${hookName}`);
+        } catch (error) {
+            console.error(`❌ Error generating Creative ID for ${book} - ${hookName} with date ${testDate}:`, error);
+            const cleanBook = book.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
+            const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+            creativeId = `${cleanBook}-ERROR-${randomNum}`;
+            console.log(`🔧 Using fallback Creative ID: ${creativeId}`);
+        }
     }
 }
     
