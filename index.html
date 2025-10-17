@@ -1700,11 +1700,11 @@ function initializeMissingMilestones() {
             
             // Store all combinations for filtering
             const combinations = {};
-            hooks.filter(hook => !hook.archived).forEach((hook, index) => {
+            hooks.filter(hook => !hook.archived).forEach((hook) => {
                 const key = `${hook.book}||${hook.hookName}||${hook.creativeId}`;
                 if (!combinations[key]) {
                     combinations[key] = {
-                        index: index,
+                        uniqueKey: key, // Use unique key instead of array index
                         hook: hook,
                         display: `${hook.book} → ${hook.hookName.substring(0, 40)}${hook.hookName.length > 40 ? '...' : ''} → ${hook.creativeId}`,
                         searchText: `${hook.book} ${hook.hookName} ${hook.creativeId}`.toLowerCase()
@@ -1742,7 +1742,7 @@ function initializeMissingMilestones() {
             
             filtered.forEach(combo => {
                 const option = document.createElement('option');
-                option.value = combo.index;
+                option.value = combo.uniqueKey; // Use uniqueKey instead of index
                 option.textContent = combo.display;
                 select.appendChild(option);
             });
@@ -1766,8 +1766,18 @@ function initializeMissingMilestones() {
                 return;
             }
             
-            const hookIndex = parseInt(select.value);
-            selectedExistingHook = hooks[hookIndex];
+            // Parse the unique key to find the actual hook
+            const [book, hookName, creativeId] = select.value.split('||');
+            selectedExistingHook = hooks.find(h => 
+                h.book === book && 
+                h.hookName === hookName && 
+                h.creativeId === creativeId
+            );
+            
+            if (!selectedExistingHook) {
+                alert('Error: Could not find the selected hook.');
+                return;
+            }
             
             // Display existing hook info
             infoDiv.innerHTML = `
