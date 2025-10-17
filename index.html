@@ -3621,73 +3621,60 @@ for (const row of csvRows) {
     const previousGroupROAS = previousGroupSpend > 0 ? previousGroupRevenue / previousGroupSpend : 0;
     
     // Check if this hook already exists (by Book + Hook + Creative ID only)
-alert(`Checking for match:\nBook: "${book}"\nHook: "${hookName}"\nCreative: "${creativeId}"`);
-
 const existingIndex = hooks.findIndex(h => 
     h.book === book && 
     h.hookName === hookName && 
     h.creativeId === creativeId
 );
 
-alert(`Result: existingIndex = ${existingIndex}\n${existingIndex >= 0 ? 'FOUND - will consolidate' : 'NOT FOUND - will create new'}`);
-
 console.log(`  Result: existingIndex = ${existingIndex}`);
+
+if (existingIndex >= 0) {
+    // ADD to existing hook (consolidate)
+    console.log(`📈 Consolidating with existing hook: ${book} - ${hookName}`);
+    console.log(`   Before: Spend $${hooks[existingIndex].totalSpend}, Revenue $${hooks[existingIndex].totalRevenue}`);
     
-    if (existingIndex >= 0) {
-        // Check for potential duplicate (same spend amount within $1)
-        const existing = hooks[existingIndex];
-        if (existing.totalSpend === totalSpend) {
-            console.warn(`⚠️ POTENTIAL DUPLICATE DETECTED: ${book} - ${hookName} - ${creativeId}`);
-            console.warn(`   Both have EXACT same spend: $${existing.totalSpend.toFixed(2)}`);
-            console.warn(`   Skipping to avoid double-counting.`);
-            skippedCount++;
-            continue; // Skip this row
-        }
-        
-        // ADD to existing hook (consolidate)
-        console.log(`📈 Consolidating with existing hook: ${book} - ${hookName}`);
-        console.log(`   Before: Spend $${existing.totalSpend}, Revenue $${existing.totalRevenue}`);
-        
-        existing.totalSpend += totalSpend;
-        existing.totalRevenue += totalRevenue;
-        existing.purchases += purchases;
-        existing.creativesCount += creativesCount;
-        existing.overallROAS = existing.totalSpend > 0 ? existing.totalRevenue / existing.totalSpend : 0;
-        
-        // Update test date to the latest date (compare all dates properly)
-        const existingTestDate = new Date(existing.testDate.split('/').reverse().join('-') + '-01');
-        const newTestDate = new Date(testDate.split('/').reverse().join('-') + '-01');
-        
-        // Always update to the most recent date
-        if (newTestDate > existingTestDate) {
-            existing.testDate = testDate;
-        }
-        
-        console.log(`   After:  Spend $${existing.totalSpend}, Revenue $${existing.totalRevenue}, ROAS ${existing.overallROAS.toFixed(2)}`);
-        
-        // Keep existing milestones (don't reset them)
-        // They'll be recalculated by recordGroupMilestones below
-    } else {
-        // Create NEW hook
-        const hookData = {
-            book: book,
-            hookName: hookName,
-            testDate: testDate,
-            totalSpend: totalSpend,
-            totalRevenue: totalRevenue,
-            purchases: purchases,
-            creativesCount: creativesCount,
-            creativeId: creativeId,
-            overallROAS: totalSpend > 0 ? totalRevenue / totalSpend : 0,
-            roasAt100: 0,
-            roasAt300: 0,
-            roasAt1000: 0,
-            roasAt3000: 0
-        };
-        
-        console.log(`✅ Adding new hook: ${book} - ${hookName}`);
-        hooks.push(hookData);
+    const existing = hooks[existingIndex];
+    existing.totalSpend += totalSpend;
+    existing.totalRevenue += totalRevenue;
+    existing.purchases += purchases;
+    existing.creativesCount += creativesCount;
+    existing.overallROAS = existing.totalSpend > 0 ? existing.totalRevenue / existing.totalSpend : 0;
+    
+    // Update test date to the latest date (compare all dates properly)
+    const existingTestDate = new Date(existing.testDate.split('/').reverse().join('-') + '-01');
+    const newTestDate = new Date(testDate.split('/').reverse().join('-') + '-01');
+    
+    // Always update to the most recent date
+    if (newTestDate > existingTestDate) {
+        existing.testDate = testDate;
     }
+    
+    console.log(`   After:  Spend $${existing.totalSpend}, Revenue $${existing.totalRevenue}, ROAS ${existing.overallROAS.toFixed(2)}`);
+    
+    // Keep existing milestones (don't reset them)
+    // They'll be recalculated by recordGroupMilestones below
+} else {
+    // Create NEW hook
+    const hookData = {
+        book: book,
+        hookName: hookName,
+        testDate: testDate,
+        totalSpend: totalSpend,
+        totalRevenue: totalRevenue,
+        purchases: purchases,
+        creativesCount: creativesCount,
+        creativeId: creativeId,
+        overallROAS: totalSpend > 0 ? totalRevenue / totalSpend : 0,
+        roasAt100: 0,
+        roasAt300: 0,
+        roasAt1000: 0,
+        roasAt3000: 0
+    };
+    
+    console.log(`✅ Adding new hook: ${book} - ${hookName}`);
+    hooks.push(hookData);
+}
     
     importedCount++;
     
