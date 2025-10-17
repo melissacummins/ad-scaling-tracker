@@ -3434,36 +3434,73 @@ function filterCreativeById(creativeId) {
                     }
                     
                     let importedCount = 0;
-                    let skippedCount = 0;
-                    
-                    // Process each data row
-                    for (let i = 1; i < lines.length; i++) {
-                        if (lines[i].trim() === '') continue;
-                        
-                        const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-                        
-                        // Extract values using the column map
-                        const book = values[columnMap.book] || '';
-                        const hookName = values[columnMap.hookName] || '';
-                        const testDate = values[columnMap.testDate] || '';
-                        const totalSpend = parseFloat(values[columnMap.totalSpend]) || 0;
-                        const totalRevenue = parseFloat(values[columnMap.totalRevenue]) || 0;
-                        const purchases = parseInt(values[columnMap.purchases]) || 0;
-                        const creativesCount = parseInt(values[columnMap.creativesCount]) || 1;
-                        let creativeId = columnMap.creativeId !== -1 ? values[columnMap.creativeId] : '';
-                        
-                        // Skip if missing critical data
-                        if (!book || !hookName || totalSpend === 0) {
-                            console.log(`⚠️ Skipping row ${i + 1}: Missing book, hook name, or spend`);
-                            skippedCount++;
-                            continue;
-                        }
-                        
-                        // Auto-generate Creative ID if not provided
-                        if (!creativeId) {
-                            creativeId = generateCreativeId(book, testDate);
-                            console.log(`🔧 Generated Creative ID: ${creativeId} for ${book} - ${hookName}`);
-                        }
+let skippedCount = 0;
+let consolidatedInFile = 0;
+
+// First pass: consolidate duplicate rows within the CSV
+const csvRows = [];
+for (let i = 1; i < lines.length; i++) {
+    if (lines[i].trim() === '') continue;
+    
+    const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+    
+    // Extract values using the column map
+    const book = values[columnMap.book] || '';
+    const hookName = values[columnMap.hookName] || '';
+    const testDate = values[columnMap.testDate] || '';
+    const totalSpend = parseFloat(values[columnMap.totalSpend]) || 0;
+    const totalRevenue = parseFloat(values[columnMap.totalRevenue]) || 0;
+    const purchases = parseInt(values[columnMap.purchases]) || 0;
+    const creativesCount = parseInt(values[columnMap.creativesCount]) || 1;
+    let creativeId = columnMap.creativeId !== -1 ? values[columnMap.creativeId] : '';
+    
+    // Skip if missing critical data
+    if (!book || !hookName || totalSpend === 0) {
+        console.log(`⚠️ Skipping row ${i + 1}: Missing book, hook name, or spend`);
+        skippedCount++;
+        continue;
+    }
+    
+    // Auto-generate Creative ID if not provided
+    if (!creativeId) {
+        creativeId = generateCreativeId(book, testDate);
+        console.log(`🔧 Generated Creative ID: ${creativeId} for ${book} - ${hookName}`);
+    }
+    
+    // Check if we already have this combination in csvRows
+    const existingRow = csvRows.find(r => 
+        r.book === book && 
+        r.hookName === hookName && 
+        r.creativeId === creativeId &&
+        r.testDate === testDate
+    );
+    
+    if (existingRow) {
+        // Consolidate within CSV
+        console.log(`🔗 Consolidating duplicate CSV row: ${book} - ${hookName} - ${creativeId}`);
+        existingRow.totalSpend += totalSpend;
+        existingRow.totalRevenue += totalRevenue;
+        existingRow.purchases += purchases;
+        existingRow.creativesCount += creativesCount;
+        consolidatedInFile++;
+    } else {
+        // Add new row to process
+        csvRows.push({
+            book,
+            hookName,
+            testDate,
+            totalSpend,
+            totalRevenue,
+            purchases,
+            creativesCount,
+            creativeId
+        });
+    }
+}
+
+// Second pass: process consolidated rows
+for (const row of csvRows) {
+    const { book, hookName, testDate, totalSpend, totalRevenue, purchases, creativesCount, creativeId } = row;
                         
                         // Add book if it doesn't exist
                         if (!books.includes(book)) {
@@ -3478,39 +3515,50 @@ function filterCreativeById(creativeId) {
                         const previousGroupROAS = previousGroupSpend > 0 ? previousGroupRevenue / previousGroupSpend : 0;
                         
                         // Check if this exact hook already exists
-                        const existingIndex = hooks.findIndex(h => 
-                            h.book === book && 
-                            h.hookName === hookName && 
-                            h.creativeId === creativeId &&
-                            h.testDate === testDate
-                        );
-                        
-                        // Create hook data with calculated ROAS
-                        const hookData = {
-                            book: book,
-                            hookName: hookName,
-                            testDate: testDate,
-                            totalSpend: totalSpend,
-                            totalRevenue: totalRevenue,
-                            purchases: purchases,
-                            creativesCount: creativesCount,
-                            creativeId: creativeId,
-                            overallROAS: totalSpend > 0 ? totalRevenue / totalSpend : 0,
-                            roasAt100: 0,
-                            roasAt300: 0,
-                            roasAt1000: 0,
-                            roasAt3000: 0
-                        };
-                        
-                        if (existingIndex >= 0) {
-                            // Update existing hook
-                            console.log(`🔄 Updating existing hook: ${book} - ${hookName}`);
-                            hooks[existingIndex] = hookData;
-                        } else {
-                            // Add new hook
-                            console.log(`✅ Adding new hook: ${book} - ${hookName}`);
-                            hooks.push(hookData);
-                        }
+const existingIndex = hooks.findIndex(h => 
+    h.book === book && 
+    h.hookName === hookName && 
+    h.creativeId === creativeId &&
+    h.testDate === testDate
+);
+
+if (existingIndex >= 0) {
+    // ADD to existing hook (consolidate)
+    const existing = hooks[existingIndex];
+    console.log(`📈 Consolidating with existing hook: ${book} - ${hookName}`);
+    console.log(`   Before: Spend $${existing.totalSpend}, Revenue $${existing.totalRevenue}`);
+    
+    existing.totalSpend += totalSpend;
+    existing.totalRevenue += totalRevenue;
+    existing.purchases += purchases;
+    existing.creativesCount += creativesCount;
+    existing.overallROAS = existing.totalSpend > 0 ? existing.totalRevenue / existing.totalSpend : 0;
+    
+    console.log(`   After:  Spend $${existing.totalSpend}, Revenue $${existing.totalRevenue}, ROAS ${existing.overallROAS.toFixed(2)}`);
+    
+    // Keep existing milestones (don't reset them)
+    // They'll be recalculated by recordGroupMilestones below
+} else {
+    // Create NEW hook
+    const hookData = {
+        book: book,
+        hookName: hookName,
+        testDate: testDate,
+        totalSpend: totalSpend,
+        totalRevenue: totalRevenue,
+        purchases: purchases,
+        creativesCount: creativesCount,
+        creativeId: creativeId,
+        overallROAS: totalSpend > 0 ? totalRevenue / totalSpend : 0,
+        roasAt100: 0,
+        roasAt300: 0,
+        roasAt1000: 0,
+        roasAt3000: 0
+    };
+    
+    console.log(`✅ Adding new hook: ${book} - ${hookName}`);
+    hooks.push(hookData);
+}
                         
                         importedCount++;
                         
@@ -3536,7 +3584,21 @@ function filterCreativeById(creativeId) {
                     renderCreatives();
                     
                     // Show summary
-                    alert(`Import Complete!\n\n✅ Imported: ${importedCount} hooks\n${skippedCount > 0 ? `⚠️ Skipped: ${skippedCount} rows (missing data)\n` : ''}\n📊 Total hooks now: ${hooks.length}`);
+                    // Show summary
+alert(`Import Complete!\n\n✅ Imported: ${importedCount} hooks\n${consolidatedInFile > 0 ? `🔗 Consolidated: ${consolidatedInFile} duplicate rows in file\n` : ''}${skippedCount > 0 ? `⚠️ Skipped: ${skippedCount} rows (missing data)\n` : ''}\n📊 Total hooks now: ${hooks.length}`);
+```
+
+---
+
+## What This Does Now:
+
+### 🔗 **Step 1: Consolidate Within CSV**
+If your export has:
+```
+Book,Hook,Date,Spend,Revenue
+MyBook,Hook1,01/2024,100,150
+MyBook,Hook1,01/2024,50,75
+MyBook,Hook1,01/2024,25,40
                     
                     console.log(`✅ Import summary: ${importedCount} imported, ${skippedCount} skipped`);
                     
