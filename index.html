@@ -3609,11 +3609,19 @@ for (const row of csvRows) {
     const previousGroupROAS = previousGroupSpend > 0 ? previousGroupRevenue / previousGroupSpend : 0;
     
     // Check if this hook already exists (by Book + Hook + Creative ID only)
-const existingIndex = hooks.findIndex(h => 
-    h.book === book && 
-    h.hookName === hookName && 
-    h.creativeId === creativeId
-);
+console.log(`🔍 Checking for existing hook:`);
+console.log(`  Looking for - Book: "${book}", Hook: "${hookName}", Creative: "${creativeId}"`);
+
+const existingIndex = hooks.findIndex(h => {
+    const matches = h.book === book && h.hookName === hookName && h.creativeId === creativeId;
+    if (matches) {
+        console.log(`  ✅ FOUND MATCH at index ${hooks.indexOf(h)}`);
+        console.log(`     Existing - Book: "${h.book}", Hook: "${h.hookName}", Creative: "${h.creativeId}"`);
+    }
+    return matches;
+});
+
+console.log(`  Result: existingIndex = ${existingIndex}`);
     
     if (existingIndex >= 0) {
         // Check for potential duplicate (same spend amount within $1)
