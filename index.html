@@ -2590,7 +2590,40 @@ const archivedMigrationCount = migrateArchivedData();
         // FIXED SAVE EDIT FUNCTION WITH MILESTONE TRACKING
         function saveEdit() {
             const index = parseInt(document.getElementById('editIndex').value);
-            const originalHook = hooks[index];
+            // Check if the edited hook now matches an existing hook (same book, hookName, creativeId)
+const duplicateIndex = hooks.findIndex((h, i) => 
+    i !== index && 
+    h.book === hookData.book && 
+    h.hookName === hookData.hookName && 
+    h.creativeId === hookData.creativeId
+);
+
+if (duplicateIndex >= 0) {
+    // Found a duplicate! Consolidate them
+    console.log(`🔗 Consolidating edited hook with existing hook at index ${duplicateIndex}`);
+    
+    const existing = hooks[duplicateIndex];
+    existing.totalSpend += hookData.totalSpend;
+    existing.totalRevenue += hookData.totalRevenue;
+    existing.purchases += hookData.purchases;
+    existing.creativesCount += hookData.creativesCount;
+    existing.overallROAS = existing.totalSpend > 0 ? existing.totalRevenue / existing.totalSpend : 0;
+    
+    // Keep the most recent test date
+    const existingDate = new Date(existing.testDate.split('/').reverse().join('-') + '-01');
+    const newDate = new Date(hookData.testDate.split('/').reverse().join('-') + '-01');
+    if (newDate > existingDate) {
+        existing.testDate = hookData.testDate;
+    }
+    
+    // Remove the edited hook (it's been merged)
+    hooks.splice(index, 1);
+    
+    console.log(`✅ Consolidated! New totals - Spend: $${existing.totalSpend}, Revenue: $${existing.totalRevenue}, ROAS: ${existing.overallROAS.toFixed(2)}`);
+} else {
+    // No duplicate, just update normally
+    hooks[index] = hookData;
+}
             
             // Calculate PREVIOUS group totals BEFORE editing
             const groupHooks = hooks.filter(h => h.book === originalHook.book && h.hookName === originalHook.hookName);
@@ -3593,11 +3626,11 @@ for (const row of csvRows) {
     const previousGroupROAS = previousGroupSpend > 0 ? previousGroupRevenue / previousGroupSpend : 0;
     
     // Check if this hook already exists (by Book + Hook + Creative ID only)
-    const existingIndex = hooks.findIndex(h => 
-        h.book === book && 
-        h.hookName === hookName && 
-        h.creativeId === creativeId
-    );
+const existingIndex = hooks.findIndex(h => 
+    h.book === book && 
+    h.hookName === hookName && 
+    h.creativeId === creativeId
+);
     
     if (existingIndex >= 0) {
         // Check for potential duplicate (same spend amount within $1)
@@ -3682,8 +3715,6 @@ for (const row of csvRows) {
 const consolidatedMsg = consolidatedInFile > 0 ? '🔗 Consolidated: ' + consolidatedInFile + ' duplicate rows in file\n' : '';
 const skippedMsg = skippedCount > 0 ? '⚠️ Skipped: ' + skippedCount + ' rows (missing data)\n' : '';
 alert('Import Complete!\n\n✅ Imported: ' + importedCount + ' hooks\n' + consolidatedMsg + skippedMsg + '\n📊 Total hooks now: ' + hooks.length);
-
-
                     
                     console.log(`✅ Import summary: ${importedCount} imported, ${skippedCount} skipped`);
                     
