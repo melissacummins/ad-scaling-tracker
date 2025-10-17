@@ -3556,7 +3556,6 @@ for (const row of csvRows) {
     // Add book if it doesn't exist
     if (!books.includes(book)) {
         books.push(book);
-        console.log(`✅ Added new book: ${book}`);
     }
     
     // Calculate PREVIOUS group totals for milestone tracking
@@ -3565,7 +3564,7 @@ for (const row of csvRows) {
     const previousGroupRevenue = groupHooks.reduce((sum, h) => sum + h.totalRevenue, 0);
     const previousGroupROAS = previousGroupSpend > 0 ? previousGroupRevenue / previousGroupSpend : 0;
     
-    // Check if this hook already exists (by Book + Hook + Creative ID only)
+    // Check if this EXACT hook already exists (by Book + Hook + Creative ID only - IGNORE DATE)
     const existingIndex = hooks.findIndex(h => 
         h.book === book && 
         h.hookName === hookName && 
@@ -3573,41 +3572,35 @@ for (const row of csvRows) {
     );
     
     if (existingIndex >= 0) {
-        // Check for potential duplicate (same spend amount within $1)
+        // FOUND EXISTING HOOK - ALWAYS CONSOLIDATE (unless exact duplicate)
         const existing = hooks[existingIndex];
-        if (existing.totalSpend === totalSpend) {
-            console.warn(`⚠️ POTENTIAL DUPLICATE DETECTED: ${book} - ${hookName} - ${creativeId}`);
-            console.warn(`   Both have EXACT same spend: $${existing.totalSpend.toFixed(2)}`);
-            console.warn(`   Skipping to avoid double-counting.`);
+        
+        // Only skip if EXACTLY the same spend (potential duplicate)
+        if (Math.abs(existing.totalSpend - totalSpend) < 0.01 && 
+            Math.abs(existing.totalRevenue - totalRevenue) < 0.01) {
             skippedCount++;
-            continue; // Skip this row
+            continue; // Skip exact duplicate
         }
         
-        // ADD to existing hook (consolidate)
-        console.log(`📈 Consolidating with existing hook: ${book} - ${hookName}`);
-        console.log(`   Before: Spend $${existing.totalSpend}, Revenue $${existing.totalRevenue}`);
-        
+        // CONSOLIDATE: Add the new data to existing
         existing.totalSpend += totalSpend;
         existing.totalRevenue += totalRevenue;
         existing.purchases += purchases;
         existing.creativesCount += creativesCount;
         existing.overallROAS = existing.totalSpend > 0 ? existing.totalRevenue / existing.totalSpend : 0;
         
-        // Update test date to the latest date (compare all dates properly)
-        const existingTestDate = new Date(existing.testDate.split('/').reverse().join('-') + '-01');
-        const newTestDate = new Date(testDate.split('/').reverse().join('-') + '-01');
-        
-        // Always update to the most recent date
-        if (newTestDate > existingTestDate) {
+        // Update test date to the latest date
+        const existingDate = new Date(existing.testDate.split('/').reverse().join('-') + '-01');
+        const newDate = new Date(testDate.split('/').reverse().join('-') + '-01');
+        if (newDate > existingDate) {
             existing.testDate = testDate;
         }
         
-        console.log(`   After:  Spend $${existing.totalSpend}, Revenue $${existing.totalRevenue}, ROAS ${existing.overallROAS.toFixed(2)}`);
-        
-        // Keep existing milestones (don't reset them)
+        // Preserve existing milestones (don't reset)
         // They'll be recalculated by recordGroupMilestones below
+        
     } else {
-        // Create NEW hook
+        // CREATE NEW HOOK
         const hookData = {
             book: book,
             hookName: hookName,
@@ -3624,7 +3617,6 @@ for (const row of csvRows) {
             roasAt3000: 0
         };
         
-        console.log(`✅ Adding new hook: ${book} - ${hookName}`);
         hooks.push(hookData);
     }
     
