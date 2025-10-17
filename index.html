@@ -3652,9 +3652,9 @@ for (const row of csvRows) {
                     renderCreatives();
                     
                     // Show summary
-                    // Show summary
-alert(`Import Complete!\n\n✅ Imported: ${importedCount} hooks\n${consolidatedInFile > 0 ? `🔗 Consolidated: ${consolidatedInFile} duplicate rows in file\n` : ''}${skippedCount > 0 ? `⚠️ Skipped: ${skippedCount} rows (missing data)\n` : ''}\n📊 Total hooks now: ${hooks.length}`);
-```
+const consolidatedMsg = consolidatedInFile > 0 ? '🔗 Consolidated: ' + consolidatedInFile + ' duplicate rows in file\n' : '';
+const skippedMsg = skippedCount > 0 ? '⚠️ Skipped: ' + skippedCount + ' rows (missing data)\n' : '';
+alert('Import Complete!\n\n✅ Imported: ' + importedCount + ' hooks\n' + consolidatedMsg + skippedMsg + '\n📊 Total hooks now: ' + hooks.length);
 
 ---
 
