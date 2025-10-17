@@ -3519,6 +3519,8 @@ if (testDate) {
 }
 
 console.log(`📅 Normalized date: ${testDate}`);
+console.log(`🔍 Raw date from CSV: "${values[columnMap.testDate]}"`);
+console.log(`🔍 Final testDate: "${testDate}"`);
 
 const totalSpend = parseFloat(values[columnMap.totalSpend]) || 0;
 const totalRevenue = parseFloat(values[columnMap.totalRevenue]) || 0;
@@ -3635,7 +3637,15 @@ if (existingIndex >= 0) {
     
     const existing = hooks[existingIndex];
     const existingTestDate = new Date(existing.testDate.split('/').reverse().join('-') + '-01');
-    const importTestDate = new Date(testDate.split('/').reverse().join('-') + '-01');
+const importTestDate = new Date(testDate.split('/').reverse().join('-') + '-01');
+
+console.log(`📅 DATE COMPARISON DEBUG:`);
+console.log(`  Existing date string: "${existing.testDate}"`);
+console.log(`  Import date string: "${testDate}"`);
+console.log(`  Existing Date object: ${existingTestDate}`);
+console.log(`  Import Date object: ${importTestDate}`);
+console.log(`  Import >= Existing? ${importTestDate >= existingTestDate}`);
+console.log(`  Spend comparison: ${totalSpend} > ${existing.totalSpend}? ${totalSpend > existing.totalSpend}`);
     
     // Only update if the imported data is from a newer test date OR has higher amounts
     if (importTestDate >= existingTestDate || totalSpend > existing.totalSpend) {
