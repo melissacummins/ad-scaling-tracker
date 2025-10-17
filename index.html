@@ -3621,17 +3621,15 @@ for (const row of csvRows) {
     const previousGroupROAS = previousGroupSpend > 0 ? previousGroupRevenue / previousGroupSpend : 0;
     
     // Check if this hook already exists (by Book + Hook + Creative ID only)
-console.log(`🔍 Checking for existing hook:`);
-console.log(`  Looking for - Book: "${book}", Hook: "${hookName}", Creative: "${creativeId}"`);
+alert(`Checking for match:\nBook: "${book}"\nHook: "${hookName}"\nCreative: "${creativeId}"`);
 
-const existingIndex = hooks.findIndex(h => {
-    const matches = h.book === book && h.hookName === hookName && h.creativeId === creativeId;
-    if (matches) {
-        console.log(`  ✅ FOUND MATCH at index ${hooks.indexOf(h)}`);
-        console.log(`     Existing - Book: "${h.book}", Hook: "${h.hookName}", Creative: "${h.creativeId}"`);
-    }
-    return matches;
-});
+const existingIndex = hooks.findIndex(h => 
+    h.book === book && 
+    h.hookName === hookName && 
+    h.creativeId === creativeId
+);
+
+alert(`Result: existingIndex = ${existingIndex}\n${existingIndex >= 0 ? 'FOUND - will consolidate' : 'NOT FOUND - will create new'}`);
 
 console.log(`  Result: existingIndex = ${existingIndex}`);
     
