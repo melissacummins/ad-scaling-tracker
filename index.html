@@ -3656,17 +3656,7 @@ const consolidatedMsg = consolidatedInFile > 0 ? '🔗 Consolidated: ' + consoli
 const skippedMsg = skippedCount > 0 ? '⚠️ Skipped: ' + skippedCount + ' rows (missing data)\n' : '';
 alert('Import Complete!\n\n✅ Imported: ' + importedCount + ' hooks\n' + consolidatedMsg + skippedMsg + '\n📊 Total hooks now: ' + hooks.length);
 
----
 
-## What This Does Now:
-
-### 🔗 **Step 1: Consolidate Within CSV**
-If your export has:
-```
-Book,Hook,Date,Spend,Revenue
-MyBook,Hook1,01/2024,100,150
-MyBook,Hook1,01/2024,50,75
-MyBook,Hook1,01/2024,25,40
                     
                     console.log(`✅ Import summary: ${importedCount} imported, ${skippedCount} skipped`);
                     
