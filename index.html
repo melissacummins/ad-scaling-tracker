@@ -3528,15 +3528,13 @@ function filterCreativeById(creativeId) {
                     // Update existing hook only if amounts are different
                     const existing = hooks[existingIndex];
                     if (existing.totalSpend !== totalSpend || existing.totalRevenue !== totalRevenue) {
-                        existing.totalSpend = totalSpend;
-                        existing.totalRevenue = totalRevenue;
-                        existing.purchases = purchases;
-                        existing.overallROAS = totalSpend > 0 ? totalRevenue / totalSpend : 0;
-                        existing.testDate = testDate;
-                        updatedCount++;
-                    } else {
-                        skippedCount++;
-                    }
+    existing.totalSpend += totalSpend;
+    existing.totalRevenue += totalRevenue;
+    existing.purchases += purchases;
+    existing.overallROAS = existing.totalSpend > 0 ? existing.totalRevenue / existing.totalSpend : 0;
+    existing.testDate = testDate; // Update to latest month
+    updatedCount++;
+}
                 } else {
                     // Create new hook
                     const newHook = {
