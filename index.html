@@ -2626,21 +2626,40 @@ const archivedMigrationCount = migrateArchivedData();
             console.log(`  Hook: ${hookData.hookName}`);
             console.log(`  Previous Group Spend: ${previousGroupSpend.toFixed(2)}, ROAS: ${previousGroupROAS.toFixed(2)}`);
 
-            hooks[index] = hookData;
-
-            // Calculate NEW group totals AFTER editing
-            const newGroupHooks = hooks.filter(h => h.book === hookData.book && h.hookName === hookData.hookName);
-            const newGroupSpend = newGroupHooks.reduce((sum, h) => sum + h.totalSpend, 0);
-            const newGroupRevenue = newGroupHooks.reduce((sum, h) => sum + h.totalRevenue, 0);
-            const newGroupROAS = newGroupSpend > 0 ? newGroupRevenue / newGroupSpend : 0;
-
-            console.log(`  New Group Spend: ${newGroupSpend.toFixed(2)}, ROAS: ${newGroupROAS.toFixed(2)}`);
-
-            // Trigger group-level milestone tracking
-            const group = { book: hookData.book, hookName: hookData.hookName, creatives: newGroupHooks };
-            recordGroupMilestones(group, previousGroupSpend, previousGroupROAS, newGroupSpend, newGroupROAS);
+            // Check if the edited hook now matches an existing hook (same book, hookName, creativeId)
+            const duplicateIndex = hooks.findIndex((h, i) => 
+                i !== index && 
+                h.book === hookData.book && 
+                h.hookName === hookData.hookName && 
+                h.creativeId === hookData.creativeId
+            );
             
-            saveToLocalAndCloud();
+            if (duplicateIndex >= 0) {
+                // Found a duplicate! Consolidate them
+                console.log(`🔗 Consolidating edited hook with existing hook at index ${duplicateIndex}`);
+                
+                const existing = hooks[duplicateIndex];
+                existing.totalSpend += hookData.totalSpend;
+                existing.totalRevenue += hookData.totalRevenue;
+                existing.purchases += hookData.purchases;
+                existing.creativesCount += hookData.creativesCount;
+                existing.overallROAS = existing.totalSpend > 0 ? existing.totalRevenue / existing.totalSpend : 0;
+                
+                // Keep the most recent test date
+                const existingDate = new Date(existing.testDate.split('/').reverse().join('-') + '-01');
+                const newDate = new Date(hookData.testDate.split('/').reverse().join('-') + '-01');
+                if (newDate > existingDate) {
+                    existing.testDate = hookData.testDate;
+                }
+                
+                // Remove the edited hook (it's been merged)
+                hooks.splice(index, 1);
+                
+                console.log(`✅ Consolidated! New totals - Spend: $${existing.totalSpend}, Revenue: $${existing.totalRevenue}, ROAS: ${existing.overallROAS.toFixed(2)}`);
+            } else {
+                // No duplicate, just update normally
+                hooks[index] = hookData;
+            }
             renderHooks();
             cancelEdit();
         }
