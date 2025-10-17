@@ -3428,13 +3428,17 @@ function filterCreativeById(creativeId) {
         }
         
         function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+    console.log('🚨 IMPORT FUNCTION CALLED');
+    const file = event.target.files[0];
+    console.log('📁 File:', file ? file.name : 'NO FILE');
+    if (!file) return;
 
             const reader = new FileReader();
             reader.onload = function(e) {
-                try {
-                    const text = e.target.result;
+    console.log('📖 FILE LOADED - Reader onload triggered');
+    try {
+        console.log('🔍 Starting to parse CSV');
+        const text = e.target.result;
                     const lines = text.split('\n');
                     
                     if (lines.length < 2) {
