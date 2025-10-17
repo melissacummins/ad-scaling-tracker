@@ -3630,31 +3630,30 @@ const existingIndex = hooks.findIndex(h =>
 console.log(`  Result: existingIndex = ${existingIndex}`);
 
 if (existingIndex >= 0) {
-    // ADD to existing hook (consolidate)
-    console.log(`📈 Consolidating with existing hook: ${book} - ${hookName}`);
-    console.log(`   Before: Spend $${hooks[existingIndex].totalSpend}, Revenue $${hooks[existingIndex].totalRevenue}`);
+    // UPDATE existing hook (replace with imported data if newer, otherwise keep existing)
+    console.log(`📈 Found existing hook: ${book} - ${hookName}`);
     
     const existing = hooks[existingIndex];
-    existing.totalSpend += totalSpend;
-    existing.totalRevenue += totalRevenue;
-    existing.purchases += purchases;
-    existing.creativesCount += creativesCount;
-    existing.overallROAS = existing.totalSpend > 0 ? existing.totalRevenue / existing.totalSpend : 0;
-    
-    // Update test date to the latest date (compare all dates properly)
     const existingTestDate = new Date(existing.testDate.split('/').reverse().join('-') + '-01');
-    const newTestDate = new Date(testDate.split('/').reverse().join('-') + '-01');
+    const importTestDate = new Date(testDate.split('/').reverse().join('-') + '-01');
     
-    // Always update to the most recent date
-    if (newTestDate > existingTestDate) {
+    // Only update if the imported data is from a newer test date OR has higher amounts
+    if (importTestDate >= existingTestDate || totalSpend > existing.totalSpend) {
+        console.log(`📈 Updating with newer/better data - Before: $${existing.totalSpend}, After: $${totalSpend}`);
+        
+        existing.totalSpend = totalSpend;
+        existing.totalRevenue = totalRevenue; 
+        existing.purchases = purchases;
+        existing.creativesCount = creativesCount;
+        existing.overallROAS = existing.totalSpend > 0 ? existing.totalRevenue / existing.totalSpend : 0;
         existing.testDate = testDate;
+    } else {
+        console.log(`📋 Keeping existing data (newer/better than import)`);
     }
     
-    console.log(`   After:  Spend $${existing.totalSpend}, Revenue $${existing.totalRevenue}, ROAS ${existing.overallROAS.toFixed(2)}`);
-    
     // Keep existing milestones (don't reset them)
-    // They'll be recalculated by recordGroupMilestones below
 } else {
+    
     // Create NEW hook
     const hookData = {
         book: book,
