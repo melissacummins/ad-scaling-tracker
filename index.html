@@ -3892,8 +3892,8 @@ MyBook,Hook1,01/2024,25,40
                     <td><span class="${getRoasColorClass(hook.overallROAS)}">${hook.overallROAS.toFixed(2)}</span></td>
                     <td style="font-family: monospace; font-size: 11px;">${hook.creativeId}</td>
                     <td>
-                        <button class="btn btn-success btn-sm" onclick="restoreHook(${JSON.stringify({book: hook.book, hookName: hook.hookName, creativeId: hook.creativeId}).replace(/"/g, '&quot;')})">↩️ Restore</button>
-                        <button class="btn btn-danger btn-sm" onclick="permanentlyDeleteHook(${JSON.stringify({book: hook.book, hookName: hook.hookName, creativeId: hook.creativeId}).replace(/"/g, '&quot;')})">🗑️ Delete Forever</button>
+                        <button class="btn btn-success btn-sm" onclick='restoreHook(${JSON.stringify({book: hook.book, hookName: hook.hookName, creativeId: hook.creativeId})})'>↩️ Restore</button>
+                        <button class="btn btn-danger btn-sm" onclick='permanentlyDeleteHook(${JSON.stringify({book: hook.book, hookName: hook.hookName, creativeId: hook.creativeId})})'>🗑️ Delete Forever</button>
                     </td>
                 `;
                 tbody.appendChild(row);
