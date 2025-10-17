@@ -3445,14 +3445,47 @@ for (let i = 1; i < lines.length; i++) {
     const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
     
     // Extract values using the column map
-    const book = values[columnMap.book] || '';
-    const hookName = values[columnMap.hookName] || '';
-    const testDate = values[columnMap.testDate] || '';
-    const totalSpend = parseFloat(values[columnMap.totalSpend]) || 0;
-    const totalRevenue = parseFloat(values[columnMap.totalRevenue]) || 0;
-    const purchases = parseInt(values[columnMap.purchases]) || 0;
-    const creativesCount = parseInt(values[columnMap.creativesCount]) || 1;
-    let creativeId = columnMap.creativeId !== -1 ? values[columnMap.creativeId] : '';
+const book = values[columnMap.book] || '';
+const hookName = values[columnMap.hookName] || '';
+let testDate = values[columnMap.testDate] || '';
+
+// Normalize date format (handle MM/YYYY, M/YYYY, Mon-YY, etc.)
+if (testDate) {
+    // Convert "Jul-25" or "Aug-25" format to "07/2025"
+    const monthNames = {
+        'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+        'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
+        'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+    };
+    
+    // Check if it's in "Mon-YY" format
+    if (testDate.includes('-')) {
+        const parts = testDate.toLowerCase().split('-');
+        if (parts.length === 2 && monthNames[parts[0].substring(0, 3)]) {
+            const month = monthNames[parts[0].substring(0, 3)];
+            const year = parts[1].length === 2 ? '20' + parts[1] : parts[1];
+            testDate = month + '/' + year;
+        }
+    }
+    
+    // Ensure MM/YYYY format (pad single digit months)
+    if (testDate.includes('/')) {
+        const parts = testDate.split('/');
+        if (parts.length === 2) {
+            const month = parts[0].padStart(2, '0');
+            const year = parts[1].length === 2 ? '20' + parts[1] : parts[1];
+            testDate = month + '/' + year;
+        }
+    }
+}
+
+console.log(`📅 Normalized date: ${testDate}`);
+
+const totalSpend = parseFloat(values[columnMap.totalSpend]) || 0;
+const totalRevenue = parseFloat(values[columnMap.totalRevenue]) || 0;
+const purchases = parseInt(values[columnMap.purchases]) || 0;
+const creativesCount = parseInt(values[columnMap.creativesCount]) || 1;
+let creativeId = columnMap.creativeId !== -1 ? values[columnMap.creativeId] : '';
     
     // Skip if missing critical data
     if (!book || !hookName || totalSpend === 0) {
@@ -3468,22 +3501,30 @@ for (let i = 1; i < lines.length; i++) {
     }
     
     // Check if we already have this combination in csvRows
-    const existingRow = csvRows.find(r => 
-        r.book === book && 
-        r.hookName === hookName && 
-        r.creativeId === creativeId &&
-        r.testDate === testDate
-    );
+// (consolidate by Book + Hook + Creative ID, regardless of date)
+const existingRow = csvRows.find(r => 
+    r.book === book && 
+    r.hookName === hookName && 
+    r.creativeId === creativeId
+);
     
     if (existingRow) {
-        // Consolidate within CSV
-        console.log(`🔗 Consolidating duplicate CSV row: ${book} - ${hookName} - ${creativeId}`);
-        existingRow.totalSpend += totalSpend;
-        existingRow.totalRevenue += totalRevenue;
-        existingRow.purchases += purchases;
-        existingRow.creativesCount += creativesCount;
-        consolidatedInFile++;
-    } else {
+    // Consolidate within CSV
+    console.log(`🔗 Consolidating duplicate CSV row: ${book} - ${hookName} - ${creativeId}`);
+    existingRow.totalSpend += totalSpend;
+    existingRow.totalRevenue += totalRevenue;
+    existingRow.purchases += purchases;
+    existingRow.creativesCount += creativesCount;
+    
+    // Update to the latest test date
+    const existingDate = new Date(existingRow.testDate.split('/').reverse().join('-') + '-01');
+    const newDate = new Date(testDate.split('/').reverse().join('-') + '-01');
+    if (newDate > existingDate) {
+        existingRow.testDate = testDate;
+    }
+    
+    consolidatedInFile++;
+} else {
         // Add new row to process
         csvRows.push({
             book,
@@ -3514,14 +3555,13 @@ for (const row of csvRows) {
                         const previousGroupRevenue = groupHooks.reduce((sum, h) => sum + h.totalRevenue, 0);
                         const previousGroupROAS = previousGroupSpend > 0 ? previousGroupRevenue / previousGroupSpend : 0;
                         
-                        // Check if this exact hook already exists
+                        // Check if this hook already exists (by Book + Hook + Creative ID only)
 const existingIndex = hooks.findIndex(h => 
     h.book === book && 
     h.hookName === hookName && 
-    h.creativeId === creativeId &&
-    h.testDate === testDate
+    h.creativeId === creativeId
 );
-
+    
 if (existingIndex >= 0) {
     // ADD to existing hook (consolidate)
     const existing = hooks[existingIndex];
@@ -3533,6 +3573,15 @@ if (existingIndex >= 0) {
     existing.purchases += purchases;
     existing.creativesCount += creativesCount;
     existing.overallROAS = existing.totalSpend > 0 ? existing.totalRevenue / existing.totalSpend : 0;
+    
+    // Update test date to the latest date (compare all dates properly)
+    const existingTestDate = new Date(existing.testDate.split('/').reverse().join('-') + '-01');
+    const newTestDate = new Date(testDate.split('/').reverse().join('-') + '-01');
+    
+    // Always update to the most recent date
+    if (newTestDate > existingTestDate) {
+        existing.testDate = testDate;
+    }
     
     console.log(`   After:  Spend $${existing.totalSpend}, Revenue $${existing.totalRevenue}, ROAS ${existing.overallROAS.toFixed(2)}`);
     
