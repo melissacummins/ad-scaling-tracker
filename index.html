@@ -3647,19 +3647,18 @@ console.log(`  Import Date object: ${importTestDate}`);
 console.log(`  Import >= Existing? ${importTestDate >= existingTestDate}`);
 console.log(`  Spend comparison: ${totalSpend} > ${existing.totalSpend}? ${totalSpend > existing.totalSpend}`);
     
-    // Only update if the imported data is from a newer test date OR has higher amounts
-    if (importTestDate >= existingTestDate || totalSpend > existing.totalSpend) {
-        console.log(`📈 Updating with newer/better data - Before: $${existing.totalSpend}, After: $${totalSpend}`);
-        
-        existing.totalSpend = totalSpend;
-        existing.totalRevenue = totalRevenue; 
-        existing.purchases = purchases;
-        existing.creativesCount = creativesCount;
-        existing.overallROAS = existing.totalSpend > 0 ? existing.totalRevenue / existing.totalSpend : 0;
-        existing.testDate = testDate;
-    } else {
-        console.log(`📋 Keeping existing data (newer/better than import)`);
-    }
+    // Skip if exact same amounts (likely duplicate import)
+if (existing.totalSpend === totalSpend && existing.totalRevenue === totalRevenue) {
+    console.log(`⏭️ Skipping duplicate: same spend and revenue amounts`);
+} else {
+    // Replace with imported data
+    existing.totalSpend = totalSpend;
+    existing.totalRevenue = totalRevenue; 
+    existing.purchases = purchases;
+    existing.creativesCount = creativesCount;
+    existing.overallROAS = existing.totalSpend > 0 ? existing.totalRevenue / existing.totalSpend : 0;
+    existing.testDate = testDate;
+}
     
     // Keep existing milestones (don't reset them)
 } else {
