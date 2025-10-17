@@ -3428,260 +3428,161 @@ function filterCreativeById(creativeId) {
         }
         
         function importData(event) {
-    console.log('🚨 IMPORT FUNCTION CALLED');
     const file = event.target.files[0];
-    console.log('📁 File:', file ? file.name : 'NO FILE');
     if (!file) return;
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-    console.log('📖 FILE LOADED - Reader onload triggered');
-    try {
-        console.log('🔍 Starting to parse CSV');
-        const text = e.target.result;
-                    const lines = text.split('\n');
-                    
-                    if (lines.length < 2) {
-                        alert('File appears to be empty or has no data rows.');
-                        return;
-                    }
-                    
-                    // Parse header row to find column positions
-                    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, '').toLowerCase());
-                    
-                    console.log('📋 Found headers:', headers);
-                    
-                    // Map column names to indices (flexible - any order works!)
-                    const columnMap = {
-                        book: headers.findIndex(h => h.includes('book')),
-                        hookName: headers.findIndex(h => h.includes('hook') && h.includes('name')),
-                        testDate: headers.findIndex(h => h.includes('test') || h.includes('month') || h.includes('date')),
-                        totalSpend: headers.findIndex(h => h.includes('spend')),
-                        totalRevenue: headers.findIndex(h => h.includes('revenue')),
-                        purchases: headers.findIndex(h => h.includes('purchase')),
-                        creativesCount: headers.findIndex(h => h.includes('creative') && h.includes('count')),
-                        creativeId: headers.findIndex(h => h.includes('creative') && h.includes('id'))
-                    };
-                    
-                    // Validate required columns
-                    const required = ['book', 'hookName', 'totalSpend', 'totalRevenue'];
-                    const missing = required.filter(col => columnMap[col] === -1);
-                    
-                    if (missing.length > 0) {
-                        alert(`Missing required columns: ${missing.join(', ')}\n\nRequired columns:\n- Book\n- Hook Name\n- Total Spend\n- Total Revenue`);
-                        return;
-                    }
-                    
-                    let importedCount = 0;
-let skippedCount = 0;
-let consolidatedInFile = 0;
-
-// First pass: consolidate duplicate rows within the CSV
-const csvRows = [];
-for (let i = 1; i < lines.length; i++) {
-    if (lines[i].trim() === '') continue;
-    
-    const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
-    
-    // Extract values using the column map
-const book = values[columnMap.book] || '';
-const hookName = values[columnMap.hookName] || '';
-let testDate = values[columnMap.testDate] || '';
-
-// Normalize date format (handle MM/YYYY, M/YYYY, Mon-YY, etc.)
-if (testDate) {
-    // Convert "Jul-25" or "Aug-25" format to "07/2025"
-    const monthNames = {
-        'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
-        'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
-        'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
-    };
-    
-    // Check if it's in "Mon-YY" format
-    if (testDate.includes('-')) {
-        const parts = testDate.toLowerCase().split('-');
-        if (parts.length === 2 && monthNames[parts[0].substring(0, 3)]) {
-            const month = monthNames[parts[0].substring(0, 3)];
-            const year = parts[1].length === 2 ? '20' + parts[1] : parts[1];
-            testDate = month + '/' + year;
-        }
-    }
-    
-    // Ensure MM/YYYY format (pad single digit months)
-    if (testDate.includes('/')) {
-        const parts = testDate.split('/');
-        if (parts.length === 2) {
-            const month = parts[0].padStart(2, '0');
-            const year = parts[1].length === 2 ? '20' + parts[1] : parts[1];
-            testDate = month + '/' + year;
-        }
-    }
-}
-
-console.log(`📅 Normalized date: ${testDate}`);
-console.log(`🔍 Raw date from CSV: "${values[columnMap.testDate]}"`);
-console.log(`🔍 Final testDate: "${testDate}"`);
-
-const totalSpend = parseFloat(values[columnMap.totalSpend]) || 0;
-const totalRevenue = parseFloat(values[columnMap.totalRevenue]) || 0;
-const purchases = parseInt(values[columnMap.purchases]) || 0;
-const creativesCount = parseInt(values[columnMap.creativesCount]) || 1;
-let creativeId = columnMap.creativeId !== -1 ? values[columnMap.creativeId] : '';
-    
-    // Skip if missing critical data
-    if (!book || !hookName || totalSpend === 0) {
-        console.log(`⚠️ Skipping row ${i + 1}: Missing book, hook name, or spend`);
-        skippedCount++;
-        continue;
-    }
-    
-    // Auto-generate Creative ID if not provided
-if (!creativeId) {
-    // Check if this book+hook combination already exists
-    const existingHook = hooks.find(h => h.book === book && h.hookName === hookName);
-    
-    if (existingHook && existingHook.creativeId) {
-        // Use the existing hook's Creative ID
-        creativeId = existingHook.creativeId;
-        console.log(`🔗 Reusing existing Creative ID: ${creativeId} for ${book} - ${hookName}`);
-    } else {
-        // Generate new Creative ID using the test date
+    const reader = new FileReader();
+    reader.onload = function(e) {
         try {
-            creativeId = generateCreativeId(book, testDate);
-            console.log(`🔧 Generated Creative ID: ${creativeId} for ${book} - ${hookName}`);
+            const text = e.target.result;
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            
+            if (lines.length < 2) {
+                alert('File appears to be empty or has no data rows.');
+                return;
+            }
+            
+            // Parse header row
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, '').toLowerCase());
+            
+            // Find required columns
+            const bookIndex = headers.findIndex(h => h.includes('book'));
+            const hookIndex = headers.findIndex(h => h.includes('hook') && h.includes('name'));
+            const dateIndex = headers.findIndex(h => h.includes('test') || h.includes('month') || h.includes('date'));
+            const spendIndex = headers.findIndex(h => h.includes('spend'));
+            const revenueIndex = headers.findIndex(h => h.includes('revenue'));
+            const purchasesIndex = headers.findIndex(h => h.includes('purchase'));
+            const creativeIdIndex = headers.findIndex(h => h.includes('creative') && h.includes('id'));
+            
+            // Validate required columns exist
+            if (bookIndex === -1 || hookIndex === -1 || spendIndex === -1 || revenueIndex === -1) {
+                alert('Missing required columns. Need: Book, Hook Name, Total Spend, Total Revenue');
+                return;
+            }
+            
+            let importedCount = 0;
+            let updatedCount = 0;
+            let skippedCount = 0;
+            
+            // Process each data row
+            for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim().replace(/"/g, ''));
+                
+                const book = values[bookIndex] || '';
+                const hookName = values[hookIndex] || '';
+                let testDate = values[dateIndex] || '';
+                const totalSpend = parseFloat(values[spendIndex]) || 0;
+                const totalRevenue = parseFloat(values[revenueIndex]) || 0;
+                const purchases = parseInt(values[purchasesIndex]) || 0;
+                let creativeId = values[creativeIdIndex] || '';
+                
+                // Skip if missing essential data
+                if (!book || !hookName || totalSpend === 0) {
+                    skippedCount++;
+                    continue;
+                }
+                
+                // Normalize date format
+                if (testDate) {
+                    // Handle MMM-YY format (Jul-25 -> 07/2025)
+                    if (testDate.includes('-') && testDate.length <= 6) {
+                        const monthMap = {
+                            'jan': '01', 'feb': '02', 'mar': '03', 'apr': '04',
+                            'may': '05', 'jun': '06', 'jul': '07', 'aug': '08',
+                            'sep': '09', 'oct': '10', 'nov': '11', 'dec': '12'
+                        };
+                        const parts = testDate.toLowerCase().split('-');
+                        if (parts.length === 2 && monthMap[parts[0].substring(0, 3)]) {
+                            const month = monthMap[parts[0].substring(0, 3)];
+                            const year = parts[1].length === 2 ? '20' + parts[1] : parts[1];
+                            testDate = month + '/' + year;
+                        }
+                    }
+                    // Ensure MM/YYYY format
+                    if (testDate.includes('/')) {
+                        const parts = testDate.split('/');
+                        if (parts.length === 2) {
+                            testDate = parts[0].padStart(2, '0') + '/' + parts[1];
+                        }
+                    }
+                }
+                
+                // Generate Creative ID if missing
+                if (!creativeId) {
+                    creativeId = generateCreativeId(book, testDate);
+                }
+                
+                // Add book if it doesn't exist
+                if (!books.includes(book)) {
+                    books.push(book);
+                }
+                
+                // Check for existing hook (Book + Hook Name + Creative ID)
+                const existingIndex = hooks.findIndex(h => 
+                    h.book === book && 
+                    h.hookName === hookName && 
+                    h.creativeId === creativeId
+                );
+                
+                if (existingIndex >= 0) {
+                    // Update existing hook only if amounts are different
+                    const existing = hooks[existingIndex];
+                    if (existing.totalSpend !== totalSpend || existing.totalRevenue !== totalRevenue) {
+                        existing.totalSpend = totalSpend;
+                        existing.totalRevenue = totalRevenue;
+                        existing.purchases = purchases;
+                        existing.overallROAS = totalSpend > 0 ? totalRevenue / totalSpend : 0;
+                        existing.testDate = testDate;
+                        updatedCount++;
+                    } else {
+                        skippedCount++;
+                    }
+                } else {
+                    // Create new hook
+                    const newHook = {
+                        book: book,
+                        hookName: hookName,
+                        testDate: testDate,
+                        totalSpend: totalSpend,
+                        totalRevenue: totalRevenue,
+                        purchases: purchases,
+                        creativesCount: 1,
+                        creativeId: creativeId,
+                        overallROAS: totalSpend > 0 ? totalRevenue / totalSpend : 0,
+                        roasAt100: 0,
+                        roasAt300: 0,
+                        roasAt1000: 0,
+                        roasAt3000: 0
+                    };
+                    hooks.push(newHook);
+                    importedCount++;
+                }
+            }
+            
+            // Save and refresh
+            saveToLocalAndCloud();
+            updateBookOptions();
+            renderHooks();
+            renderBooks();
+            renderBooksAnalysis();
+            renderCreatives();
+            
+            // Show results
+            let message = 'Import Complete!\n\n';
+            if (importedCount > 0) message += `✅ New entries: ${importedCount}\n`;
+            if (updatedCount > 0) message += `🔄 Updated entries: ${updatedCount}\n`;
+            if (skippedCount > 0) message += `⏭️ Skipped (duplicates/invalid): ${skippedCount}\n`;
+            message += `\n📊 Total hooks now: ${hooks.length}`;
+            
+            alert(message);
+            
         } catch (error) {
-            console.error(`❌ Error generating Creative ID for ${book} - ${hookName} with date ${testDate}:`, error);
-            const cleanBook = book.replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
-            const randomNum = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-            creativeId = `${cleanBook}-ERROR-${randomNum}`;
-            console.log(`🔧 Using fallback Creative ID: ${creativeId}`);
+            alert('Import failed: ' + error.message);
         }
-    }
-}
-    
-    // Check if we already have this combination in csvRows
-// (consolidate by Book + Hook + Creative ID, regardless of date)
-const existingRow = csvRows.find(r => 
-    r.book === book && 
-    r.hookName === hookName && 
-    r.creativeId === creativeId
-);
-    
-    if (existingRow) {
-    // Consolidate within CSV
-    console.log(`🔗 Consolidating duplicate CSV row: ${book} - ${hookName} - ${creativeId}`);
-    existingRow.totalSpend += totalSpend;
-    existingRow.totalRevenue += totalRevenue;
-    existingRow.purchases += purchases;
-    existingRow.creativesCount += creativesCount;
-    
-    // Update to the latest test date
-    const existingDate = new Date(existingRow.testDate.split('/').reverse().join('-') + '-01');
-    const newDate = new Date(testDate.split('/').reverse().join('-') + '-01');
-    if (newDate > existingDate) {
-        existingRow.testDate = testDate;
-    }
-    
-    consolidatedInFile++;
-} else {
-        // Add new row to process
-        csvRows.push({
-            book,
-            hookName,
-            testDate,
-            totalSpend,
-            totalRevenue,
-            purchases,
-            creativesCount,
-            creativeId
-        });
-    }
-}
-
-                    console.log(`📦 IMPORT DEBUG: About to process ${csvRows.length} consolidated rows`);
-csvRows.forEach((r, i) => {
-    console.log(`  Row ${i}: Book="${r.book}", Hook="${r.hookName}", Creative="${r.creativeId}"`);
-});
-                    
-// Second pass: process consolidated rows
-for (const row of csvRows) {
-    console.log(`\n🔄 Processing row: "${row.book}" - "${row.hookName}" - "${row.creativeId}"`);
-    console.log(`   Current hooks in tracker: ${hooks.length}`);
-    
-    const { book, hookName, testDate, totalSpend, totalRevenue, purchases, creativesCount, creativeId } = row;
-    
-    // Add book if it doesn't exist
-    if (!books.includes(book)) {
-        books.push(book);
-        console.log(`✅ Added new book: ${book}`);
-    }
-    
-    // Calculate PREVIOUS group totals for milestone tracking
-    const groupHooks = hooks.filter(h => h.book === book && h.hookName === hookName);
-    const previousGroupSpend = groupHooks.reduce((sum, h) => sum + h.totalSpend, 0);
-    const previousGroupRevenue = groupHooks.reduce((sum, h) => sum + h.totalRevenue, 0);
-    const previousGroupROAS = previousGroupSpend > 0 ? previousGroupRevenue / previousGroupSpend : 0;
-    
-    // Check if this hook already exists (by Book + Hook + Creative ID only)
-const existingIndex = hooks.findIndex(h => 
-    h.book === book && 
-    h.hookName === hookName && 
-    h.creativeId === creativeId
-);
-
-console.log(`  Result: existingIndex = ${existingIndex}`);
-
-if (existingIndex >= 0) {
-    // UPDATE existing hook (replace with imported data if newer, otherwise keep existing)
-    console.log(`📈 Found existing hook: ${book} - ${hookName}`);
-    
-    const existing = hooks[existingIndex];
-    const existingTestDate = new Date(existing.testDate.split('/').reverse().join('-') + '-01');
-const importTestDate = new Date(testDate.split('/').reverse().join('-') + '-01');
-
-console.log(`📅 DATE COMPARISON DEBUG:`);
-console.log(`  Existing date string: "${existing.testDate}"`);
-console.log(`  Import date string: "${testDate}"`);
-console.log(`  Existing Date object: ${existingTestDate}`);
-console.log(`  Import Date object: ${importTestDate}`);
-console.log(`  Import >= Existing? ${importTestDate >= existingTestDate}`);
-console.log(`  Spend comparison: ${totalSpend} > ${existing.totalSpend}? ${totalSpend > existing.totalSpend}`);
-    
-    // Skip if exact same amounts (likely duplicate import)
-if (existing.totalSpend === totalSpend && existing.totalRevenue === totalRevenue) {
-    console.log(`⏭️ Skipping duplicate: same spend and revenue amounts`);
-} else {
-    // Replace with imported data
-    existing.totalSpend = totalSpend;
-    existing.totalRevenue = totalRevenue; 
-    existing.purchases = purchases;
-    existing.creativesCount = creativesCount;
-    existing.overallROAS = existing.totalSpend > 0 ? existing.totalRevenue / existing.totalSpend : 0;
-    existing.testDate = testDate;
-}
-    
-    // Keep existing milestones (don't reset them)
-} else {
-    
-    // Create NEW hook
-    const hookData = {
-        book: book,
-        hookName: hookName,
-        testDate: testDate,
-        totalSpend: totalSpend,
-        totalRevenue: totalRevenue,
-        purchases: purchases,
-        creativesCount: creativesCount,
-        creativeId: creativeId,
-        overallROAS: totalSpend > 0 ? totalRevenue / totalSpend : 0,
-        roasAt100: 0,
-        roasAt300: 0,
-        roasAt1000: 0,
-        roasAt3000: 0
     };
     
-    console.log(`✅ Adding new hook: ${book} - ${hookName}`);
-    hooks.push(hookData);
+    reader.readAsText(file);
+    event.target.value = '';
 }
     
     importedCount++;
