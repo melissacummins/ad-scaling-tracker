@@ -3592,8 +3592,16 @@ const existingRow = csvRows.find(r =>
     }
 }
 
+                    console.log(`📦 IMPORT DEBUG: About to process ${csvRows.length} consolidated rows`);
+csvRows.forEach((r, i) => {
+    console.log(`  Row ${i}: Book="${r.book}", Hook="${r.hookName}", Creative="${r.creativeId}"`);
+});
+                    
 // Second pass: process consolidated rows
 for (const row of csvRows) {
+    console.log(`\n🔄 Processing row: "${row.book}" - "${row.hookName}" - "${row.creativeId}"`);
+    console.log(`   Current hooks in tracker: ${hooks.length}`);
+    
     const { book, hookName, testDate, totalSpend, totalRevenue, purchases, creativesCount, creativeId } = row;
     
     // Add book if it doesn't exist
