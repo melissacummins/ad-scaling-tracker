@@ -3757,23 +3757,23 @@ MyBook,Hook1,01/2024,25,40
         }
 
         function archiveHookGroup(key) {
-            const [book, hookName] = key.split('||');
-            const groupHooks = hooks.filter(h => h.book === book && h.hookName.toLowerCase() === hookName.toLowerCase() && !h.archived);
-            
-            if (confirm(`Archive the hook "${hookName}" and all ${groupHooks.length} creative tests? They'll be hidden but still count in statistics.`)) {
-                // Mark all hooks in this group as archived
-                hooks.forEach(hook => {
-                    if (hook.book === book && hook.hookName === hookName) {
-                        hook.archived = true;
-                        hook.archivedDate = new Date().toISOString();
-                    }
-                });
-                
-                saveToLocalAndCloud();
-                renderHooks();
-                renderCreatives();
+    const [book, hookName] = key.split('||');
+    const groupHooks = hooks.filter(h => h.book === book && h.hookName.toLowerCase() === hookName.toLowerCase() && !h.archived);
+    
+    if (confirm(`Archive the hook "${hookName}" and all ${groupHooks.length} creative tests? They'll be hidden but still count in statistics.`)) {
+        // Mark all hooks in this group as archived
+        hooks.forEach(hook => {
+            if (hook.book === book && hook.hookName.toLowerCase() === hookName.toLowerCase()) {
+                hook.archived = true;
+                hook.archivedDate = new Date().toISOString();
             }
-        }
+        });
+        
+        saveToLocalAndCloud();
+        renderHooks();
+        renderCreatives();
+    }
+}
 
         function restoreHook(hookId) {
             if (confirm('Restore this hook from archive?')) {
