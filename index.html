@@ -1309,10 +1309,10 @@ if (searchInput) {
             
             // Find the hook in the array and update it
             const hookIndex = hooks.findIndex(h => 
-                h.book === selectedExistingHook.book && 
-                h.hookName === selectedExistingHook.hookName && 
-                h.creativeId === selectedExistingHook.creativeId
-            );
+    h.book === selectedExistingHook.book && 
+    h.hookName.toLowerCase() === selectedExistingHook.hookName.toLowerCase() && 
+    h.creativeId === selectedExistingHook.creativeId
+);
             
             if (hookIndex >= 0) {
                 const existingHook = hooks[hookIndex];
@@ -1769,10 +1769,10 @@ function initializeMissingMilestones() {
             // Parse the unique key to find the actual hook
             const [book, hookName, creativeId] = select.value.split('||');
             selectedExistingHook = hooks.find(h => 
-                h.book === book && 
-                h.hookName === hookName && 
-                h.creativeId === creativeId
-            );
+    h.book === book && 
+    h.hookName.toLowerCase() === hookName.toLowerCase() && 
+    h.creativeId === creativeId
+);
             
             if (!selectedExistingHook) {
                 alert('Error: Could not find the selected hook.');
@@ -2416,15 +2416,15 @@ const archivedMigrationCount = migrateArchivedData();
             }
 
             // Calculate PREVIOUS group totals BEFORE adding new hook
-            const groupHooks = hooks.filter(h => h.book === bookSelect && h.hookName === hookName);
+            const groupHooks = hooks.filter(h => h.book === bookSelect && h.hookName.toLowerCase() === hookName.toLowerCase());
             const previousGroupSpend = groupHooks.reduce((sum, h) => sum + h.totalSpend, 0);
             const previousGroupRevenue = groupHooks.reduce((sum, h) => sum + h.totalRevenue, 0);
             const previousGroupROAS = previousGroupSpend > 0 ? previousGroupRevenue / previousGroupSpend : 0;
 
             // Find existing hook with same book, hookName, and creativeId
-            const existingIndex = hooks.findIndex(h => 
-                h.book === bookSelect && h.hookName === hookName && h.creativeId === creativeId
-            );
+const existingIndex = hooks.findIndex(h => 
+    h.book === bookSelect && h.hookName.toLowerCase() === hookName.toLowerCase() && h.creativeId === creativeId
+);
 
             const hookData = {
                 book: bookSelect,
@@ -2603,7 +2603,7 @@ const archivedMigrationCount = migrateArchivedData();
             const originalHook = hooks[index];
             
             // Calculate PREVIOUS group totals BEFORE editing
-            const groupHooks = hooks.filter(h => h.book === originalHook.book && h.hookName === originalHook.hookName);
+            const groupHooks = hooks.filter(h => h.book === originalHook.book && h.hookName.toLowerCase() === originalHook.hookName.toLowerCase());
             const previousGroupSpend = groupHooks.reduce((sum, h) => sum + h.totalSpend, 0);
             const previousGroupRevenue = groupHooks.reduce((sum, h) => sum + h.totalRevenue, 0);
             const previousGroupROAS = previousGroupSpend > 0 ? previousGroupRevenue / previousGroupSpend : 0;
@@ -2920,14 +2920,15 @@ const archivedMigrationCount = migrateArchivedData();
     /// Group hooks by book + hookName (include all for accurate stats)
 const hookGroups = {};
 hooks.forEach(hook => {
-        const key = `${hook.book}||${hook.hookName}`;
+    const key = `${hook.book}||${hook.hookName.toLowerCase()}`;
         if (!hookGroups[key]) {
             hookGroups[key] = {
-                book: hook.book,
-                hookName: hook.hookName,
-                testDate: hook.testDate,
-                creatives: []
-            };
+    book: hook.book,
+    hookName: hook.hookName, // Keep original case for display
+    hookNameLower: hook.hookName.toLowerCase(), // Store lowercase for comparison
+    testDate: hook.testDate,
+    creatives: []
+};
         }
         hookGroups[key].creatives.push(hook);
         
@@ -3569,17 +3570,17 @@ for (const row of csvRows) {
     }
     
     // Calculate PREVIOUS group totals for milestone tracking
-    const groupHooks = hooks.filter(h => h.book === book && h.hookName === hookName);
+    const groupHooks = hooks.filter(h => h.book === originalHook.book && h.hookName.toLowerCase() === originalHook.hookName.toLowerCase());
     const previousGroupSpend = groupHooks.reduce((sum, h) => sum + h.totalSpend, 0);
     const previousGroupRevenue = groupHooks.reduce((sum, h) => sum + h.totalRevenue, 0);
     const previousGroupROAS = previousGroupSpend > 0 ? previousGroupRevenue / previousGroupSpend : 0;
     
     // Check if this EXACT hook already exists (by Book + Hook + Creative ID only - IGNORE DATE)
     const existingIndex = hooks.findIndex(h => 
-        h.book === book && 
-        h.hookName === hookName && 
-        h.creativeId === creativeId
-    );
+    h.book === book && 
+    h.hookName.toLowerCase() === hookName.toLowerCase() && 
+    h.creativeId === creativeId
+);
     
     if (existingIndex >= 0) {
         // FOUND EXISTING HOOK - ALWAYS CONSOLIDATE (unless exact duplicate)
@@ -3725,7 +3726,7 @@ MyBook,Hook1,01/2024,25,40
 
         function editHookGroup(key) {
             const [book, hookName] = key.split('||');
-            const groupHooks = hooks.filter(h => h.book === book && h.hookName === hookName);
+            const groupHooks = hooks.filter(h => h.book === book && h.hookName.toLowerCase() === hookName.toLowerCase());
             
             // For now, edit the first hook in the group (we can enhance this later)
             const hookIndex = hooks.indexOf(groupHooks[0]);
@@ -3734,11 +3735,11 @@ MyBook,Hook1,01/2024,25,40
 
         function deleteHookGroup(key) {
             const [book, hookName] = key.split('||');
-            const groupHooks = hooks.filter(h => h.book === book && h.hookName === hookName);
+            const groupHooks = hooks.filter(h => h.book === book && h.hookName.toLowerCase() === hookName.toLowerCase());
             
             if (confirm(`Are you sure you want to delete the hook "${hookName}" and all ${groupHooks.length} creative tests?`)) {
                 // Remove all hooks in this group
-                hooks = hooks.filter(h => !(h.book === book && h.hookName === hookName));
+                hooks = hooks.filter(h => !(h.book === book && h.hookName.toLowerCase() === hookName.toLowerCase()));
                 saveToLocalAndCloud();
                 renderHooks();
                 renderCreatives();
@@ -3757,7 +3758,7 @@ MyBook,Hook1,01/2024,25,40
 
         function archiveHookGroup(key) {
             const [book, hookName] = key.split('||');
-            const groupHooks = hooks.filter(h => h.book === book && h.hookName === hookName && !h.archived);
+            const groupHooks = hooks.filter(h => h.book === book && h.hookName.toLowerCase() === hookName.toLowerCase() && !h.archived);
             
             if (confirm(`Archive the hook "${hookName}" and all ${groupHooks.length} creative tests? They'll be hidden but still count in statistics.`)) {
                 // Mark all hooks in this group as archived
