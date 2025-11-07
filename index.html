@@ -3066,8 +3066,7 @@ if (allCreativesArchived) {
             detailRow.id = `creative-${groupIndex}-${creativeIndex}`;
 
             // Style and buttons for archived vs active creatives
-            const archivedStyle = isArchived ? 'background: #f5f5f5; opacity: 0.7;' : '';
-            const archivedBadge = isArchived ? '<span style="background: #9e9e9e; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 5px;">📦 ARCHIVED</span>' : '';
+            const archivedStyle = isArchived ? 'text-decoration: line-through; opacity: 0.6;' : '';
             const actionButtons = isArchived
                 ? `<button class="btn btn-success btn-xs" onclick='restoreHook(${JSON.stringify(creative)})'>↩️</button>
                    <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">⌫</button>`
@@ -3077,7 +3076,7 @@ if (allCreativesArchived) {
 
             detailRow.innerHTML = `
                 <td style="padding-left: 30px; ${archivedStyle}">
-                    ${isBest ? '👑 ' : ''}Creative ${creativeIndex + 1}${archivedBadge}
+                    ${isBest ? '👑 ' : ''}Creative ${creativeIndex + 1}
                 </td>
                 <td style="font-size: 12px; color: #666; ${archivedStyle}">${creative.hookName}</td>
                 <td style="${archivedStyle}">${creative.testDate}</td>
@@ -3089,7 +3088,7 @@ if (allCreativesArchived) {
                     Creative performance details
                 </td>
                 <td style="font-family: monospace; font-size: 11px; word-break: break-all; white-space: normal; ${archivedStyle}">${creative.creativeId}</td>
-                <td style="${archivedStyle}">
+                <td>
                     ${actionButtons}
                 </td>
             `;
