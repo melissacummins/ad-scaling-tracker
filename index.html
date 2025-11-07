@@ -3570,7 +3570,7 @@ for (const row of csvRows) {
     }
     
     // Calculate PREVIOUS group totals for milestone tracking
-    const groupHooks = hooks.filter(h => h.book === originalHook.book && h.hookName.toLowerCase() === originalHook.hookName.toLowerCase());
+    const groupHooks = hooks.filter(h => h.book === book && h.hookName.toLowerCase() === hookName.toLowerCase());
     const previousGroupSpend = groupHooks.reduce((sum, h) => sum + h.totalSpend, 0);
     const previousGroupRevenue = groupHooks.reduce((sum, h) => sum + h.totalRevenue, 0);
     const previousGroupROAS = previousGroupSpend > 0 ? previousGroupRevenue / previousGroupSpend : 0;
