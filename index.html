@@ -3384,6 +3384,7 @@ function filterCreativeById(creativeId) {
                 hooks.splice(index, 1);
                 saveToLocalAndCloud();
                 renderHooks();
+                applyHooksFilters();
             }
         }
 
@@ -3778,12 +3779,13 @@ MyBook,Hook1,01/2024,25,40
         function deleteHookGroup(key) {
             const [book, hookName] = key.split('||');
             const groupHooks = hooks.filter(h => h.book === book && h.hookName.toLowerCase() === hookName.toLowerCase());
-            
+
             if (confirm(`Are you sure you want to delete the hook "${hookName}" and all ${groupHooks.length} creative tests?`)) {
                 // Remove all hooks in this group
                 hooks = hooks.filter(h => !(h.book === book && h.hookName.toLowerCase() === hookName.toLowerCase()));
                 saveToLocalAndCloud();
                 renderHooks();
+                applyHooksFilters();
                 renderCreatives();
             }
         }
@@ -3794,6 +3796,7 @@ MyBook,Hook1,01/2024,25,40
                 hooks[index].archivedDate = new Date().toISOString();
                 saveToLocalAndCloud();
                 renderHooks();
+                applyHooksFilters();
                 renderCreatives();
             }
         }
@@ -3801,7 +3804,7 @@ MyBook,Hook1,01/2024,25,40
         function archiveHookGroup(key) {
     const [book, hookName] = key.split('||');
     const groupHooks = hooks.filter(h => h.book === book && h.hookName.toLowerCase() === hookName.toLowerCase() && !h.archived);
-    
+
     if (confirm(`Archive the hook "${hookName}" and all ${groupHooks.length} creative tests? They'll be hidden but still count in statistics.`)) {
         // Mark all hooks in this group as archived
         hooks.forEach(hook => {
@@ -3810,9 +3813,10 @@ MyBook,Hook1,01/2024,25,40
                 hook.archivedDate = new Date().toISOString();
             }
         });
-        
+
         saveToLocalAndCloud();
         renderHooks();
+        applyHooksFilters();
         renderCreatives();
     }
 }
@@ -3826,6 +3830,7 @@ MyBook,Hook1,01/2024,25,40
                     delete hook.archivedAsCreative;
                     saveToLocalAndCloud();
                     renderHooks();
+                    applyHooksFilters();
                     renderArchive();
                     renderCreatives();
                 }
@@ -3834,9 +3839,9 @@ MyBook,Hook1,01/2024,25,40
 
         function permanentlyDeleteHook(hookId) {
             if (confirm('PERMANENTLY delete this hook? This cannot be undone and will affect all statistics!')) {
-                const hookIndex = hooks.findIndex(h => 
-                    h.book === hookId.book && 
-                    h.hookName === hookId.hookName && 
+                const hookIndex = hooks.findIndex(h =>
+                    h.book === hookId.book &&
+                    h.hookName === hookId.hookName &&
                     h.creativeId === hookId.creativeId
                 );
                 if (hookIndex >= 0) {
@@ -3844,6 +3849,7 @@ MyBook,Hook1,01/2024,25,40
                     saveToLocalAndCloud();
                     renderArchive();
                     renderHooks();
+                    applyHooksFilters();
                     renderCreatives();
                 }
             }
@@ -3859,9 +3865,10 @@ MyBook,Hook1,01/2024,25,40
                         hook.archivedDate = new Date().toISOString();
                     }
                 });
-                
+
                 saveToLocalAndCloud();
                 renderHooks();
+                applyHooksFilters();
                 renderCreatives();
             }
         }
@@ -3876,9 +3883,10 @@ MyBook,Hook1,01/2024,25,40
                         delete hook.archivedAsCreative;
                     }
                 });
-                
+
                 saveToLocalAndCloud();
                 renderHooks();
+                applyHooksFilters();
                 renderCreatives();
                 renderArchive();
             }
@@ -3891,6 +3899,7 @@ MyBook,Hook1,01/2024,25,40
                 saveToLocalAndCloud();
                 renderArchive();
                 renderHooks();
+                applyHooksFilters();
                 renderCreatives();
             }
         }
@@ -4135,8 +4144,10 @@ if (group.allArchived) {
                     <td>$${totalRevenue.toFixed(2)}</td>
                     <td><strong class="${getRoasColorClass(overallROAS)}">${overallROAS.toFixed(2)}</strong></td>
                     <td>
-                        ${activeCount > 0 ? `<span style="color: #28a745;">✓ ${activeCount} active</span>` : ''}
-                        ${archivedCount > 0 ? `<br><span style="color: #666;">📦 ${archivedCount} archived</span>` : ''}
+                        <div style="display: flex; flex-direction: column; gap: 2px;">
+                            ${activeCount > 0 ? `<span style="color: #28a745;">✓ ${activeCount} active</span>` : ''}
+                            ${archivedCount > 0 ? `<span style="color: #666;">📦 ${archivedCount} archived</span>` : ''}
+                        </div>
                     </td>
                     <td>${bestHook ? `${bestHook.hookName.substring(0, 30)}... (${bestHook.overallROAS.toFixed(2)})` : 'N/A'}</td>
                     <td>
