@@ -1095,6 +1095,24 @@
             <!-- Hooks Archive View -->
             <div id="hooksArchiveView" class="archive-view">
                 <h3 style="margin-bottom: 15px;">Archived Hooks</h3>
+
+                <!-- Search for Archived Hooks -->
+                <div style="margin-bottom: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label for="archiveHookSearch" style="display: block; margin-bottom: 5px; font-weight: 600;">Search by Book or Hook Name</label>
+                            <input type="text" id="archiveHookSearch" placeholder="Type to search..." onkeyup="filterArchivedHooks()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                        </div>
+                        <div>
+                            <label for="archiveHookCreativeSearch" style="display: block; margin-bottom: 5px; font-weight: 600;">Search by Creative ID</label>
+                            <input type="text" id="archiveHookCreativeSearch" placeholder="Creative ID..." onkeyup="filterArchivedHooks()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                        </div>
+                        <div style="display: flex; align-items: flex-end;">
+                            <button onclick="clearArchiveHookSearch()" class="btn" style="width: 100%; padding: 8px;">Clear Search</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="table-wrapper">
                     <table class="data-table" id="archiveTable">
                         <thead>
@@ -1118,6 +1136,20 @@
             <!-- Creatives Archive View -->
             <div id="creativesArchiveView" class="archive-view" style="display: none;">
                 <h3 style="margin-bottom: 15px;">Archived Creatives</h3>
+
+                <!-- Search for Archived Creatives -->
+                <div style="margin-bottom: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                        <div>
+                            <label for="archiveCreativeSearch" style="display: block; margin-bottom: 5px; font-weight: 600;">Search by Creative ID</label>
+                            <input type="text" id="archiveCreativeSearch" placeholder="Type to search..." onkeyup="filterArchivedCreatives()" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 5px;">
+                        </div>
+                        <div style="display: flex; align-items: flex-end;">
+                            <button onclick="clearArchiveCreativeSearch()" class="btn" style="width: 100%; padding: 8px;">Clear Search</button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="table-wrapper">
                     <table class="data-table" id="creativesArchiveTable">
                         <thead>
@@ -2649,9 +2681,10 @@ const existingIndex = hooks.findIndex(h =>
             // Trigger group-level milestone tracking
             const group = { book: hookData.book, hookName: hookData.hookName, creatives: newGroupHooks };
             recordGroupMilestones(group, previousGroupSpend, previousGroupROAS, newGroupSpend, newGroupROAS);
-            
+
             saveToLocalAndCloud();
             renderHooks();
+            applyHooksFilters(); // Re-apply filters after rendering
             cancelEdit();
         }
 
@@ -3027,27 +3060,37 @@ if (allCreativesArchived) {
         group.creatives.sort((a, b) => b.overallROAS - a.overallROAS);
         group.creatives.forEach((creative, creativeIndex) => {
             const isBest = creative === bestCreative;
+            const isArchived = creative.archived;
             const detailRow = document.createElement('tr');
             detailRow.className = `creative-details ${isBest ? 'best-creative' : ''}`;
             detailRow.id = `creative-${groupIndex}-${creativeIndex}`;
+
+            // Style and buttons for archived vs active creatives
+            const archivedStyle = isArchived ? 'background: #f5f5f5; opacity: 0.7;' : '';
+            const archivedBadge = isArchived ? '<span style="background: #9e9e9e; color: white; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 5px;">📦 ARCHIVED</span>' : '';
+            const actionButtons = isArchived
+                ? `<button class="btn btn-success btn-xs" onclick='restoreHook(${JSON.stringify(creative)})'>↩️</button>
+                   <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">⌫</button>`
+                : `<button class="btn btn-info btn-xs" onclick="editHook(${hooks.indexOf(creative)})">✏️</button>
+                   <button class="btn btn-warning btn-xs" onclick="archiveHook(${hooks.indexOf(creative)})">📦</button>
+                   <button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">⌫</button>`;
+
             detailRow.innerHTML = `
-                <td style="padding-left: 30px;">
-                    ${isBest ? '👑 ' : ''}Creative ${creativeIndex + 1}
+                <td style="padding-left: 30px; ${archivedStyle}">
+                    ${isBest ? '👑 ' : ''}Creative ${creativeIndex + 1}${archivedBadge}
                 </td>
-                <td style="font-size: 12px; color: #666;">${creative.hookName}</td>
-                <td>${creative.testDate}</td>
-                <td>$${creative.totalSpend.toFixed(2)}</td>
-                <td>$${creative.totalRevenue.toFixed(2)}</td>
-                <td>${creative.purchases}</td>
-                <td><strong>${creative.overallROAS.toFixed(2)}</strong></td>
-                <td colspan="3" style="font-size: 12px; color: #666;">
+                <td style="font-size: 12px; color: #666; ${archivedStyle}">${creative.hookName}</td>
+                <td style="${archivedStyle}">${creative.testDate}</td>
+                <td style="${archivedStyle}">$${creative.totalSpend.toFixed(2)}</td>
+                <td style="${archivedStyle}">$${creative.totalRevenue.toFixed(2)}</td>
+                <td style="${archivedStyle}">${creative.purchases}</td>
+                <td style="${archivedStyle}"><strong>${creative.overallROAS.toFixed(2)}</strong></td>
+                <td colspan="3" style="font-size: 12px; color: #666; ${archivedStyle}">
                     Creative performance details
                 </td>
-                <td style="font-family: monospace; font-size: 11px; word-break: break-all; white-space: normal;">${creative.creativeId}</td>
-                <td>
-                    <button class="btn btn-info btn-xs" onclick="editHook(${hooks.indexOf(creative)})">✏️</button>
-<button class="btn btn-warning btn-xs" onclick="archiveHook(${hooks.indexOf(creative)})">📦</button>
-<button class="btn btn-danger btn-xs" onclick="deleteHook(${hooks.indexOf(creative)})">⌫</button>
+                <td style="font-family: monospace; font-size: 11px; word-break: break-all; white-space: normal; ${archivedStyle}">${creative.creativeId}</td>
+                <td style="${archivedStyle}">
+                    ${actionButtons}
                 </td>
             `;
             tbody.appendChild(detailRow);
@@ -3871,20 +3914,41 @@ MyBook,Hook1,01/2024,25,40
         function renderArchive() {
             const tbody = document.getElementById('archiveTableBody');
             if (!tbody) return;
-            
+
             tbody.innerHTML = '';
 
-            const archivedHooks = hooks.filter(h => h.archived && !h.archivedAsCreative);
+            // Get search terms
+            const searchTerm = (document.getElementById('archiveHookSearch')?.value || '').toLowerCase();
+            const creativeSearchTerm = (document.getElementById('archiveHookCreativeSearch')?.value || '').toLowerCase();
+
+            // Filter archived hooks
+            let archivedHooks = hooks.filter(h => h.archived && !h.archivedAsCreative);
+
+            // Apply search filters
+            if (searchTerm) {
+                archivedHooks = archivedHooks.filter(h =>
+                    h.book.toLowerCase().includes(searchTerm) ||
+                    h.hookName.toLowerCase().includes(searchTerm)
+                );
+            }
+            if (creativeSearchTerm) {
+                archivedHooks = archivedHooks.filter(h =>
+                    h.creativeId.toLowerCase().includes(creativeSearchTerm)
+                );
+            }
 
             if (archivedHooks.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #666;">No archived hooks yet</td></tr>';
+                const message = (searchTerm || creativeSearchTerm)
+                    ? 'No archived hooks match your search'
+                    : 'No archived hooks yet';
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 40px; color: #666;">${message}</td></tr>`;
                 return;
             }
 
             archivedHooks.forEach((hook, index) => {
                 const archivedDate = new Date(hook.archivedDate);
                 const formattedDate = archivedDate.toLocaleDateString() + ' ' + archivedDate.toLocaleTimeString();
-                
+
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td>${hook.book}</td>
@@ -3903,11 +3967,24 @@ MyBook,Hook1,01/2024,25,40
             });
         }
 
+        function filterArchivedHooks() {
+            renderArchive();
+        }
+
+        function clearArchiveHookSearch() {
+            document.getElementById('archiveHookSearch').value = '';
+            document.getElementById('archiveHookCreativeSearch').value = '';
+            renderArchive();
+        }
+
         function renderCreativesArchive() {
             const tbody = document.getElementById('creativesArchiveTableBody');
             if (!tbody) return;
-            
+
             tbody.innerHTML = '';
+
+            // Get search term
+            const searchTerm = (document.getElementById('archiveCreativeSearch')?.value || '').toLowerCase();
 
             const archivedCreativeHooks = hooks.filter(h => h.archived && h.archivedAsCreative);
 
@@ -3927,21 +4004,29 @@ MyBook,Hook1,01/2024,25,40
                     };
                 }
                 creativeGroups[hook.creativeId].hooks.push(hook);
-                
+
                 if (new Date(hook.archivedDate) < new Date(creativeGroups[hook.creativeId].firstArchivedDate)) {
                     creativeGroups[hook.creativeId].firstArchivedDate = hook.archivedDate;
                 }
             });
 
+            // Filter by search term
+            let matchCount = 0;
             Object.keys(creativeGroups).forEach(creativeId => {
+                // Apply search filter
+                if (searchTerm && !creativeId.toLowerCase().includes(searchTerm)) {
+                    return;
+                }
+
+                matchCount++;
                 const group = creativeGroups[creativeId];
                 const totalSpend = group.hooks.reduce((sum, h) => sum + h.totalSpend, 0);
                 const totalRevenue = group.hooks.reduce((sum, h) => sum + h.totalRevenue, 0);
                 const overallROAS = totalSpend > 0 ? totalRevenue / totalSpend : 0;
-                
+
                 const archivedDate = new Date(group.firstArchivedDate);
                 const formattedDate = archivedDate.toLocaleDateString() + ' ' + archivedDate.toLocaleTimeString();
-                
+
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td style="font-family: monospace; font-size: 12px; word-break: break-all; white-space: normal;">${creativeId}</td>
@@ -3958,6 +4043,20 @@ MyBook,Hook1,01/2024,25,40
                 `;
                 tbody.appendChild(row);
             });
+
+            // Show "no matches" message if search didn't match anything
+            if (matchCount === 0 && searchTerm) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: #666;">No archived creatives match your search</td></tr>';
+            }
+        }
+
+        function filterArchivedCreatives() {
+            renderCreativesArchive();
+        }
+
+        function clearArchiveCreativeSearch() {
+            document.getElementById('archiveCreativeSearch').value = '';
+            renderCreativesArchive();
         }
         
         // CREATIVE ID TRACKER FUNCTIONS
